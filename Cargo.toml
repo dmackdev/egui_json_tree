@@ -1,0 +1,11 @@
+[package]
+name = "egui_json_tree"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+egui = "0.22.0"
+serde_json = "1.0.104"
+
+[dev-dependencies]
+eframe = "0.22.0"

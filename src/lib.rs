@@ -24,14 +24,14 @@ impl<'a> JsonTree<'a> {
     }
 
     pub fn show(mut self, ui: &mut egui::Ui, expanded_paths: &mut HashSet<String>) {
-        self.show_inner(ui, expanded_paths, vec![]);
+        self.show_inner(ui, expanded_paths, &mut vec![]);
     }
 
     fn show_inner(
         &mut self,
         ui: &mut egui::Ui,
         expanded_paths: &mut HashSet<String>,
-        path: Vec<String>,
+        path: &mut Vec<String>,
     ) {
         match self.value {
             Value::Null => {
@@ -73,7 +73,7 @@ impl<'a> JsonTree<'a> {
 }
 
 fn show_expandable<'a, K, I>(
-    path: Vec<String>,
+    path: &mut Vec<String>,
     expanded_paths: &mut HashSet<String>,
     ui: &mut egui::Ui,
     prefix: &str,
@@ -100,10 +100,9 @@ fn show_expandable<'a, K, I>(
         .id_source(&path_id)
         .show(ui, |ui| {
             for (key, elem) in elem_iter {
-                let mut new_path = path.clone();
-                new_path.push(key.to_string());
+                path.push(key.to_string());
 
-                let mut add_nested_tree = |ui: &mut egui::Ui, path: Vec<String>| {
+                let mut add_nested_tree = |ui: &mut egui::Ui, path: &mut Vec<String>| {
                     ui.visuals_mut().indent_has_left_vline = true;
                     JsonTree::new(elem).prefix(format!("{key} : ")).show_inner(
                         ui,
@@ -115,16 +114,18 @@ fn show_expandable<'a, K, I>(
                 ui.visuals_mut().indent_has_left_vline = false;
 
                 if is_expandable(elem) {
-                    add_nested_tree(ui, new_path);
+                    add_nested_tree(ui, path);
                 } else {
                     let original_indent = ui.spacing().indent;
 
                     ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-                    ui.indent(new_path.clone(), |ui| add_nested_tree(ui, new_path.clone()));
+                    ui.indent(path.clone(), |ui| add_nested_tree(ui, path));
 
                     ui.spacing_mut().indent = original_indent;
                 }
+
+                path.pop();
             }
         });
 

@@ -5,15 +5,13 @@ use serde_json::Value;
 
 mod delimiters;
 
-pub struct JsonTree<'a> {
-    value: &'a Value,
+pub struct JsonTree {
     prefix: String,
 }
 
-impl<'a> JsonTree<'a> {
-    pub fn new(value: &'a Value) -> Self {
+impl JsonTree {
+    pub fn new() -> Self {
         Self {
-            value,
             prefix: "".to_string(),
         }
     }
@@ -23,8 +21,8 @@ impl<'a> JsonTree<'a> {
         self
     }
 
-    pub fn show(mut self, ui: &mut egui::Ui, expanded_paths: &mut HashSet<String>) {
-        self.show_inner(ui, expanded_paths, &mut vec![]);
+    pub fn show(mut self, ui: &mut egui::Ui, expanded_paths: &mut HashSet<String>, value: &Value) {
+        self.show_inner(ui, expanded_paths, &mut vec![], value);
     }
 
     fn show_inner(
@@ -32,8 +30,9 @@ impl<'a> JsonTree<'a> {
         ui: &mut egui::Ui,
         expanded_paths: &mut HashSet<String>,
         path: &mut Vec<String>,
+        value: &Value,
     ) {
-        match self.value {
+        match value {
             Value::Null => {
                 ui.monospace(format!("{}null", self.prefix));
             }
@@ -104,10 +103,11 @@ fn show_expandable<'a, K, I>(
 
                 let mut add_nested_tree = |ui: &mut egui::Ui, path: &mut Vec<String>| {
                     ui.visuals_mut().indent_has_left_vline = true;
-                    JsonTree::new(elem).prefix(format!("{key} : ")).show_inner(
+                    JsonTree::new().prefix(format!("{key} : ")).show_inner(
                         ui,
                         expanded_paths,
                         path,
+                        elem,
                     );
                 };
 

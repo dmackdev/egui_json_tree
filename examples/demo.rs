@@ -31,7 +31,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
-        JsonTree::new(&self.value).show(ui, &mut self.expanded_paths);
+        JsonTree::new().show(ui, &mut self.expanded_paths, &self.value);
     }
 }
 
@@ -85,7 +85,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(value).show(ui, &mut self.expanded_paths);
+                JsonTree::new().show(ui, &mut self.expanded_paths, value);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));

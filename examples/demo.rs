@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use egui::RichText;
 use egui_json_tree::JsonTree;
@@ -12,16 +12,11 @@ trait Show {
 struct Example {
     title: &'static str,
     value: Value,
-    expanded_paths: HashSet<String>,
 }
 
 impl Example {
     fn new(title: &'static str, value: Value) -> Self {
-        Self {
-            title,
-            value,
-            expanded_paths: HashSet::new(),
-        }
+        Self { title, value }
     }
 }
 
@@ -31,14 +26,13 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
-        JsonTree::new(self.title).show(ui, &mut self.expanded_paths, &self.value);
+        JsonTree::new(self.title).show(ui, &self.value);
     }
 }
 
 struct CustomExample {
     title: &'static str,
     input: String,
-    expanded_paths: HashSet<String>,
 }
 
 impl CustomExample {
@@ -46,7 +40,6 @@ impl CustomExample {
         Self {
             title,
             input: serde_json::to_string_pretty(&json!({"foo": "bar"})).unwrap(),
-            expanded_paths: HashSet::new(),
         }
     }
 }
@@ -85,7 +78,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title).show(ui, &mut self.expanded_paths, value);
+                JsonTree::new(self.title).show(ui, value);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));

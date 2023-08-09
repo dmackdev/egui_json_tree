@@ -50,102 +50,87 @@ impl JsonTree {
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
-                show_expandable(
-                    self.id,
-                    path_segments,
-                    expanded_paths,
-                    ui,
-                    &self.prefix,
-                    iter,
-                    &ARRAY_DELIMITERS,
-                );
+                self.show_expandable(path_segments, expanded_paths, ui, iter, &ARRAY_DELIMITERS);
             }
             Value::Object(obj) => {
                 let iter = obj.iter().map(|(k, v)| (format!("\"{}\"", k), v));
-                show_expandable(
-                    self.id,
-                    path_segments,
-                    expanded_paths,
-                    ui,
-                    &self.prefix,
-                    iter,
-                    &OBJECT_DELIMITERS,
-                );
+                self.show_expandable(path_segments, expanded_paths, ui, iter, &OBJECT_DELIMITERS);
             }
         };
     }
-}
 
-fn show_expandable<'a, K, I>(
-    id: Id,
-    path_segments: &mut Vec<String>,
-    expanded_paths: &mut HashSet<String>,
-    ui: &mut egui::Ui,
-    prefix: &str,
-    elem_iter: I,
-    delimiters: &Delimiters,
-) where
-    K: Display,
-    I: Iterator<Item = (K, &'a Value)>,
-{
-    let path = path_segments.join("/").to_string();
-    let was_expanded_last_frame = expanded_paths.contains(&path);
+    fn show_expandable<'a, K, I>(
+        &self,
+        path_segments: &mut Vec<String>,
+        expanded_paths: &mut HashSet<String>,
+        ui: &mut egui::Ui,
+        elem_iter: I,
+        delimiters: &Delimiters,
+    ) where
+        K: Display,
+        I: Iterator<Item = (K, &'a Value)>,
+    {
+        let path = path_segments.join("/").to_string();
+        let was_expanded_last_frame = expanded_paths.contains(&path);
 
-    let header = format!(
-        "{}{}",
-        prefix,
-        if was_expanded_last_frame {
-            delimiters.opening
-        } else {
-            delimiters.collapsed
-        }
-    );
-
-    let id_source = generate_id(id, path_segments);
-    let response = egui::CollapsingHeader::new(header)
-        .id_source(id_source)
-        .show(ui, |ui| {
-            for (key, elem) in elem_iter {
-                path_segments.push(key.to_string());
-
-                let mut add_nested_tree = |ui: &mut egui::Ui, path_segments: &mut Vec<String>| {
-                    ui.visuals_mut().indent_has_left_vline = true;
-                    JsonTree::new(generate_id(id, path_segments))
-                        .prefix(format!("{key} : "))
-                        .show_inner(ui, expanded_paths, path_segments, elem);
-                };
-
-                ui.visuals_mut().indent_has_left_vline = false;
-
-                if is_expandable(elem) {
-                    add_nested_tree(ui, path_segments);
-                } else {
-                    let original_indent = ui.spacing().indent;
-
-                    ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
-
-                    ui.indent(id_source, |ui| add_nested_tree(ui, path_segments));
-
-                    ui.spacing_mut().indent = original_indent;
-                }
-
-                path_segments.pop();
+        let header = format!(
+            "{}{}",
+            &self.prefix,
+            if was_expanded_last_frame {
+                delimiters.opening
+            } else {
+                delimiters.collapsed
             }
-        });
+        );
 
-    if was_expanded_last_frame {
-        ui.horizontal(|ui| {
-            let indent = ui.spacing().icon_width / 2.0;
-            ui.add_space(indent);
+        let id_source = generate_id(self.id, path_segments);
+        let response = egui::CollapsingHeader::new(header)
+            .id_source(id_source)
+            .show(ui, |ui| {
+                for (key, elem) in elem_iter {
+                    path_segments.push(key.to_string());
 
-            ui.monospace(delimiters.closing);
-        });
-    }
+                    let mut add_nested_tree = |ui: &mut egui::Ui| {
+                        ui.visuals_mut().indent_has_left_vline = true;
 
-    if response.fully_closed() {
-        expanded_paths.remove(&path);
-    } else {
-        expanded_paths.insert(path);
+                        JsonTree::new(generate_id(self.id, path_segments))
+                            .prefix(format!("{key} : "))
+                            .show_inner(ui, expanded_paths, path_segments, elem);
+                    };
+
+                    ui.visuals_mut().indent_has_left_vline = false;
+
+                    if is_expandable(elem) {
+                        add_nested_tree(ui);
+                    } else {
+                        let original_indent = ui.spacing().indent;
+
+                        ui.spacing_mut().indent =
+                            ui.spacing().icon_width + ui.spacing().icon_spacing;
+
+                        ui.indent(id_source, |ui| add_nested_tree(ui));
+
+                        ui.spacing_mut().indent = original_indent;
+                    }
+
+                    path_segments.pop();
+                }
+            });
+
+        if was_expanded_last_frame {
+            ui.horizontal(|ui| {
+                let indent = ui.spacing().icon_width / 2.0;
+                ui.add_space(indent);
+
+                ui.monospace(delimiters.closing);
+            });
+        }
+
+        if response.fully_closed() {
+            expanded_paths.remove(&path);
+        } else {
+            expanded_paths.insert(path);
+        }
     }
 }
 

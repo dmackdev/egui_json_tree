@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash};
+use std::hash::Hash;
 
 use delimiters::{Delimiters, ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Id, Ui};
@@ -44,11 +44,15 @@ impl JsonTree {
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
-                self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS);
+                self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS, |prefix| {
+                    format!("{prefix} : ")
+                });
             }
             Value::Object(obj) => {
-                let iter = obj.iter().map(|(k, v)| (format!("\"{}\"", k), v));
-                self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS);
+                let iter = obj.iter();
+                self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS, |prefix| {
+                    format!("\"{prefix}\" : ")
+                });
             }
         };
     }
@@ -59,8 +63,9 @@ impl JsonTree {
         ui: &mut Ui,
         elem_iter: I,
         delimiters: &Delimiters,
+        format_prefix: impl Fn(&K) -> String,
     ) where
-        K: Display,
+        K: ToString,
         I: Iterator<Item = (K, &'a Value)>,
     {
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
@@ -89,7 +94,7 @@ impl JsonTree {
                         ui.visuals_mut().indent_has_left_vline = true;
 
                         JsonTree::new(generate_id(self.id, path_segments))
-                            .prefix(format!("{key} : "))
+                            .prefix(format_prefix(&key))
                             .show_inner(ui, path_segments, elem);
                     };
 

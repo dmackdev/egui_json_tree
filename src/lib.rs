@@ -9,6 +9,7 @@ mod delimiters;
 pub struct JsonTree {
     id: Id,
     prefix: String,
+    default_open: bool,
 }
 
 impl JsonTree {
@@ -16,7 +17,13 @@ impl JsonTree {
         Self {
             id: Id::new(id),
             prefix: "".to_string(),
+            default_open: false,
         }
+    }
+
+    pub fn default_open(mut self, default_open: bool) -> Self {
+        self.default_open = default_open;
+        self
     }
 
     fn prefix(mut self, prefix: String) -> Self {
@@ -69,7 +76,7 @@ impl JsonTree {
         I: Iterator<Item = (K, &'a Value)>,
     {
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
-        let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, false);
+        let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, self.default_open);
         let is_expanded = state.is_open();
 
         let header = format!(
@@ -94,6 +101,7 @@ impl JsonTree {
                         ui.visuals_mut().indent_has_left_vline = true;
 
                         JsonTree::new(generate_id(self.id, path_segments))
+                            .default_open(self.default_open)
                             .prefix(format_prefix(&key))
                             .show_inner(ui, path_segments, elem);
                     };

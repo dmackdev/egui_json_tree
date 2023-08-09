@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use egui::RichText;
+use egui::{RichText, Ui};
 use egui_json_tree::JsonTree;
 use serde_json::{json, Value};
 
 trait Show {
     fn title(&self) -> &'static str;
-    fn show(&mut self, ui: &mut egui::Ui);
+    fn show(&mut self, ui: &mut Ui);
 }
 
 struct Example {
@@ -25,7 +25,7 @@ impl Show for Example {
         self.title
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut Ui) {
         JsonTree::new(self.title).show(ui, &self.value);
     }
 }
@@ -49,7 +49,7 @@ impl Show for CustomExample {
         self.title
     }
 
-    fn show(&mut self, ui: &mut egui::Ui) {
+    fn show(&mut self, ui: &mut Ui) {
         ui.label("Enter raw JSON in the text box to see the visualisation below.");
 
         ui.add_space(ui.spacing().item_spacing.y);

@@ -1,7 +1,7 @@
 use std::{fmt::Display, hash::Hash};
 
 use delimiters::{Delimiters, ARRAY_DELIMITERS, OBJECT_DELIMITERS};
-use egui::{collapsing_header::CollapsingState, Id};
+use egui::{collapsing_header::CollapsingState, Id, Ui};
 use serde_json::Value;
 
 mod delimiters;
@@ -24,11 +24,11 @@ impl JsonTree {
         self
     }
 
-    pub fn show(mut self, ui: &mut egui::Ui, value: &Value) {
+    pub fn show(mut self, ui: &mut Ui, value: &Value) {
         self.show_inner(ui, &mut vec![], value);
     }
 
-    fn show_inner(&mut self, ui: &mut egui::Ui, path_segments: &mut Vec<String>, value: &Value) {
+    fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
         match value {
             Value::Null => {
                 ui.monospace(format!("{}null", self.prefix));
@@ -56,7 +56,7 @@ impl JsonTree {
     fn show_expandable<'a, K, I>(
         &self,
         path_segments: &mut Vec<String>,
-        ui: &mut egui::Ui,
+        ui: &mut Ui,
         elem_iter: I,
         delimiters: &Delimiters,
     ) where
@@ -85,7 +85,7 @@ impl JsonTree {
                 for (key, elem) in elem_iter {
                     path_segments.push(key.to_string());
 
-                    let mut add_nested_tree = |ui: &mut egui::Ui| {
+                    let mut add_nested_tree = |ui: &mut Ui| {
                         ui.visuals_mut().indent_has_left_vline = true;
 
                         JsonTree::new(generate_id(self.id, path_segments))

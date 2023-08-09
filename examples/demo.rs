@@ -107,11 +107,15 @@ impl Default for DemoApp {
                 Box::new(Example::new("Array", json!([1, 2, 3]))),
                 Box::new(Example::new(
                     "Nested Arrays",
-                    json!([1, [2, 3, 4], [5, 6, 7, 8]]),
+                    json!([1, [2, 3, 4], [5, 6, [7], 8], [9, [[], 10]]]),
                 )),
                 Box::new(Example::new(
                     "Object",
                     json!({"foo": 123, "bar": "Hello world!", "baz": null}),
+                )),
+                Box::new(Example::new(
+                    "Complex Object",
+                    json!({"foo": [1, 2, [3]], "bar": { "a" : 10, "b": { "fizz": [4, 5, { "x": true }]}, "c": 21}, "baz": null}),
                 )),
                 Box::new(CustomExample::new("Custom Input")),
             ],

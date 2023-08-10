@@ -8,7 +8,7 @@ mod delimiters;
 
 pub struct JsonTree {
     id: Id,
-    prefix: Option<String>,
+    key: Option<String>,
     default_open: bool,
 }
 
@@ -16,7 +16,7 @@ impl JsonTree {
     pub fn new(id: impl Hash) -> Self {
         Self {
             id: Id::new(id),
-            prefix: None,
+            key: None,
             default_open: false,
         }
     }
@@ -26,8 +26,8 @@ impl JsonTree {
         self
     }
 
-    fn prefix(mut self, prefix: String) -> Self {
-        self.prefix = Some(prefix);
+    fn key(mut self, key: String) -> Self {
+        self.key = Some(key);
         self
     }
 
@@ -36,35 +36,31 @@ impl JsonTree {
     }
 
     fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
-        let prefix = self
-            .prefix
-            .as_ref()
-            .map(|p| p.to_string())
-            .unwrap_or_default();
+        let key = self.key.as_ref().map(|k| k.to_string()).unwrap_or_default();
 
         match value {
             Value::Null => {
-                ui.monospace(format!("{}: null", prefix));
+                ui.monospace(format!("{}: null", key));
             }
             Value::Bool(b) => {
-                ui.monospace(format!("{}: {}", prefix, b));
+                ui.monospace(format!("{}: {}", key, b));
             }
             Value::Number(n) => {
-                ui.monospace(format!("{}: {}", prefix, n));
+                ui.monospace(format!("{}: {}", key, n));
             }
             Value::String(s) => {
-                ui.monospace(format!("{}: \"{}\"", prefix, s));
+                ui.monospace(format!("{}: \"{}\"", key, s));
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
-                self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS, |prefix| {
-                    prefix.to_string()
+                self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS, |key| {
+                    key.to_string()
                 });
             }
             Value::Object(obj) => {
                 let iter = obj.iter();
-                self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS, |prefix| {
-                    format!("\"{prefix}\"")
+                self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS, |key| {
+                    format!("\"{key}\"")
                 });
             }
         };
@@ -76,7 +72,7 @@ impl JsonTree {
         ui: &mut Ui,
         elem_iter: I,
         delimiters: &Delimiters,
-        format_prefix: impl Fn(&K) -> String,
+        format_key: impl Fn(&K) -> String,
     ) where
         K: ToString,
         I: Iterator<Item = (K, &'a Value)>,
@@ -88,8 +84,8 @@ impl JsonTree {
         state
             .show_header(ui, |ui| {
                 ui.horizontal(|ui| {
-                    if let Some(prefix) = &self.prefix {
-                        ui.monospace(format!("{}:", prefix));
+                    if let Some(key) = &self.key {
+                        ui.monospace(format!("{}:", key));
                     }
                     ui.label(if is_expanded {
                         delimiters.opening
@@ -107,7 +103,7 @@ impl JsonTree {
 
                         JsonTree::new(generate_id(self.id, path_segments))
                             .default_open(self.default_open)
-                            .prefix(format_prefix(&key))
+                            .key(format_key(&key))
                             .show_inner(ui, path_segments, elem);
                     };
 

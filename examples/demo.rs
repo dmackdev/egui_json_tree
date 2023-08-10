@@ -115,7 +115,7 @@ impl Default for DemoApp {
                 )),
                 Box::new(Example::new(
                     "Complex Object",
-                    json!({"foo": [1, 2, [3]], "bar": { "a" : 10, "b": { "fizz": [4, 5, { "x": true }]}, "c": 21}, "baz": null}),
+                    json!({"foo": [1, 2, [3]], "bar": { "a" : false, "b": { "fizz": [4, 5, { "x": "Greetings!" }]}, "c": 21}, "baz": null}),
                 )),
                 Box::new(CustomExample::new("Custom Input")),
             ],

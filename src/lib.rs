@@ -1,9 +1,11 @@
 use std::hash::Hash;
 
+use color::{BOOL_COLOR, KEY_COLOR, NULL_COLOR, NUMBER_COLOR, STRING_COLOR};
 use delimiters::{Delimiters, ARRAY_DELIMITERS, OBJECT_DELIMITERS};
-use egui::{collapsing_header::CollapsingState, Id, Ui};
+use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 use serde_json::Value;
 
+mod color;
 mod delimiters;
 
 pub struct JsonTree {
@@ -36,20 +38,18 @@ impl JsonTree {
     }
 
     fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
-        let key = self.key.as_ref().map(|k| k.to_string()).unwrap_or_default();
-
         match value {
             Value::Null => {
-                ui.monospace(format!("{}: null", key));
+                show_val(ui, &self.key, "null".to_string(), NULL_COLOR);
             }
             Value::Bool(b) => {
-                ui.monospace(format!("{}: {}", key, b));
+                show_val(ui, &self.key, b.to_string(), BOOL_COLOR);
             }
             Value::Number(n) => {
-                ui.monospace(format!("{}: {}", key, n));
+                show_val(ui, &self.key, n.to_string(), NUMBER_COLOR);
             }
             Value::String(s) => {
-                ui.monospace(format!("{}: \"{}\"", key, s));
+                show_val(ui, &self.key, format!("\"{}\"", s), STRING_COLOR);
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
@@ -84,8 +84,10 @@ impl JsonTree {
         state
             .show_header(ui, |ui| {
                 ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
                     if let Some(key) = &self.key {
-                        ui.monospace(format!("{}:", key));
+                        ui.monospace(RichText::new(key).color(KEY_COLOR));
+                        ui.monospace(": ");
                     }
                     ui.label(if is_expanded {
                         delimiters.opening
@@ -143,4 +145,15 @@ fn is_expandable(value: &Value) -> bool {
 
 fn generate_id(id: Id, path: &[String]) -> Id {
     Id::new(format!("{:?}-{}", id, path.join("/")))
+}
+
+fn show_val(ui: &mut Ui, key: &Option<String>, value: String, color: Color32) {
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        if let Some(key) = key {
+            ui.monospace(RichText::new(key).color(KEY_COLOR));
+            ui.monospace(": ");
+        }
+        ui.monospace(RichText::new(value).color(color));
+    });
 }

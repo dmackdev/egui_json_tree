@@ -8,7 +8,7 @@ mod delimiters;
 
 pub struct JsonTree {
     id: Id,
-    prefix: String,
+    prefix: Option<String>,
     default_open: bool,
 }
 
@@ -16,7 +16,7 @@ impl JsonTree {
     pub fn new(id: impl Hash) -> Self {
         Self {
             id: Id::new(id),
-            prefix: "".to_string(),
+            prefix: None,
             default_open: false,
         }
     }
@@ -27,7 +27,7 @@ impl JsonTree {
     }
 
     fn prefix(mut self, prefix: String) -> Self {
-        self.prefix = prefix;
+        self.prefix = Some(prefix);
         self
     }
 
@@ -36,18 +36,24 @@ impl JsonTree {
     }
 
     fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
+        let prefix = self
+            .prefix
+            .as_ref()
+            .map(|p| p.to_string())
+            .unwrap_or_default();
+
         match value {
             Value::Null => {
-                ui.monospace(format!("{}: null", self.prefix));
+                ui.monospace(format!("{}: null", prefix));
             }
             Value::Bool(b) => {
-                ui.monospace(format!("{}: {}", self.prefix, b));
+                ui.monospace(format!("{}: {}", prefix, b));
             }
             Value::Number(n) => {
-                ui.monospace(format!("{}: {}", self.prefix, n));
+                ui.monospace(format!("{}: {}", prefix, n));
             }
             Value::String(s) => {
-                ui.monospace(format!("{}: \"{}\"", self.prefix, s));
+                ui.monospace(format!("{}: \"{}\"", prefix, s));
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
@@ -82,8 +88,8 @@ impl JsonTree {
         state
             .show_header(ui, |ui| {
                 ui.horizontal(|ui| {
-                    if !self.prefix.is_empty() {
-                        ui.monospace(format!("{}:", &self.prefix));
+                    if let Some(prefix) = &self.prefix {
+                        ui.monospace(format!("{}:", prefix));
                     }
                     ui.label(if is_expanded {
                         delimiters.opening

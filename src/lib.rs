@@ -38,27 +38,27 @@ impl JsonTree {
     fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
         match value {
             Value::Null => {
-                ui.monospace(format!("{}null", self.prefix));
+                ui.monospace(format!("{}: null", self.prefix));
             }
             Value::Bool(b) => {
-                ui.monospace(format!("{}{}", self.prefix, b));
+                ui.monospace(format!("{}: {}", self.prefix, b));
             }
             Value::Number(n) => {
-                ui.monospace(format!("{}{}", self.prefix, n));
+                ui.monospace(format!("{}: {}", self.prefix, n));
             }
             Value::String(s) => {
-                ui.monospace(format!("{}\"{}\"", self.prefix, s));
+                ui.monospace(format!("{}: \"{}\"", self.prefix, s));
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
                 self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS, |prefix| {
-                    format!("{prefix} : ")
+                    prefix.to_string()
                 });
             }
             Value::Object(obj) => {
                 let iter = obj.iter();
                 self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS, |prefix| {
-                    format!("\"{prefix}\" : ")
+                    format!("\"{prefix}\"")
                 });
             }
         };
@@ -79,19 +79,18 @@ impl JsonTree {
         let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, self.default_open);
         let is_expanded = state.is_open();
 
-        let header = format!(
-            "{}{}",
-            &self.prefix,
-            if is_expanded {
-                delimiters.opening
-            } else {
-                delimiters.collapsed
-            }
-        );
-
         state
             .show_header(ui, |ui| {
-                ui.label(header);
+                ui.horizontal(|ui| {
+                    if !self.prefix.is_empty() {
+                        ui.monospace(format!("{}:", &self.prefix));
+                    }
+                    ui.label(if is_expanded {
+                        delimiters.opening
+                    } else {
+                        delimiters.collapsed
+                    });
+                });
             })
             .body(|ui| {
                 for (key, elem) in elem_iter {

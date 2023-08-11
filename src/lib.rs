@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use color::{
-    ARRAY_IDX_COLOR, BOOL_COLOR, NULL_COLOR, NUMBER_COLOR, OBJECT_KEY_COLOR, STRING_COLOR,
-};
+use color::JsonTreeStyle;
 use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 use serde_json::Value;
@@ -14,6 +12,7 @@ pub struct JsonTree {
     id: Id,
     key: Option<String>,
     default_open: bool,
+    style: JsonTreeStyle,
 }
 
 impl JsonTree {
@@ -22,11 +21,17 @@ impl JsonTree {
             id: Id::new(id),
             key: None,
             default_open: false,
+            style: JsonTreeStyle::default(),
         }
     }
 
     pub fn default_open(mut self, default_open: bool) -> Self {
         self.default_open = default_open;
+        self
+    }
+
+    pub fn style(mut self, style: JsonTreeStyle) -> Self {
+        self.style = style;
         self
     }
 
@@ -46,20 +51,20 @@ impl JsonTree {
         value: &Value,
         parent: Option<Expandable>,
     ) {
-        let key_text = get_key_text(&self.key, parent);
+        let key_text = get_key_text(&self.key, parent, &self.style);
 
         match value {
             Value::Null => {
-                show_val(ui, key_text, "null".to_string(), NULL_COLOR);
+                show_val(ui, key_text, "null".to_string(), self.style.null_color);
             }
             Value::Bool(b) => {
-                show_val(ui, key_text, b.to_string(), BOOL_COLOR);
+                show_val(ui, key_text, b.to_string(), self.style.bool_color);
             }
             Value::Number(n) => {
-                show_val(ui, key_text, n.to_string(), NUMBER_COLOR);
+                show_val(ui, key_text, n.to_string(), self.style.number_color);
             }
             Value::String(s) => {
-                show_val(ui, key_text, format!("\"{}\"", s), STRING_COLOR);
+                show_val(ui, key_text, format!("\"{}\"", s), self.style.string_color);
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
@@ -97,7 +102,7 @@ impl JsonTree {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    if let Some(key_text) = get_key_text(&self.key, parent) {
+                    if let Some(key_text) = get_key_text(&self.key, parent, &self.style) {
                         ui.monospace(key_text);
                         ui.monospace(": ");
                     }
@@ -160,10 +165,16 @@ fn generate_id(id: Id, path: &[String]) -> Id {
     Id::new(format!("{:?}-{}", id, path.join("/")))
 }
 
-fn get_key_text(key: &Option<String>, parent: Option<Expandable>) -> Option<RichText> {
+fn get_key_text(
+    key: &Option<String>,
+    parent: Option<Expandable>,
+    style: &JsonTreeStyle,
+) -> Option<RichText> {
     match (key, parent) {
-        (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key)),
-        (Some(key), Some(Expandable::Object)) => Some(format_object_key(key)),
+        (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key, style.array_idx_color)),
+        (Some(key), Some(Expandable::Object)) => {
+            Some(format_object_key(key, style.object_key_color))
+        }
         _ => None,
     }
 }
@@ -179,12 +190,12 @@ fn show_val(ui: &mut Ui, key_text: Option<RichText>, value: String, color: Color
     });
 }
 
-fn format_object_key(key: &String) -> RichText {
-    RichText::new(format!("\"{}\"", key)).color(OBJECT_KEY_COLOR)
+fn format_object_key(key: &String, color: Color32) -> RichText {
+    RichText::new(format!("\"{}\"", key)).color(color)
 }
 
-fn format_array_idx(idx: &String) -> RichText {
-    RichText::new(idx).color(ARRAY_IDX_COLOR)
+fn format_array_idx(idx: &String, color: Color32) -> RichText {
+    RichText::new(idx).color(color)
 }
 
 #[derive(Clone, Copy)]

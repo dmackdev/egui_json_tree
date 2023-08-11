@@ -11,7 +11,7 @@ mod style;
 pub struct JsonTree {
     id: Id,
     key: Option<String>,
-    default_open: DefaultOpen,
+    expand: Expand,
     style: JsonTreeStyle,
 }
 
@@ -20,13 +20,13 @@ impl JsonTree {
         Self {
             id: Id::new(id),
             key: None,
-            default_open: DefaultOpen::All(false),
+            expand: Expand::All(false),
             style: JsonTreeStyle::default(),
         }
     }
 
-    pub fn default_open(mut self, default_open: DefaultOpen) -> Self {
-        self.default_open = default_open;
+    pub fn expand(mut self, expand: Expand) -> Self {
+        self.expand = expand;
         self
     }
 
@@ -93,9 +93,9 @@ impl JsonTree {
             Expandable::Object => &OBJECT_DELIMITERS,
         };
 
-        let default_open = match self.default_open {
-            DefaultOpen::All(b) => b,
-            DefaultOpen::Levels(num_levels_open) => (path_segments.len() as u8) <= num_levels_open,
+        let default_open = match self.expand {
+            Expand::All(b) => b,
+            Expand::Levels(num_levels_open) => (path_segments.len() as u8) <= num_levels_open,
         };
 
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
@@ -127,7 +127,7 @@ impl JsonTree {
                         ui.visuals_mut().indent_has_left_vline = true;
 
                         JsonTree::new(generate_id(self.id, path_segments))
-                            .default_open(self.default_open)
+                            .expand(self.expand)
                             .key(key.to_string())
                             .show_inner(ui, path_segments, elem, Some(expandable));
                     };
@@ -210,7 +210,7 @@ enum Expandable {
 }
 
 #[derive(Clone, Copy)]
-pub enum DefaultOpen {
+pub enum Expand {
     /// Expand all arrays and objects according to the contained `bool`.
     All(bool),
     /// Expand arrays and objects according to how many levels deep they are nested:

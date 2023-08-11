@@ -1,12 +1,12 @@
 use std::hash::Hash;
 
-use color::JsonTreeStyle;
 use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 use serde_json::Value;
+use style::JsonTreeStyle;
 
-mod color;
 mod delimiters;
+mod style;
 
 pub struct JsonTree {
     id: Id,

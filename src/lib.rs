@@ -1,7 +1,9 @@
 use std::hash::Hash;
 
-use color::{BOOL_COLOR, KEY_COLOR, NULL_COLOR, NUMBER_COLOR, STRING_COLOR};
-use delimiters::{Delimiters, ARRAY_DELIMITERS, OBJECT_DELIMITERS};
+use color::{
+    ARRAY_IDX_COLOR, BOOL_COLOR, NULL_COLOR, NUMBER_COLOR, OBJECT_KEY_COLOR, STRING_COLOR,
+};
+use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 use serde_json::Value;
 
@@ -34,34 +36,38 @@ impl JsonTree {
     }
 
     pub fn show(mut self, ui: &mut Ui, value: &Value) {
-        self.show_inner(ui, &mut vec![], value);
+        self.show_inner(ui, &mut vec![], value, None);
     }
 
-    fn show_inner(&mut self, ui: &mut Ui, path_segments: &mut Vec<String>, value: &Value) {
+    fn show_inner(
+        &mut self,
+        ui: &mut Ui,
+        path_segments: &mut Vec<String>,
+        value: &Value,
+        parent: Option<Expandable>,
+    ) {
+        let key_text = get_key_text(&self.key, parent);
+
         match value {
             Value::Null => {
-                show_val(ui, &self.key, "null".to_string(), NULL_COLOR);
+                show_val(ui, key_text, "null".to_string(), NULL_COLOR);
             }
             Value::Bool(b) => {
-                show_val(ui, &self.key, b.to_string(), BOOL_COLOR);
+                show_val(ui, key_text, b.to_string(), BOOL_COLOR);
             }
             Value::Number(n) => {
-                show_val(ui, &self.key, n.to_string(), NUMBER_COLOR);
+                show_val(ui, key_text, n.to_string(), NUMBER_COLOR);
             }
             Value::String(s) => {
-                show_val(ui, &self.key, format!("\"{}\"", s), STRING_COLOR);
+                show_val(ui, key_text, format!("\"{}\"", s), STRING_COLOR);
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
-                self.show_expandable(path_segments, ui, iter, &ARRAY_DELIMITERS, |key| {
-                    key.to_string()
-                });
+                self.show_expandable(path_segments, ui, iter, parent, Expandable::Array);
             }
             Value::Object(obj) => {
                 let iter = obj.iter();
-                self.show_expandable(path_segments, ui, iter, &OBJECT_DELIMITERS, |key| {
-                    format!("\"{key}\"")
-                });
+                self.show_expandable(path_segments, ui, iter, parent, Expandable::Object);
             }
         };
     }
@@ -71,12 +77,17 @@ impl JsonTree {
         path_segments: &mut Vec<String>,
         ui: &mut Ui,
         elem_iter: I,
-        delimiters: &Delimiters,
-        format_key: impl Fn(&K) -> String,
+        parent: Option<Expandable>,
+        expandable: Expandable,
     ) where
         K: ToString,
         I: Iterator<Item = (K, &'a Value)>,
     {
+        let delimiters = match expandable {
+            Expandable::Array => &ARRAY_DELIMITERS,
+            Expandable::Object => &OBJECT_DELIMITERS,
+        };
+
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
         let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, self.default_open);
         let is_expanded = state.is_open();
@@ -85,10 +96,12 @@ impl JsonTree {
             .show_header(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    if let Some(key) = &self.key {
-                        ui.monospace(RichText::new(key).color(KEY_COLOR));
+
+                    if let Some(key_text) = get_key_text(&self.key, parent) {
+                        ui.monospace(key_text);
                         ui.monospace(": ");
                     }
+
                     ui.label(if is_expanded {
                         delimiters.opening
                     } else {
@@ -105,8 +118,8 @@ impl JsonTree {
 
                         JsonTree::new(generate_id(self.id, path_segments))
                             .default_open(self.default_open)
-                            .key(format_key(&key))
-                            .show_inner(ui, path_segments, elem);
+                            .key(key.to_string())
+                            .show_inner(ui, path_segments, elem, Some(expandable));
                     };
 
                     ui.visuals_mut().indent_has_left_vline = false;
@@ -147,13 +160,35 @@ fn generate_id(id: Id, path: &[String]) -> Id {
     Id::new(format!("{:?}-{}", id, path.join("/")))
 }
 
-fn show_val(ui: &mut Ui, key: &Option<String>, value: String, color: Color32) {
+fn get_key_text(key: &Option<String>, parent: Option<Expandable>) -> Option<RichText> {
+    match (key, parent) {
+        (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key)),
+        (Some(key), Some(Expandable::Object)) => Some(format_object_key(key)),
+        _ => None,
+    }
+}
+
+fn show_val(ui: &mut Ui, key_text: Option<RichText>, value: String, color: Color32) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        if let Some(key) = key {
-            ui.monospace(RichText::new(key).color(KEY_COLOR));
+        if let Some(key_text) = key_text {
+            ui.monospace(key_text);
             ui.monospace(": ");
         }
         ui.monospace(RichText::new(value).color(color));
     });
+}
+
+fn format_object_key(key: &String) -> RichText {
+    RichText::new(format!("\"{}\"", key)).color(OBJECT_KEY_COLOR)
+}
+
+fn format_array_idx(idx: &String) -> RichText {
+    RichText::new(idx).color(ARRAY_IDX_COLOR)
+}
+
+#[derive(Clone, Copy)]
+enum Expandable {
+    Array,
+    Object,
 }

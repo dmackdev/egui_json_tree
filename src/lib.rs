@@ -11,7 +11,7 @@ mod style;
 pub struct JsonTree {
     id: Id,
     key: Option<String>,
-    default_open: bool,
+    default_open: DefaultOpen,
     style: JsonTreeStyle,
 }
 
@@ -20,12 +20,12 @@ impl JsonTree {
         Self {
             id: Id::new(id),
             key: None,
-            default_open: false,
+            default_open: DefaultOpen::All(false),
             style: JsonTreeStyle::default(),
         }
     }
 
-    pub fn default_open(mut self, default_open: bool) -> Self {
+    pub fn default_open(mut self, default_open: DefaultOpen) -> Self {
         self.default_open = default_open;
         self
     }
@@ -93,8 +93,13 @@ impl JsonTree {
             Expandable::Object => &OBJECT_DELIMITERS,
         };
 
+        let default_open = match self.default_open {
+            DefaultOpen::All(b) => b,
+            DefaultOpen::Levels(num_levels_open) => (path_segments.len() as u8) <= num_levels_open,
+        };
+
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
-        let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, self.default_open);
+        let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
         let is_expanded = state.is_open();
 
         state
@@ -202,4 +207,17 @@ fn format_array_idx(idx: &String, color: Color32) -> RichText {
 enum Expandable {
     Array,
     Object,
+}
+
+#[derive(Clone, Copy)]
+pub enum DefaultOpen {
+    /// Expand all arrays and objects according to the contained `bool`.
+    All(bool),
+    /// Expand arrays and objects according to how many levels deep they are nested:
+    /// - `0` would expand a top-level array/object only,
+    /// - `1` would expand any arrays/objects that are a direct element/value of a top-level array/object,
+    /// - `2` ...
+    ///
+    /// And so on.
+    Levels(u8),
 }

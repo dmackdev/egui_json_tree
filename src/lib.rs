@@ -1,4 +1,4 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::BTreeSet, hash::Hash};
 
 use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
@@ -119,7 +119,8 @@ impl JsonTree {
             InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
         };
 
-        let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
+        let id_source =
+            ui.make_persistent_id(generate_id(self.id, path_segments).with(&default_expand));
         let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
         let is_expanded = state.is_open();
 
@@ -249,9 +250,9 @@ pub enum Expand {
     SearchResults(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 enum InnerExpand {
     All(bool),
     Levels(u8),
-    Paths(HashSet<String>),
+    Paths(BTreeSet<String>),
 }

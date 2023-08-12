@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui::{RichText, Ui};
-use egui_json_tree::JsonTree;
+use egui_json_tree::{Expand, JsonTree};
 use serde_json::{json, Value};
 
 trait Show {
@@ -89,6 +89,39 @@ impl Show for CustomExample {
     }
 }
 
+struct SearchExample {
+    title: &'static str,
+    value: Value,
+    search_input: String,
+}
+
+impl SearchExample {
+    fn new(value: Value) -> Self {
+        Self {
+            title: "Search Example",
+            value,
+            search_input: "".to_string(),
+        }
+    }
+}
+
+impl Show for SearchExample {
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn show(&mut self, ui: &mut Ui) {
+        ui.label("Search:");
+        if ui.text_edit_singleline(&mut self.search_input).changed() {}
+
+        JsonTree::new(self.title).show_with_default_expand(
+            ui,
+            &self.value,
+            Expand::SearchResults(self.search_input.clone()),
+        );
+    }
+}
+
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_titles: HashMap<&'static str, bool>,
@@ -96,6 +129,8 @@ struct DemoApp {
 
 impl Default for DemoApp {
     fn default() -> Self {
+        let complex_object = json!({"foo": [1, 2, [3]], "bar": { "a" : false, "b": { "fizz": [4, 5, { "x": "Greetings!" }]}, "c": 21}, "baz": null});
+
         Self {
             examples: vec![
                 Box::new(Example::new("Null", json!(null))),
@@ -113,11 +148,9 @@ impl Default for DemoApp {
                     "Object",
                     json!({"foo": 123, "bar": "Hello world!", "baz": null}),
                 )),
-                Box::new(Example::new(
-                    "Complex Object",
-                    json!({"foo": [1, 2, [3]], "bar": { "a" : false, "b": { "fizz": [4, 5, { "x": "Greetings!" }]}, "c": 21}, "baz": null}),
-                )),
+                Box::new(Example::new("Complex Object", complex_object.clone())),
                 Box::new(CustomExample::new("Custom Input")),
+                Box::new(SearchExample::new(complex_object)),
             ],
             open_example_titles: HashMap::new(),
         }

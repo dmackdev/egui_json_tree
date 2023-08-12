@@ -1,17 +1,18 @@
-use std::hash::Hash;
+use std::{collections::HashSet, hash::Hash};
 
 use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
+use search::search;
 use serde_json::Value;
 use style::JsonTreeStyle;
 
 mod delimiters;
+mod search;
 mod style;
 
 pub struct JsonTree {
     id: Id,
     key: Option<String>,
-    expand: Expand,
     style: JsonTreeStyle,
 }
 
@@ -20,14 +21,8 @@ impl JsonTree {
         Self {
             id: Id::new(id),
             key: None,
-            expand: Expand::All(false),
             style: JsonTreeStyle::default(),
         }
-    }
-
-    pub fn expand(mut self, expand: Expand) -> Self {
-        self.expand = expand;
-        self
     }
 
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
@@ -40,8 +35,17 @@ impl JsonTree {
         self
     }
 
-    pub fn show(mut self, ui: &mut Ui, value: &Value) {
-        self.show_inner(ui, &mut vec![], value, None);
+    pub fn show(self, ui: &mut Ui, value: &Value) {
+        self.show_with_default_expand(ui, value, Expand::All(false));
+    }
+
+    pub fn show_with_default_expand(mut self, ui: &mut Ui, value: &Value, default_expand: Expand) {
+        let default_expand = match default_expand {
+            Expand::All(b) => InnerExpand::All(b),
+            Expand::Levels(l) => InnerExpand::Levels(l),
+            Expand::SearchResults(search_term) => InnerExpand::Paths(search(value, &search_term)),
+        };
+        self.show_inner(ui, &mut vec![], value, None, default_expand);
     }
 
     fn show_inner(
@@ -50,6 +54,7 @@ impl JsonTree {
         path_segments: &mut Vec<String>,
         value: &Value,
         parent: Option<Expandable>,
+        default_expand: InnerExpand,
     ) {
         let key_text = get_key_text(&self.key, parent, &self.style);
 
@@ -68,11 +73,25 @@ impl JsonTree {
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
-                self.show_expandable(path_segments, ui, iter, parent, Expandable::Array);
+                self.show_expandable(
+                    path_segments,
+                    ui,
+                    iter,
+                    parent,
+                    Expandable::Array,
+                    default_expand,
+                );
             }
             Value::Object(obj) => {
                 let iter = obj.iter();
-                self.show_expandable(path_segments, ui, iter, parent, Expandable::Object);
+                self.show_expandable(
+                    path_segments,
+                    ui,
+                    iter,
+                    parent,
+                    Expandable::Object,
+                    default_expand,
+                );
             }
         };
     }
@@ -84,6 +103,7 @@ impl JsonTree {
         elem_iter: I,
         parent: Option<Expandable>,
         expandable: Expandable,
+        default_expand: InnerExpand,
     ) where
         K: ToString,
         I: Iterator<Item = (K, &'a Value)>,
@@ -93,9 +113,10 @@ impl JsonTree {
             Expandable::Object => &OBJECT_DELIMITERS,
         };
 
-        let default_open = match self.expand {
-            Expand::All(b) => b,
-            Expand::Levels(num_levels_open) => (path_segments.len() as u8) <= num_levels_open,
+        let default_open = match &default_expand {
+            InnerExpand::All(b) => *b,
+            InnerExpand::Levels(num_levels_open) => (path_segments.len() as u8) <= *num_levels_open,
+            InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
         };
 
         let id_source = ui.make_persistent_id(generate_id(self.id, path_segments));
@@ -127,9 +148,14 @@ impl JsonTree {
                         ui.visuals_mut().indent_has_left_vline = true;
 
                         JsonTree::new(generate_id(self.id, path_segments))
-                            .expand(self.expand)
                             .key(key.to_string())
-                            .show_inner(ui, path_segments, elem, Some(expandable));
+                            .show_inner(
+                                ui,
+                                path_segments,
+                                elem,
+                                Some(expandable),
+                                default_expand.clone(),
+                            );
                     };
 
                     ui.visuals_mut().indent_has_left_vline = false;
@@ -209,7 +235,7 @@ enum Expandable {
     Object,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum Expand {
     /// Expand all arrays and objects according to the contained `bool`.
     All(bool),
@@ -220,4 +246,12 @@ pub enum Expand {
     ///
     /// And so on.
     Levels(u8),
+    SearchResults(String),
+}
+
+#[derive(Clone)]
+enum InnerExpand {
+    All(bool),
+    Levels(u8),
+    Paths(HashSet<String>),
 }

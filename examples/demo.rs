@@ -114,11 +114,9 @@ impl Show for SearchExample {
         ui.label("Search:");
         if ui.text_edit_singleline(&mut self.search_input).changed() {}
 
-        JsonTree::new(self.title).show_with_default_expand(
-            ui,
-            &self.value,
-            Expand::SearchResults(self.search_input.clone()),
-        );
+        JsonTree::new(self.title)
+            .default_expand(Expand::SearchResults(self.search_input.clone()))
+            .show(ui, &self.value);
     }
 }
 

@@ -12,17 +12,24 @@ mod style;
 
 pub struct JsonTree {
     id: Id,
-    key: Option<String>,
+    default_expand: Expand,
     style: JsonTreeStyle,
+    key: Option<String>,
 }
 
 impl JsonTree {
     pub fn new(id: impl Hash) -> Self {
         Self {
             id: Id::new(id),
-            key: None,
+            default_expand: Expand::All(false),
             style: JsonTreeStyle::default(),
+            key: None,
         }
+    }
+
+    pub fn default_expand(mut self, default_expand: Expand) -> Self {
+        self.default_expand = default_expand;
+        self
     }
 
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
@@ -35,16 +42,13 @@ impl JsonTree {
         self
     }
 
-    pub fn show(self, ui: &mut Ui, value: &Value) {
-        self.show_with_default_expand(ui, value, Expand::All(false));
-    }
-
-    pub fn show_with_default_expand(mut self, ui: &mut Ui, value: &Value, default_expand: Expand) {
-        let default_expand = match default_expand {
-            Expand::All(b) => InnerExpand::All(b),
-            Expand::Levels(l) => InnerExpand::Levels(l),
-            Expand::SearchResults(search_term) => InnerExpand::Paths(search(value, &search_term)),
+    pub fn show(mut self, ui: &mut Ui, value: &Value) {
+        let default_expand = match &self.default_expand {
+            Expand::All(b) => InnerExpand::All(*b),
+            Expand::Levels(l) => InnerExpand::Levels(*l),
+            Expand::SearchResults(search_term) => InnerExpand::Paths(search(value, search_term)),
         };
+
         self.show_inner(ui, &mut vec![], value, None, default_expand);
     }
 

@@ -259,6 +259,8 @@ impl JsonTree {
         }
     }
 
+    /// Resets expanded state of all arrays/objects to respect the `default_expand` value.
+    // TODO: This can only be called after `show` is called, as this populates the `collapsing_state_ids`. Revisit?
     pub fn reset_expanded(&self, ui: &mut Ui) {
         for id in self.collapsing_state_ids.iter() {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {

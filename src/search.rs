@@ -5,7 +5,7 @@ use serde_json::Value;
 pub fn search(value: &Value, search_term: &String) -> BTreeSet<String> {
     let mut matching_paths = BTreeSet::new();
 
-    if !search_term.is_empty() {
+    if is_valid_search_term(search_term) {
         search_impl(value, search_term, &mut vec![], &mut matching_paths);
     }
 
@@ -67,4 +67,8 @@ fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut BTreeSet
         path_str = path_segments[0..i].join("/").to_string();
         matching_paths.insert(path_str);
     }
+}
+
+pub fn is_valid_search_term(search_term: &String) -> bool {
+    !search_term.is_empty()
 }

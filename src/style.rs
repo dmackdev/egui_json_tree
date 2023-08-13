@@ -7,6 +7,7 @@ pub struct JsonTreeStyle {
     pub bool_color: Color32,
     pub number_color: Color32,
     pub string_color: Color32,
+    pub highlight_color: Color32,
 }
 
 impl Default for JsonTreeStyle {
@@ -18,6 +19,7 @@ impl Default for JsonTreeStyle {
             bool_color: Color32::from_rgb(103, 154, 209),
             number_color: Color32::from_rgb(181, 199, 166),
             string_color: Color32::from_rgb(194, 146, 122),
+            highlight_color: Color32::from_rgba_premultiplied(72, 72, 72, 50),
         }
     }
 }

@@ -1,8 +1,11 @@
-use std::{collections::BTreeSet, hash::Hash};
+use std::{
+    collections::{BTreeSet, VecDeque},
+    hash::Hash,
+};
 
 use delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
-use search::search;
+use search::{is_valid_search_term, search};
 use serde_json::Value;
 use style::JsonTreeStyle;
 
@@ -43,13 +46,16 @@ impl JsonTree {
     }
 
     pub fn show(mut self, ui: &mut Ui, value: &Value) {
-        let default_expand = match &self.default_expand {
-            Expand::All(b) => InnerExpand::All(*b),
-            Expand::Levels(l) => InnerExpand::Levels(*l),
-            Expand::SearchResults(search_term) => InnerExpand::Paths(search(value, search_term)),
+        let (default_expand, search_term) = match &self.default_expand {
+            Expand::All(b) => (InnerExpand::All(*b), None),
+            Expand::Levels(l) => (InnerExpand::Levels(*l), None),
+            Expand::SearchResults(search_term) => (
+                InnerExpand::Paths(search(value, search_term)),
+                (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
+            ),
         };
 
-        self.show_inner(ui, &mut vec![], value, None, default_expand);
+        self.show_inner(ui, &mut vec![], value, None, default_expand, &search_term);
     }
 
     fn show_inner(
@@ -59,21 +65,50 @@ impl JsonTree {
         value: &Value,
         parent: Option<Expandable>,
         default_expand: InnerExpand,
+        search_term: &Option<String>,
     ) {
-        let key_text = get_key_text(&self.key, parent, &self.style);
+        let key_text = get_key_text(&self.key, parent, &self.style, search_term);
 
         match value {
             Value::Null => {
-                show_val(ui, key_text, "null".to_string(), self.style.null_color);
+                show_val(
+                    ui,
+                    key_text,
+                    "null".to_string(),
+                    self.style.null_color,
+                    search_term,
+                    self.style.highlight_color,
+                );
             }
             Value::Bool(b) => {
-                show_val(ui, key_text, b.to_string(), self.style.bool_color);
+                show_val(
+                    ui,
+                    key_text,
+                    b.to_string(),
+                    self.style.bool_color,
+                    search_term,
+                    self.style.highlight_color,
+                );
             }
             Value::Number(n) => {
-                show_val(ui, key_text, n.to_string(), self.style.number_color);
+                show_val(
+                    ui,
+                    key_text,
+                    n.to_string(),
+                    self.style.number_color,
+                    search_term,
+                    self.style.highlight_color,
+                );
             }
             Value::String(s) => {
-                show_val(ui, key_text, format!("\"{}\"", s), self.style.string_color);
+                show_val(
+                    ui,
+                    key_text,
+                    format!("\"{}\"", s),
+                    self.style.string_color,
+                    search_term,
+                    self.style.highlight_color,
+                );
             }
             Value::Array(arr) => {
                 let iter = arr.iter().enumerate();
@@ -84,6 +119,7 @@ impl JsonTree {
                     parent,
                     Expandable::Array,
                     default_expand,
+                    search_term,
                 );
             }
             Value::Object(obj) => {
@@ -95,11 +131,13 @@ impl JsonTree {
                     parent,
                     Expandable::Object,
                     default_expand,
+                    search_term,
                 );
             }
         };
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_expandable<'a, K, I>(
         &self,
         path_segments: &mut Vec<String>,
@@ -108,6 +146,7 @@ impl JsonTree {
         parent: Option<Expandable>,
         expandable: Expandable,
         default_expand: InnerExpand,
+        search_term: &Option<String>,
     ) where
         K: ToString,
         I: Iterator<Item = (K, &'a Value)>,
@@ -133,8 +172,12 @@ impl JsonTree {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    if let Some(key_text) = get_key_text(&self.key, parent, &self.style) {
-                        ui.monospace(key_text);
+                    if let Some(key_texts) =
+                        get_key_text(&self.key, parent, &self.style, search_term)
+                    {
+                        for key_text in key_texts {
+                            ui.monospace(key_text);
+                        }
                         ui.monospace(": ");
                     }
 
@@ -160,6 +203,7 @@ impl JsonTree {
                                 elem,
                                 Some(expandable),
                                 default_expand.clone(),
+                                search_term,
                             );
                     };
 
@@ -205,33 +249,77 @@ fn get_key_text(
     key: &Option<String>,
     parent: Option<Expandable>,
     style: &JsonTreeStyle,
-) -> Option<RichText> {
+    search_term: &Option<String>,
+) -> Option<Vec<RichText>> {
     match (key, parent) {
         (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key, style.array_idx_color)),
-        (Some(key), Some(Expandable::Object)) => {
-            Some(format_object_key(key, style.object_key_color))
-        }
+        (Some(key), Some(Expandable::Object)) => Some(format_object_key(
+            key,
+            style.object_key_color,
+            search_term,
+            style.highlight_color,
+        )),
         _ => None,
     }
 }
 
-fn show_val(ui: &mut Ui, key_text: Option<RichText>, value: String, color: Color32) {
+fn show_val(
+    ui: &mut Ui,
+    key_texts: Option<Vec<RichText>>,
+    value: String,
+    color: Color32,
+    search_term: &Option<String>,
+    highlight_color: Color32,
+) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        if let Some(key_text) = key_text {
-            ui.monospace(key_text);
+        if let Some(key_texts) = key_texts {
+            for key_text in key_texts {
+                ui.monospace(key_text);
+            }
             ui.monospace(": ");
         }
-        ui.monospace(RichText::new(value).color(color));
+
+        for text in get_highlighted_texts(&value, color, search_term, highlight_color) {
+            ui.monospace(text);
+        }
     });
 }
 
-fn format_object_key(key: &String, color: Color32) -> RichText {
-    RichText::new(format!("\"{}\"", key)).color(color)
+fn format_object_key(
+    key: &String,
+    color: Color32,
+    search_term: &Option<String>,
+    highlight_color: Color32,
+) -> Vec<RichText> {
+    let mut texts = get_highlighted_texts(key, color, search_term, highlight_color);
+    texts.push_front(RichText::new("\"").color(color));
+    texts.push_back(RichText::new("\"").color(color));
+    texts.into()
 }
 
-fn format_array_idx(idx: &String, color: Color32) -> RichText {
-    RichText::new(idx).color(color)
+fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
+    vec![RichText::new(idx).color(color)]
+}
+
+fn get_highlighted_texts(
+    text: &String,
+    text_color: Color32,
+    search_term: &Option<String>,
+    highlight_color: Color32,
+) -> VecDeque<RichText> {
+    if let Some(highlight) = search_term {
+        if let Some((idx, _)) = text.match_indices(highlight).next() {
+            return VecDeque::from_iter([
+                RichText::new(&text[..idx]).color(text_color),
+                RichText::new(&text[idx..idx + highlight.len()])
+                    .color(text_color)
+                    .background_color(highlight_color),
+                RichText::new(&text[idx + highlight.len()..]).color(text_color),
+            ]);
+        }
+    }
+    VecDeque::from_iter([RichText::new(text).color(text_color)])
 }
 
 #[derive(Clone, Copy)]

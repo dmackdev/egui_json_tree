@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{RichText, Ui};
+use eframe::egui::{RichText, Ui};
 use egui_json_tree::{Expand, JsonTree};
 use serde_json::{json, Value};
 
@@ -112,11 +112,31 @@ impl Show for SearchExample {
 
     fn show(&mut self, ui: &mut Ui) {
         ui.label("Search:");
-        if ui.text_edit_singleline(&mut self.search_input).changed() {}
 
-        JsonTree::new(self.title)
-            .default_expand(Expand::SearchResults(self.search_input.clone()))
-            .show(ui, &self.value);
+        let mut tree = JsonTree::new(self.title)
+            .default_expand(Expand::SearchResults(self.search_input.clone()));
+
+        let (text_edit_response, clear_button_response) = ui
+            .horizontal(|ui| {
+                let text_edit_response = ui.text_edit_singleline(&mut self.search_input);
+                let clear_button_response = ui.button("Clear");
+                (text_edit_response, clear_button_response)
+            })
+            .inner;
+
+        tree.show(ui, &self.value);
+
+        if text_edit_response.changed() {
+            tree.reset_expanded(ui);
+        }
+
+        if clear_button_response.clicked() {
+            self.search_input.clear();
+        }
+
+        if ui.button("Reset expanded").clicked() {
+            tree.reset_expanded(ui);
+        }
     }
 }
 

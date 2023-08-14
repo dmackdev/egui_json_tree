@@ -372,6 +372,8 @@ pub enum Expand {
     ///
     /// And so on.
     Levels(u8),
+    /// Expand arrays and objects to display object keys and values,
+    /// and array elements, that match the search term.
     SearchResults(String),
 }
 

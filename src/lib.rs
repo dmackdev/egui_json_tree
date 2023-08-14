@@ -11,7 +11,7 @@ use style::JsonTreeStyle;
 
 mod delimiters;
 mod search;
-mod style;
+pub mod style;
 
 pub struct JsonTree {
     id: Id,
@@ -25,18 +25,21 @@ impl JsonTree {
     pub fn new(id: impl Hash) -> Self {
         Self {
             id: Id::new(id),
-            default_expand: Expand::All(false),
+            default_expand: Expand::None,
             style: JsonTreeStyle::default(),
             key: None,
             collapsing_state_ids: HashSet::new(),
         }
     }
 
+    /// Set how arrays/objects should be expanded by default.
+    /// The default behaviour is to collapse all arrays/objects.
     pub fn default_expand(mut self, default_expand: Expand) -> Self {
         self.default_expand = default_expand;
         self
     }
 
+    /// Override colors.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
         self.style = style;
         self
@@ -47,10 +50,12 @@ impl JsonTree {
         self
     }
 
+    /// Show the `serde_json::Value` within the `Ui`.
     pub fn show(&mut self, ui: &mut Ui, value: &Value) {
         let (default_expand, search_term) = match &self.default_expand {
-            Expand::All(b) => (InnerExpand::All(*b), None),
-            Expand::Levels(l) => (InnerExpand::Levels(*l), None),
+            Expand::All => (InnerExpand::All, None),
+            Expand::None => (InnerExpand::None, None),
+            Expand::ToLevel(l) => (InnerExpand::ToLevel(*l), None),
             Expand::SearchResults(search_term) => (
                 InnerExpand::Paths(search(value, search_term)),
                 (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
@@ -176,8 +181,11 @@ impl JsonTree {
         };
 
         let default_open = match &default_expand {
-            InnerExpand::All(b) => *b,
-            InnerExpand::Levels(num_levels_open) => (path_segments.len() as u8) <= *num_levels_open,
+            InnerExpand::All => true,
+            InnerExpand::None => false,
+            InnerExpand::ToLevel(num_levels_open) => {
+                (path_segments.len() as u8) <= *num_levels_open
+            }
             InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
         };
 
@@ -260,7 +268,8 @@ impl JsonTree {
     }
 
     /// Resets expanded state of all arrays/objects to respect the `default_expand` value.
-    // TODO: This can only be called after `show` is called, as this populates the `collapsing_state_ids`. Revisit?
+    ///
+    /// Must be called after [`JsonTree::show`].
     pub fn reset_expanded(&self, ui: &mut Ui) {
         for id in self.collapsing_state_ids.iter() {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
@@ -362,24 +371,28 @@ enum Expandable {
 }
 
 #[derive(Clone)]
+/// Configuration for how a `JsonTree` should expand arrays and objects by default.
 pub enum Expand {
-    /// Expand all arrays and objects according to the contained `bool`.
-    All(bool),
+    /// Expand all arrays and objects.
+    All,
+    /// Collapse all arrays and objects.
+    None,
     /// Expand arrays and objects according to how many levels deep they are nested:
     /// - `0` would expand a top-level array/object only,
-    /// - `1` would expand any arrays/objects that are a direct element/value of a top-level array/object,
+    /// - `1` would expand a top-level array/object and any array/object that is a direct child,
     /// - `2` ...
     ///
     /// And so on.
-    Levels(u8),
+    ToLevel(u8),
     /// Expand arrays and objects to display object keys and values,
-    /// and array elements, that match the search term.
+    /// and array elements, that match the search term. The matches are highlighted.
     SearchResults(String),
 }
 
 #[derive(Clone, Hash)]
 enum InnerExpand {
-    All(bool),
-    Levels(u8),
+    All,
+    None,
+    ToLevel(u8),
     Paths(BTreeSet<String>),
 }

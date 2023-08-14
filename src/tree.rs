@@ -10,18 +10,20 @@ use crate::delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use crate::search::{is_valid_search_term, search};
 use crate::style::JsonTreeStyle;
 
-pub struct JsonTree {
+pub struct JsonTree<'a> {
     id: Id,
+    value: &'a Value,
     default_expand: Expand,
     style: JsonTreeStyle,
     key: Option<String>,
     collapsing_state_ids: HashSet<Id>,
 }
 
-impl JsonTree {
-    pub fn new(id: impl Hash) -> Self {
+impl<'a> JsonTree<'a> {
+    pub fn new(id: impl Hash, value: &'a Value) -> Self {
         Self {
             id: Id::new(id),
+            value,
             default_expand: Expand::None,
             style: JsonTreeStyle::default(),
             key: None,
@@ -47,14 +49,14 @@ impl JsonTree {
         self
     }
 
-    /// Show the `serde_json::Value` within the `Ui`.
-    pub fn show(&mut self, ui: &mut Ui, value: &Value) {
+    /// Show the JSON tree visualisation within the `Ui`.
+    pub fn show(&mut self, ui: &mut Ui) {
         let (default_expand, search_term) = match &self.default_expand {
             Expand::All => (InnerExpand::All, None),
             Expand::None => (InnerExpand::None, None),
             Expand::ToLevel(l) => (InnerExpand::ToLevel(*l), None),
             Expand::SearchResults(search_term) => (
-                InnerExpand::Paths(search(value, search_term)),
+                InnerExpand::Paths(search(self.value, search_term)),
                 (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
             ),
         };
@@ -64,7 +66,6 @@ impl JsonTree {
         self.show_inner(
             ui,
             &mut vec![],
-            value,
             None,
             &default_expand,
             &search_term,
@@ -74,12 +75,10 @@ impl JsonTree {
         self.collapsing_state_ids = collapsing_state_ids;
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn show_inner(
         &self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
-        value: &Value,
         parent: Option<Expandable>,
         default_expand: &InnerExpand,
         search_term: &Option<String>,
@@ -87,7 +86,7 @@ impl JsonTree {
     ) {
         let key_text = get_key_text(&self.key, parent, &self.style, search_term);
 
-        match value {
+        match self.value {
             Value::Null => {
                 show_val(
                     ui,
@@ -158,7 +157,7 @@ impl JsonTree {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn show_expandable<'a, K, I>(
+    fn show_expandable<K, I>(
         &self,
         path_segments: &mut Vec<String>,
         ui: &mut Ui,
@@ -222,12 +221,11 @@ impl JsonTree {
                     let mut add_nested_tree = |ui: &mut Ui| {
                         ui.visuals_mut().indent_has_left_vline = true;
 
-                        JsonTree::new(generate_id(self.id, path_segments))
+                        JsonTree::new(generate_id(self.id, path_segments), elem)
                             .key(key.to_string())
                             .show_inner(
                                 ui,
                                 path_segments,
-                                elem,
                                 Some(expandable),
                                 default_expand,
                                 search_term,

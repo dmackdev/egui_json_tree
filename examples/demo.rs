@@ -26,7 +26,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title).show(ui, &self.value);
+        JsonTree::new(self.title, &self.value).show(ui);
     }
 }
 
@@ -78,7 +78,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title).show(ui, value);
+                JsonTree::new(self.title, value).show(ui);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -113,7 +113,7 @@ impl Show for SearchExample {
     fn show(&mut self, ui: &mut Ui) {
         ui.label("Search:");
 
-        let mut tree = JsonTree::new(self.title)
+        let mut tree = JsonTree::new(self.title, &self.value)
             .default_expand(Expand::SearchResults(self.search_input.clone()));
 
         let (text_edit_response, clear_button_response) = ui
@@ -124,7 +124,7 @@ impl Show for SearchExample {
             })
             .inner;
 
-        tree.show(ui, &self.value);
+        tree.show(ui);
 
         if text_edit_response.changed() {
             tree.reset_expanded(ui);

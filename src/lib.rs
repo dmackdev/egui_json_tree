@@ -64,7 +64,7 @@ impl JsonTree {
             &mut vec![],
             value,
             None,
-            default_expand,
+            &default_expand,
             &search_term,
             &mut collapsing_state_ids,
         );
@@ -79,7 +79,7 @@ impl JsonTree {
         path_segments: &mut Vec<String>,
         value: &Value,
         parent: Option<Expandable>,
-        default_expand: InnerExpand,
+        default_expand: &InnerExpand,
         search_term: &Option<String>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) {
@@ -163,7 +163,7 @@ impl JsonTree {
         elem_iter: I,
         parent: Option<Expandable>,
         expandable: Expandable,
-        default_expand: InnerExpand,
+        default_expand: &InnerExpand,
         search_term: &Option<String>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) where
@@ -182,7 +182,7 @@ impl JsonTree {
         };
 
         let id_source =
-            ui.make_persistent_id(generate_id(self.id, path_segments).with(&default_expand));
+            ui.make_persistent_id(generate_id(self.id, path_segments).with(default_expand));
 
         collapsing_state_ids.insert(id_source);
 
@@ -224,7 +224,7 @@ impl JsonTree {
                                 path_segments,
                                 elem,
                                 Some(expandable),
-                                default_expand.clone(),
+                                default_expand,
                                 search_term,
                                 collapsing_state_ids,
                             );

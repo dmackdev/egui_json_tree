@@ -3,7 +3,7 @@ name = "egui_json_tree"
 version = "0.1.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
 edition = "2021"
-description = "A JSON tree visualiser widget for egui."
+description = "A JSON tree visualiser for egui."
 repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT"
 

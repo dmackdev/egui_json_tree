@@ -3,13 +3,13 @@ name = "egui_json_tree"
 version = "0.1.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
 edition = "2021"
-description = "A JSON tree visualiser widget for egui."
+description = "A JSON tree visualiser for egui."
 repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT"
 
 [dependencies]
-egui = "0.22.0"
+egui = { git = "https://github.com/dmackdev/egui.git", rev = "0fe7161" }
 serde_json = "1.0.104"
 
 [dev-dependencies]
-eframe = "0.22.0"
+eframe = { git = "https://github.com/dmackdev/egui.git", rev = "0fe7161" }

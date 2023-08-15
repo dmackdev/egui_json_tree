@@ -10,6 +10,22 @@ use crate::delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use crate::search::{is_valid_search_term, search};
 use crate::style::JsonTreeStyle;
 
+///
+/// ```
+/// use egui_json_tree::{JsonTree, Expand};
+///
+/// # egui::__run_test_ui(|ui| {
+/// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
+/// let mut tree = JsonTree::new("globally-unique-id", &value).default_expand(Expand::All);
+///
+/// // Show the JSON tree:
+/// tree.show(ui);
+///
+/// // Reset which arrays and objects are expanded to respect the `default_expand` setting.
+/// // In this case, this will expand all arrays and objects again, if a user had collapsed any manually.
+/// tree.reset_expanded(ui);
+/// # });
+/// ```
 pub struct JsonTree<'a> {
     id: Id,
     value: &'a Value,
@@ -20,6 +36,8 @@ pub struct JsonTree<'a> {
 }
 
 impl<'a> JsonTree<'a> {
+    /// Creates a new [`JsonTree`].
+    /// `id` must be a globally unique identifier.
     pub fn new(id: impl Hash, value: &'a Value) -> Self {
         Self {
             id: Id::new(id),
@@ -38,7 +56,7 @@ impl<'a> JsonTree<'a> {
         self
     }
 
-    /// Override colors.
+    /// Override colors for JSON syntax highlighting, and search match highlighting.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
         self.style = style;
         self

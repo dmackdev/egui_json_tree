@@ -2,7 +2,8 @@
 
 mod delimiters;
 mod search;
+mod style;
 mod tree;
 
-pub mod style;
+pub use style::JsonTreeStyle;
 pub use tree::*;

@@ -85,7 +85,7 @@ impl<'a> JsonTree<'a> {
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            self.show_inner(
+            self.show_impl(
                 ui,
                 &mut vec![],
                 None,
@@ -98,7 +98,7 @@ impl<'a> JsonTree<'a> {
         self.collapsing_state_ids = collapsing_state_ids;
     }
 
-    fn show_inner(
+    fn show_impl(
         &self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
@@ -246,7 +246,7 @@ impl<'a> JsonTree<'a> {
 
                         JsonTree::new(generate_id(self.id, path_segments), elem)
                             .key(key.to_string())
-                            .show_inner(
+                            .show_impl(
                                 ui,
                                 path_segments,
                                 Some(expandable),

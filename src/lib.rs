@@ -1,4 +1,4 @@
-//! A JSON tree visualiser for egui.
+//! An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
 
 mod delimiters;
 mod search;

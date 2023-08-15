@@ -10,7 +10,7 @@ use crate::delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
 use crate::search::{is_valid_search_term, search};
 use crate::style::JsonTreeStyle;
 
-///
+/// An interactive JSON tree visualiser which will render a provided [`serde_json::Value`].
 /// ```
 /// use egui_json_tree::{JsonTree, Expand};
 ///
@@ -22,7 +22,8 @@ use crate::style::JsonTreeStyle;
 /// tree.show(ui);
 ///
 /// // Reset which arrays and objects are expanded to respect the `default_expand` setting.
-/// // In this case, this will expand all arrays and objects again, if a user had collapsed any manually.
+/// // In this case, this will expand all arrays and objects again,
+/// // if a user had collapsed any manually.
 /// tree.reset_expanded(ui);
 /// # });
 /// ```

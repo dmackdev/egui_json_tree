@@ -82,14 +82,18 @@ impl<'a> JsonTree<'a> {
 
         let mut collapsing_state_ids = HashSet::new();
 
-        self.show_inner(
-            ui,
-            &mut vec![],
-            None,
-            &default_expand,
-            &search_term,
-            &mut collapsing_state_ids,
-        );
+        // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
+        // which does not allow indent layouts as direct children.
+        ui.vertical(|ui| {
+            self.show_inner(
+                ui,
+                &mut vec![],
+                None,
+                &default_expand,
+                &search_term,
+                &mut collapsing_state_ids,
+            );
+        });
 
         self.collapsing_state_ids = collapsing_state_ids;
     }

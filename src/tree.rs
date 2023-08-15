@@ -16,15 +16,15 @@ use crate::style::JsonTreeStyle;
 ///
 /// # egui::__run_test_ui(|ui| {
 /// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
-/// let mut tree = JsonTree::new("globally-unique-id", &value).default_expand(Expand::All);
+/// let tree = JsonTree::new("globally-unique-id", &value).default_expand(Expand::All);
 ///
 /// // Show the JSON tree:
-/// tree.show(ui);
+/// let response = tree.show(ui);
 ///
 /// // Reset which arrays and objects are expanded to respect the `default_expand` setting.
 /// // In this case, this will expand all arrays and objects again,
 /// // if a user had collapsed any manually.
-/// tree.reset_expanded(ui);
+/// response.reset_expanded(ui);
 /// # });
 /// ```
 pub struct JsonTree<'a> {
@@ -34,7 +34,6 @@ pub struct JsonTree<'a> {
     search_term: Option<String>,
     style: JsonTreeStyle,
     key: Option<String>,
-    collapsing_state_ids: HashSet<Id>,
 }
 
 impl<'a> JsonTree<'a> {
@@ -48,7 +47,6 @@ impl<'a> JsonTree<'a> {
             search_term: None,
             style: JsonTreeStyle::default(),
             key: None,
-            collapsing_state_ids: HashSet::new(),
         }
     }
 
@@ -76,7 +74,7 @@ impl<'a> JsonTree<'a> {
     }
 
     /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(&mut self, ui: &mut Ui) {
+    pub fn show(&self, ui: &mut Ui) -> JsonTreeResponse {
         let mut collapsing_state_ids = HashSet::new();
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
@@ -85,7 +83,9 @@ impl<'a> JsonTree<'a> {
             self.show_impl(ui, &mut vec![], None, &mut collapsing_state_ids);
         });
 
-        self.collapsing_state_ids = collapsing_state_ids;
+        JsonTreeResponse {
+            collapsing_state_ids,
+        }
     }
 
     fn show_impl(
@@ -232,7 +232,6 @@ impl<'a> JsonTree<'a> {
                             search_term: self.search_term.clone(),
                             style: self.style.clone(),
                             key: Some(key.to_string()),
-                            collapsing_state_ids: HashSet::new(),
                         };
 
                         nested_tree.show_impl(
@@ -269,17 +268,6 @@ impl<'a> JsonTree<'a> {
 
                 ui.monospace(delimiters.closing);
             });
-        }
-    }
-
-    /// Resets expanded state of all arrays/objects to respect the `default_expand` value.
-    ///
-    /// Must be called after [`JsonTree::show`].
-    pub fn reset_expanded(&self, ui: &mut Ui) {
-        for id in self.collapsing_state_ids.iter() {
-            if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
-                state.remove(ui.ctx());
-            }
         }
     }
 }
@@ -400,4 +388,23 @@ enum InnerExpand {
     None,
     ToLevel(u8),
     Paths(BTreeSet<String>),
+}
+
+/// The response from showing a [`JsonTree`].
+pub struct JsonTreeResponse {
+    // TODO: Add me.
+    // pub response: Response,
+    collapsing_state_ids: HashSet<Id>,
+}
+
+impl JsonTreeResponse {
+    /// For the [`JsonTree`] that provided this response,
+    /// resets the expanded state for all of its arrays/objects to respect its `default_expand` setting.
+    pub fn reset_expanded(&self, ui: &mut Ui) {
+        for id in self.collapsing_state_ids.iter() {
+            if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
+                state.remove(ui.ctx());
+            }
+        }
+    }
 }

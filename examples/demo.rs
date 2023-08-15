@@ -113,7 +113,7 @@ impl Show for SearchExample {
     fn show(&mut self, ui: &mut Ui) {
         ui.label("Search:");
 
-        let mut tree = JsonTree::new(self.title, &self.value)
+        let tree = JsonTree::new(self.title, &self.value)
             .default_expand(Expand::SearchResults(self.search_input.clone()));
 
         let (text_edit_response, clear_button_response) = ui
@@ -124,10 +124,10 @@ impl Show for SearchExample {
             })
             .inner;
 
-        tree.show(ui);
+        let response = tree.show(ui);
 
         if text_edit_response.changed() {
-            tree.reset_expanded(ui);
+            response.reset_expanded(ui);
         }
 
         if clear_button_response.clicked() {
@@ -135,7 +135,7 @@ impl Show for SearchExample {
         }
 
         if ui.button("Reset expanded").clicked() {
-            tree.reset_expanded(ui);
+            response.reset_expanded(ui);
         }
     }
 }

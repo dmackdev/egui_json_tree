@@ -6,9 +6,11 @@ use std::{
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 use serde_json::Value;
 
-use crate::delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS};
-use crate::search::{is_valid_search_term, search};
-use crate::style::JsonTreeStyle;
+use crate::{
+    delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    search::SearchTerm,
+    style::JsonTreeStyle,
+};
 
 /// An interactive JSON tree visualiser which will render a provided [`serde_json::Value`].
 /// ```
@@ -31,7 +33,7 @@ pub struct JsonTree<'a> {
     id: Id,
     value: &'a Value,
     default_expand: InnerExpand,
-    search_term: Option<String>,
+    search_term: Option<SearchTerm>,
     style: JsonTreeStyle,
     key: Option<String>,
 }
@@ -53,14 +55,18 @@ impl<'a> JsonTree<'a> {
     /// Set how arrays/objects should be expanded by default.
     /// The default behaviour is to collapse all arrays/objects.
     pub fn default_expand(mut self, default_expand: Expand) -> Self {
-        let (default_expand, search_term) = match &default_expand {
+        let (default_expand, search_term) = match default_expand {
             Expand::All => (InnerExpand::All, None),
             Expand::None => (InnerExpand::None, None),
-            Expand::ToLevel(l) => (InnerExpand::ToLevel(*l), None),
-            Expand::SearchResults(search_term) => (
-                InnerExpand::Paths(search(self.value, search_term)),
-                (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
-            ),
+            Expand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
+            Expand::SearchResults(search_str) => {
+                let search_term = SearchTerm::parse(search_str);
+                let paths = search_term
+                    .as_ref()
+                    .map(|search_term| search_term.find_matching_paths_in(self.value))
+                    .unwrap_or_default();
+                (InnerExpand::Paths(paths), search_term)
+            }
         };
         self.default_expand = default_expand;
         self.search_term = search_term;
@@ -284,7 +290,7 @@ fn get_key_text(
     key: &Option<String>,
     parent: Option<Expandable>,
     style: &JsonTreeStyle,
-    search_term: &Option<String>,
+    search_term: &Option<SearchTerm>,
 ) -> Option<Vec<RichText>> {
     match (key, parent) {
         (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key, style.array_idx_color)),
@@ -303,7 +309,7 @@ fn show_val(
     key_texts: Option<Vec<RichText>>,
     value: String,
     color: Color32,
-    search_term: &Option<String>,
+    search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) {
     ui.horizontal(|ui| {
@@ -324,7 +330,7 @@ fn show_val(
 fn format_object_key(
     key: &String,
     color: Color32,
-    search_term: &Option<String>,
+    search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) -> Vec<RichText> {
     let mut texts = get_highlighted_texts(key, color, search_term, highlight_color);
@@ -340,17 +346,17 @@ fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
 fn get_highlighted_texts(
     text: &String,
     text_color: Color32,
-    search_term: &Option<String>,
+    search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) -> VecDeque<RichText> {
-    if let Some(highlight) = search_term {
-        if let Some((idx, _)) = text.match_indices(highlight).next() {
+    if let Some(search_term) = search_term {
+        if let Some(idx) = search_term.match_index(text) {
             return VecDeque::from_iter([
                 RichText::new(&text[..idx]).color(text_color),
-                RichText::new(&text[idx..idx + highlight.len()])
+                RichText::new(&text[idx..idx + search_term.len()])
                     .color(text_color)
                     .background_color(highlight_color),
-                RichText::new(&text[idx + highlight.len()..]).color(text_color),
+                RichText::new(&text[idx + search_term.len()..]).color(text_color),
             ]);
         }
     }

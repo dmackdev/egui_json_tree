@@ -229,8 +229,6 @@ impl<'a> JsonTree<'a> {
                     path_segments.push(key.to_string());
 
                     let mut add_nested_tree = |ui: &mut Ui| {
-                        ui.visuals_mut().indent_has_left_vline = true;
-
                         let nested_tree = JsonTree {
                             id: generate_id(self.id, path_segments),
                             value: elem,
@@ -248,18 +246,19 @@ impl<'a> JsonTree<'a> {
                         );
                     };
 
-                    ui.visuals_mut().indent_has_left_vline = false;
-
                     if is_expandable(elem) {
                         add_nested_tree(ui);
                     } else {
+                        let original_indent_has_left_vline = ui.visuals_mut().indent_has_left_vline;
                         let original_indent = ui.spacing().indent;
 
+                        ui.visuals_mut().indent_has_left_vline = false;
                         ui.spacing_mut().indent =
                             ui.spacing().icon_width + ui.spacing().icon_spacing;
 
                         ui.indent(id_source, |ui| add_nested_tree(ui));
 
+                        ui.visuals_mut().indent_has_left_vline = original_indent_has_left_vline;
                         ui.spacing_mut().indent = original_indent;
                     }
 

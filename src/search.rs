@@ -7,7 +7,7 @@ pub struct SearchTerm(String);
 
 impl SearchTerm {
     pub fn parse(search_term: String) -> Option<Self> {
-        SearchTerm::is_valid(&search_term).then_some(Self(search_term))
+        SearchTerm::is_valid(&search_term).then_some(Self(search_term.to_ascii_lowercase()))
     }
 
     fn is_valid(search_str: &String) -> bool {
@@ -15,7 +15,11 @@ impl SearchTerm {
     }
 
     pub fn match_index(&self, other: &str) -> Option<usize> {
-        other.match_indices(&self.0).next().map(|(idx, _)| idx)
+        other
+            .to_ascii_lowercase()
+            .match_indices(&self.0)
+            .next()
+            .map(|(idx, _)| idx)
     }
 
     pub fn len(&self) -> usize {
@@ -31,7 +35,7 @@ impl SearchTerm {
     }
 
     fn matches<V: ToString + ?Sized>(&self, other: &V) -> bool {
-        other.to_string().contains(&self.0)
+        other.to_string().to_ascii_lowercase().contains(&self.0)
     }
 }
 

@@ -384,7 +384,8 @@ pub enum Expand {
     /// And so on.
     ToLevel(u8),
     /// Expand arrays and objects to display object keys and values,
-    /// and array elements, that match the search term. The matches are highlighted.
+    /// and array elements, that match the search term. Letter case is ignored. The matches are highlighted.
+    /// If the search term is empty, nothing will be expanded by default.
     SearchResults(String),
 }
 

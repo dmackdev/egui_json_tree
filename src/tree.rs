@@ -30,7 +30,8 @@ use crate::style::JsonTreeStyle;
 pub struct JsonTree<'a> {
     id: Id,
     value: &'a Value,
-    default_expand: Expand,
+    default_expand: InnerExpand,
+    search_term: Option<String>,
     style: JsonTreeStyle,
     key: Option<String>,
     collapsing_state_ids: HashSet<Id>,
@@ -43,7 +44,8 @@ impl<'a> JsonTree<'a> {
         Self {
             id: Id::new(id),
             value,
-            default_expand: Expand::None,
+            default_expand: InnerExpand::None,
+            search_term: None,
             style: JsonTreeStyle::default(),
             key: None,
             collapsing_state_ids: HashSet::new(),
@@ -53,7 +55,17 @@ impl<'a> JsonTree<'a> {
     /// Set how arrays/objects should be expanded by default.
     /// The default behaviour is to collapse all arrays/objects.
     pub fn default_expand(mut self, default_expand: Expand) -> Self {
+        let (default_expand, search_term) = match &default_expand {
+            Expand::All => (InnerExpand::All, None),
+            Expand::None => (InnerExpand::None, None),
+            Expand::ToLevel(l) => (InnerExpand::ToLevel(*l), None),
+            Expand::SearchResults(search_term) => (
+                InnerExpand::Paths(search(self.value, search_term)),
+                (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
+            ),
+        };
         self.default_expand = default_expand;
+        self.search_term = search_term;
         self
     }
 
@@ -63,36 +75,14 @@ impl<'a> JsonTree<'a> {
         self
     }
 
-    fn key(mut self, key: String) -> Self {
-        self.key = Some(key);
-        self
-    }
-
     /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(&mut self, ui: &mut Ui) {
-        let (default_expand, search_term) = match &self.default_expand {
-            Expand::All => (InnerExpand::All, None),
-            Expand::None => (InnerExpand::None, None),
-            Expand::ToLevel(l) => (InnerExpand::ToLevel(*l), None),
-            Expand::SearchResults(search_term) => (
-                InnerExpand::Paths(search(self.value, search_term)),
-                (is_valid_search_term(search_term)).then(|| search_term.to_owned()),
-            ),
-        };
-
         let mut collapsing_state_ids = HashSet::new();
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            self.show_impl(
-                ui,
-                &mut vec![],
-                None,
-                &default_expand,
-                &search_term,
-                &mut collapsing_state_ids,
-            );
+            self.show_impl(ui, &mut vec![], None, &mut collapsing_state_ids);
         });
 
         self.collapsing_state_ids = collapsing_state_ids;
@@ -103,11 +93,9 @@ impl<'a> JsonTree<'a> {
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         parent: Option<Expandable>,
-        default_expand: &InnerExpand,
-        search_term: &Option<String>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) {
-        let key_text = get_key_text(&self.key, parent, &self.style, search_term);
+        let key_text = get_key_text(&self.key, parent, &self.style, &self.search_term);
 
         match self.value {
             Value::Null => {
@@ -116,7 +104,7 @@ impl<'a> JsonTree<'a> {
                     key_text,
                     "null".to_string(),
                     self.style.null_color,
-                    search_term,
+                    &self.search_term,
                     self.style.highlight_color,
                 );
             }
@@ -126,7 +114,7 @@ impl<'a> JsonTree<'a> {
                     key_text,
                     b.to_string(),
                     self.style.bool_color,
-                    search_term,
+                    &self.search_term,
                     self.style.highlight_color,
                 );
             }
@@ -136,7 +124,7 @@ impl<'a> JsonTree<'a> {
                     key_text,
                     n.to_string(),
                     self.style.number_color,
-                    search_term,
+                    &self.search_term,
                     self.style.highlight_color,
                 );
             }
@@ -146,7 +134,7 @@ impl<'a> JsonTree<'a> {
                     key_text,
                     format!("\"{}\"", s),
                     self.style.string_color,
-                    search_term,
+                    &self.search_term,
                     self.style.highlight_color,
                 );
             }
@@ -158,8 +146,6 @@ impl<'a> JsonTree<'a> {
                     iter,
                     parent,
                     Expandable::Array,
-                    default_expand,
-                    search_term,
                     collapsing_state_ids,
                 );
             }
@@ -171,15 +157,12 @@ impl<'a> JsonTree<'a> {
                     iter,
                     parent,
                     Expandable::Object,
-                    default_expand,
-                    search_term,
                     collapsing_state_ids,
                 );
             }
         };
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn show_expandable<K, I>(
         &self,
         path_segments: &mut Vec<String>,
@@ -187,8 +170,6 @@ impl<'a> JsonTree<'a> {
         elem_iter: I,
         parent: Option<Expandable>,
         expandable: Expandable,
-        default_expand: &InnerExpand,
-        search_term: &Option<String>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) where
         K: ToString,
@@ -199,7 +180,7 @@ impl<'a> JsonTree<'a> {
             Expandable::Object => &OBJECT_DELIMITERS,
         };
 
-        let default_open = match &default_expand {
+        let default_open = match &self.default_expand {
             InnerExpand::All => true,
             InnerExpand::None => false,
             InnerExpand::ToLevel(num_levels_open) => {
@@ -209,7 +190,7 @@ impl<'a> JsonTree<'a> {
         };
 
         let id_source =
-            ui.make_persistent_id(generate_id(self.id, path_segments).with(default_expand));
+            ui.make_persistent_id(generate_id(self.id, path_segments).with(&self.default_expand));
 
         collapsing_state_ids.insert(id_source);
 
@@ -222,7 +203,7 @@ impl<'a> JsonTree<'a> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(key_texts) =
-                        get_key_text(&self.key, parent, &self.style, search_term)
+                        get_key_text(&self.key, parent, &self.style, &self.search_term)
                     {
                         for key_text in key_texts {
                             ui.monospace(key_text);
@@ -244,16 +225,22 @@ impl<'a> JsonTree<'a> {
                     let mut add_nested_tree = |ui: &mut Ui| {
                         ui.visuals_mut().indent_has_left_vline = true;
 
-                        JsonTree::new(generate_id(self.id, path_segments), elem)
-                            .key(key.to_string())
-                            .show_impl(
-                                ui,
-                                path_segments,
-                                Some(expandable),
-                                default_expand,
-                                search_term,
-                                collapsing_state_ids,
-                            );
+                        let nested_tree = JsonTree {
+                            id: generate_id(self.id, path_segments),
+                            value: elem,
+                            default_expand: self.default_expand.clone(),
+                            search_term: self.search_term.clone(),
+                            style: self.style.clone(),
+                            key: Some(key.to_string()),
+                            collapsing_state_ids: HashSet::new(),
+                        };
+
+                        nested_tree.show_impl(
+                            ui,
+                            path_segments,
+                            Some(expandable),
+                            collapsing_state_ids,
+                        );
                     };
 
                     ui.visuals_mut().indent_has_left_vline = false;

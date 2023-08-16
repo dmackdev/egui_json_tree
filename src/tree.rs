@@ -145,22 +145,26 @@ impl<'a> JsonTree<'a> {
                 );
             }
             Value::Array(arr) => {
-                let iter = arr.iter().enumerate();
+                let entries = arr
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, val)| (idx.to_string(), val))
+                    .collect();
                 self.show_expandable(
                     path_segments,
                     ui,
-                    iter,
+                    entries,
                     parent,
                     Expandable::Array,
                     collapsing_state_ids,
                 );
             }
             Value::Object(obj) => {
-                let iter = obj.iter();
+                let entries = obj.iter().map(|(key, val)| (key.to_owned(), val)).collect();
                 self.show_expandable(
                     path_segments,
                     ui,
-                    iter,
+                    entries,
                     parent,
                     Expandable::Object,
                     collapsing_state_ids,
@@ -169,18 +173,15 @@ impl<'a> JsonTree<'a> {
         };
     }
 
-    fn show_expandable<K, I>(
+    fn show_expandable(
         &self,
         path_segments: &mut Vec<String>,
         ui: &mut Ui,
-        elem_iter: I,
+        entries: Vec<(String, &Value)>,
         parent: Option<Expandable>,
         expandable: Expandable,
         collapsing_state_ids: &mut HashSet<Id>,
-    ) where
-        K: ToString,
-        I: Iterator<Item = (K, &'a Value)>,
-    {
+    ) {
         let delimiters = match expandable {
             Expandable::Array => &ARRAY_DELIMITERS,
             Expandable::Object => &OBJECT_DELIMITERS,
@@ -225,17 +226,17 @@ impl<'a> JsonTree<'a> {
                 });
             })
             .body(|ui| {
-                for (key, elem) in elem_iter {
-                    path_segments.push(key.to_string());
+                for (key, elem) in entries {
+                    path_segments.push(key.clone());
 
-                    let mut add_nested_tree = |ui: &mut Ui| {
+                    let add_nested_tree = |ui: &mut Ui| {
                         let nested_tree = JsonTree {
                             id: generate_id(self.id, path_segments),
                             value: elem,
                             default_expand: self.default_expand.clone(),
                             search_term: self.search_term.clone(),
                             style: self.style.clone(),
-                            key: Some(key.to_string()),
+                            key: Some(key),
                         };
 
                         nested_tree.show_impl(

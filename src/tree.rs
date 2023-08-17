@@ -226,14 +226,16 @@ impl<'a> JsonTree<'a> {
                         ui.monospace(" ");
 
                         for (idx, (key, elem)) in entries.iter().enumerate() {
-                            let key_texts = (!matches!(expandable, Expandable::Array))
-                                .then_some(get_key_text(
+                            let key_texts = if matches!(expandable, Expandable::Array) {
+                                vec![]
+                            } else {
+                                get_key_text(
                                     &Some(key.to_string()),
                                     Some(expandable),
                                     &self.style,
                                     &self.search_term,
-                                ))
-                                .flatten();
+                                )
+                            };
 
                             match elem {
                                 Value::Null => {
@@ -277,20 +279,14 @@ impl<'a> JsonTree<'a> {
                                     );
                                 }
                                 Value::Array(_) => {
-                                    if let Some(key_texts) = key_texts {
-                                        for key_text in key_texts {
-                                            ui.monospace(key_text);
-                                        }
-                                        ui.monospace(": ");
+                                    for key_text in key_texts {
+                                        ui.monospace(key_text);
                                     }
                                     ui.label(ARRAY_DELIMITERS.collapsed);
                                 }
                                 Value::Object(_) => {
-                                    if let Some(key_texts) = key_texts {
-                                        for key_text in key_texts {
-                                            ui.monospace(key_text);
-                                        }
-                                        ui.monospace(": ");
+                                    for key_text in key_texts {
+                                        ui.monospace(key_text);
                                     }
                                     ui.label(OBJECT_DELIMITERS.collapsed);
                                 }
@@ -304,13 +300,10 @@ impl<'a> JsonTree<'a> {
 
                         ui.label(delimiters.closing);
                     } else {
-                        if let Some(key_texts) =
+                        for key_text in
                             get_key_text(&self.key, parent, &self.style, &self.search_term)
                         {
-                            for key_text in key_texts {
-                                ui.monospace(key_text);
-                            }
-                            ui.monospace(": ");
+                            ui.monospace(key_text);
                         }
 
                         ui.label(if is_expanded {
@@ -387,32 +380,29 @@ fn get_key_text(
     parent: Option<Expandable>,
     style: &JsonTreeStyle,
     search_term: &Option<SearchTerm>,
-) -> Option<Vec<RichText>> {
+) -> Vec<RichText> {
     match (key, parent) {
-        (Some(key), Some(Expandable::Array)) => Some(format_array_idx(key, style.array_idx_color)),
-        (Some(key), Some(Expandable::Object)) => Some(format_object_key(
+        (Some(key), Some(Expandable::Array)) => format_array_idx(key, style.array_idx_color),
+        (Some(key), Some(Expandable::Object)) => format_object_key(
             key,
             style.object_key_color,
             search_term,
             style.highlight_color,
-        )),
-        _ => None,
+        ),
+        _ => vec![],
     }
 }
 
 fn show_val(
     ui: &mut Ui,
-    key_texts: Option<Vec<RichText>>,
+    key_texts: Vec<RichText>,
     value: String,
     color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) {
-    if let Some(key_texts) = key_texts {
-        for key_text in key_texts {
-            ui.monospace(key_text);
-        }
-        ui.monospace(": ");
+    for key_text in key_texts {
+        ui.monospace(key_text);
     }
 
     for text in get_highlighted_texts(&value, color, search_term, highlight_color) {
@@ -429,11 +419,15 @@ fn format_object_key(
     let mut texts = get_highlighted_texts(key, color, search_term, highlight_color);
     texts.push_front(RichText::new("\"").color(color));
     texts.push_back(RichText::new("\"").color(color));
+    texts.push_back(RichText::new(": ").monospace());
     texts.into()
 }
 
 fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
-    vec![RichText::new(idx).color(color)]
+    vec![
+        RichText::new(idx).color(color),
+        RichText::new(": ").monospace(),
+    ]
 }
 
 fn get_highlighted_texts(

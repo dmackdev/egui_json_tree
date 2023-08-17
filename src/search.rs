@@ -28,8 +28,14 @@ impl SearchTerm {
 
     pub fn find_matching_paths_in(&self, value: &Value) -> BTreeSet<String> {
         let mut matching_paths = BTreeSet::new();
+        matching_paths.insert("".to_string());
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
+
+        if matching_paths.len() == 1 {
+            // The only match was a top level key or value - no need to expand anything.
+            matching_paths.clear();
+        }
 
         matching_paths
     }
@@ -89,11 +95,8 @@ fn search_impl(
 }
 
 fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut BTreeSet<String>) {
-    let mut path_str = "".to_string();
-    matching_paths.insert(path_str);
-
     for i in 0..path_segments.len() {
-        path_str = path_segments[0..i].join("/").to_string();
+        let path_str = path_segments[0..i].join("/").to_string();
         matching_paths.insert(path_str);
     }
 }

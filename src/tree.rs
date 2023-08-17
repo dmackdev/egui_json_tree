@@ -105,44 +105,56 @@ impl<'a> JsonTree<'a> {
 
         match self.value {
             Value::Null => {
-                show_val(
-                    ui,
-                    key_text,
-                    "null".to_string(),
-                    self.style.null_color,
-                    &self.search_term,
-                    self.style.highlight_color,
-                );
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    show_val(
+                        ui,
+                        key_text,
+                        "null".to_string(),
+                        self.style.null_color,
+                        &self.search_term,
+                        self.style.highlight_color,
+                    );
+                });
             }
             Value::Bool(b) => {
-                show_val(
-                    ui,
-                    key_text,
-                    b.to_string(),
-                    self.style.bool_color,
-                    &self.search_term,
-                    self.style.highlight_color,
-                );
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    show_val(
+                        ui,
+                        key_text,
+                        b.to_string(),
+                        self.style.bool_color,
+                        &self.search_term,
+                        self.style.highlight_color,
+                    );
+                });
             }
             Value::Number(n) => {
-                show_val(
-                    ui,
-                    key_text,
-                    n.to_string(),
-                    self.style.number_color,
-                    &self.search_term,
-                    self.style.highlight_color,
-                );
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    show_val(
+                        ui,
+                        key_text,
+                        n.to_string(),
+                        self.style.number_color,
+                        &self.search_term,
+                        self.style.highlight_color,
+                    );
+                });
             }
             Value::String(s) => {
-                show_val(
-                    ui,
-                    key_text,
-                    format!("\"{}\"", s),
-                    self.style.string_color,
-                    &self.search_term,
-                    self.style.highlight_color,
-                );
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    show_val(
+                        ui,
+                        key_text,
+                        format!("\"{}\"", s),
+                        self.style.string_color,
+                        &self.search_term,
+                        self.style.highlight_color,
+                    );
+                });
             }
             Value::Array(arr) => {
                 let entries = arr
@@ -206,23 +218,107 @@ impl<'a> JsonTree<'a> {
 
         state
             .show_header(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    if let Some(key_texts) =
-                        get_key_text(&self.key, parent, &self.style, &self.search_term)
-                    {
-                        for key_text in key_texts {
-                            ui.monospace(key_text);
-                        }
-                        ui.monospace(": ");
-                    }
+                    if path_segments.is_empty() && !is_expanded {
+                        ui.label(delimiters.opening);
+                        ui.monospace(" ");
 
-                    ui.label(if is_expanded {
-                        delimiters.opening
+                        for (idx, (key, elem)) in entries.iter().enumerate() {
+                            let key_texts = (!matches!(expandable, Expandable::Array))
+                                .then_some(get_key_text(
+                                    &Some(key.to_string()),
+                                    Some(expandable),
+                                    &self.style,
+                                    &self.search_term,
+                                ))
+                                .flatten();
+
+                            match elem {
+                                Value::Null => {
+                                    show_val(
+                                        ui,
+                                        key_texts,
+                                        "null".to_string(),
+                                        self.style.null_color,
+                                        &self.search_term,
+                                        self.style.highlight_color,
+                                    );
+                                }
+                                Value::Bool(b) => {
+                                    show_val(
+                                        ui,
+                                        key_texts,
+                                        b.to_string(),
+                                        self.style.bool_color,
+                                        &self.search_term,
+                                        self.style.highlight_color,
+                                    );
+                                }
+                                Value::Number(n) => {
+                                    show_val(
+                                        ui,
+                                        key_texts,
+                                        n.to_string(),
+                                        self.style.number_color,
+                                        &self.search_term,
+                                        self.style.highlight_color,
+                                    );
+                                }
+                                Value::String(s) => {
+                                    show_val(
+                                        ui,
+                                        key_texts,
+                                        format!("\"{}\"", s),
+                                        self.style.string_color,
+                                        &self.search_term,
+                                        self.style.highlight_color,
+                                    );
+                                }
+                                Value::Array(_) => {
+                                    if let Some(key_texts) = key_texts {
+                                        for key_text in key_texts {
+                                            ui.monospace(key_text);
+                                        }
+                                        ui.monospace(": ");
+                                    }
+                                    ui.label(ARRAY_DELIMITERS.collapsed);
+                                }
+                                Value::Object(_) => {
+                                    if let Some(key_texts) = key_texts {
+                                        for key_text in key_texts {
+                                            ui.monospace(key_text);
+                                        }
+                                        ui.monospace(": ");
+                                    }
+                                    ui.label(OBJECT_DELIMITERS.collapsed);
+                                }
+                            };
+                            if idx == entries.len() - 1 {
+                                ui.monospace(" ");
+                            } else {
+                                ui.monospace(", ");
+                            }
+                        }
+
+                        ui.label(delimiters.closing);
                     } else {
-                        delimiters.collapsed
-                    });
+                        if let Some(key_texts) =
+                            get_key_text(&self.key, parent, &self.style, &self.search_term)
+                        {
+                            for key_text in key_texts {
+                                ui.monospace(key_text);
+                            }
+                            ui.monospace(": ");
+                        }
+
+                        ui.label(if is_expanded {
+                            delimiters.opening
+                        } else {
+                            delimiters.collapsed
+                        });
+                    }
                 });
             })
             .body(|ui| {
@@ -268,7 +364,7 @@ impl<'a> JsonTree<'a> {
             });
 
         if is_expanded {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 let indent = ui.spacing().icon_width / 2.0;
                 ui.add_space(indent);
 
@@ -312,19 +408,16 @@ fn show_val(
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        if let Some(key_texts) = key_texts {
-            for key_text in key_texts {
-                ui.monospace(key_text);
-            }
-            ui.monospace(": ");
+    if let Some(key_texts) = key_texts {
+        for key_text in key_texts {
+            ui.monospace(key_text);
         }
+        ui.monospace(": ");
+    }
 
-        for text in get_highlighted_texts(&value, color, search_term, highlight_color) {
-            ui.monospace(text);
-        }
-    });
+    for text in get_highlighted_texts(&value, color, search_term, highlight_color) {
+        ui.monospace(text);
+    }
 }
 
 fn format_object_key(

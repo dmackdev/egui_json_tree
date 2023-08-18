@@ -4,15 +4,16 @@ use std::{
 };
 
 use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
-use serde_json::Value;
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     search::SearchTerm,
     style::JsonTreeStyle,
+    value::JsonTreeValue,
+    BaseValue,
 };
 
-/// An interactive JSON tree visualiser which will render a provided [`serde_json::Value`].
+/// An interactive JSON tree visualiser.
 /// ```
 /// use egui_json_tree::{JsonTree, Expand};
 ///
@@ -29,22 +30,22 @@ use crate::{
 /// response.reset_expanded(ui);
 /// # });
 /// ```
-pub struct JsonTree<'a> {
+pub struct JsonTree {
     id: Id,
-    value: &'a Value,
+    value: JsonTreeValue,
     default_expand: InnerExpand,
     search_term: Option<SearchTerm>,
     style: JsonTreeStyle,
     key: Option<String>,
 }
 
-impl<'a> JsonTree<'a> {
+impl JsonTree {
     /// Creates a new [`JsonTree`].
     /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: &'a Value) -> Self {
+    pub fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
         Self {
             id: Id::new(id),
-            value,
+            value: value.into(),
             default_expand: InnerExpand::None,
             search_term: None,
             style: JsonTreeStyle::default(),
@@ -63,7 +64,7 @@ impl<'a> JsonTree<'a> {
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
-                    .map(|search_term| search_term.find_matching_paths_in(self.value))
+                    .map(|search_term| search_term.find_matching_paths_in(&self.value))
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
             }
@@ -80,7 +81,7 @@ impl<'a> JsonTree<'a> {
     }
 
     /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(&self, ui: &mut Ui) -> JsonTreeResponse {
+    pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
         let mut collapsing_state_ids = HashSet::new();
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
@@ -101,62 +102,15 @@ impl<'a> JsonTree<'a> {
         parent: Option<Expandable>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) {
-        let key_text = get_key_text(&self.key, parent, &self.style, &self.search_term);
-
-        match self.value {
-            Value::Null => {
+        match &self.value {
+            JsonTreeValue::BaseValue(base_value) => {
+                let key_texts = get_key_text(&self.key, parent, &self.style, &self.search_term);
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    show_val(
-                        ui,
-                        key_text,
-                        "null".to_string(),
-                        self.style.null_color,
-                        &self.search_term,
-                        self.style.highlight_color,
-                    );
+                    show_base_value(ui, key_texts, base_value, &self.search_term, &self.style);
                 });
             }
-            Value::Bool(b) => {
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    show_val(
-                        ui,
-                        key_text,
-                        b.to_string(),
-                        self.style.bool_color,
-                        &self.search_term,
-                        self.style.highlight_color,
-                    );
-                });
-            }
-            Value::Number(n) => {
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    show_val(
-                        ui,
-                        key_text,
-                        n.to_string(),
-                        self.style.number_color,
-                        &self.search_term,
-                        self.style.highlight_color,
-                    );
-                });
-            }
-            Value::String(s) => {
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    show_val(
-                        ui,
-                        key_text,
-                        format!("\"{}\"", s),
-                        self.style.string_color,
-                        &self.search_term,
-                        self.style.highlight_color,
-                    );
-                });
-            }
-            Value::Array(arr) => {
+            JsonTreeValue::Array(arr) => {
                 let entries = arr
                     .iter()
                     .enumerate()
@@ -171,7 +125,7 @@ impl<'a> JsonTree<'a> {
                     collapsing_state_ids,
                 );
             }
-            Value::Object(obj) => {
+            JsonTreeValue::Object(obj) => {
                 let entries = obj.iter().map(|(key, val)| (key.to_owned(), val)).collect();
                 self.show_expandable(
                     path_segments,
@@ -185,11 +139,12 @@ impl<'a> JsonTree<'a> {
         };
     }
 
+    // TODO: Convert to function so self can be consumed. Pass all data needed from self as struct.
     fn show_expandable(
         &self,
         path_segments: &mut Vec<String>,
         ui: &mut Ui,
-        entries: Vec<(String, &Value)>,
+        entries: Vec<(String, &JsonTreeValue)>,
         parent: Option<Expandable>,
         expandable: Expandable,
         collapsing_state_ids: &mut HashSet<Id>,
@@ -225,6 +180,8 @@ impl<'a> JsonTree<'a> {
                         ui.label(delimiters.opening);
                         ui.monospace(" ");
 
+                        let entries_len = entries.len();
+
                         for (idx, (key, elem)) in entries.iter().enumerate() {
                             let key_texts = if matches!(expandable, Expandable::Array) {
                                 vec![]
@@ -238,60 +195,30 @@ impl<'a> JsonTree<'a> {
                             };
 
                             match elem {
-                                Value::Null => {
-                                    show_val(
+                                JsonTreeValue::BaseValue(base_value) => {
+                                    show_base_value(
                                         ui,
                                         key_texts,
-                                        "null".to_string(),
-                                        self.style.null_color,
+                                        base_value,
                                         &self.search_term,
-                                        self.style.highlight_color,
+                                        &self.style,
                                     );
                                 }
-                                Value::Bool(b) => {
-                                    show_val(
-                                        ui,
-                                        key_texts,
-                                        b.to_string(),
-                                        self.style.bool_color,
-                                        &self.search_term,
-                                        self.style.highlight_color,
-                                    );
-                                }
-                                Value::Number(n) => {
-                                    show_val(
-                                        ui,
-                                        key_texts,
-                                        n.to_string(),
-                                        self.style.number_color,
-                                        &self.search_term,
-                                        self.style.highlight_color,
-                                    );
-                                }
-                                Value::String(s) => {
-                                    show_val(
-                                        ui,
-                                        key_texts,
-                                        format!("\"{}\"", s),
-                                        self.style.string_color,
-                                        &self.search_term,
-                                        self.style.highlight_color,
-                                    );
-                                }
-                                Value::Array(_) => {
+                                JsonTreeValue::Array(_) => {
                                     for key_text in key_texts {
                                         ui.monospace(key_text);
                                     }
                                     ui.label(ARRAY_DELIMITERS.collapsed);
                                 }
-                                Value::Object(_) => {
+                                JsonTreeValue::Object(_) => {
                                     for key_text in key_texts {
                                         ui.monospace(key_text);
                                     }
                                     ui.label(OBJECT_DELIMITERS.collapsed);
                                 }
                             };
-                            if idx == entries.len() - 1 {
+
+                            if idx == entries_len - 1 {
                                 ui.monospace(" ");
                             } else {
                                 ui.monospace(", ");
@@ -316,12 +243,14 @@ impl<'a> JsonTree<'a> {
             })
             .body(|ui| {
                 for (key, elem) in entries {
+                    let is_expandable = is_expandable(elem);
+
                     path_segments.push(key.clone());
 
                     let add_nested_tree = |ui: &mut Ui| {
                         let nested_tree = JsonTree {
                             id: generate_id(self.id, path_segments),
-                            value: elem,
+                            value: elem.clone(),
                             default_expand: self.default_expand.clone(),
                             search_term: self.search_term.clone(),
                             style: self.style.clone(),
@@ -336,7 +265,7 @@ impl<'a> JsonTree<'a> {
                         );
                     };
 
-                    if is_expandable(elem) {
+                    if is_expandable {
                         add_nested_tree(ui);
                     } else {
                         let original_indent_has_left_vline = ui.visuals_mut().indent_has_left_vline;
@@ -367,11 +296,12 @@ impl<'a> JsonTree<'a> {
     }
 }
 
-fn is_expandable(value: &Value) -> bool {
-    matches!(value, Value::Array(_) | Value::Object(_))
+fn is_expandable(value: &JsonTreeValue) -> bool {
+    matches!(value, JsonTreeValue::Array(_) | JsonTreeValue::Object(_))
 }
 
 fn generate_id(id: Id, path: &[String]) -> Id {
+    // TODO: Use .with(path)
     Id::new(format!("{:?}-{}", id, path.join("/")))
 }
 
@@ -393,19 +323,23 @@ fn get_key_text(
     }
 }
 
-fn show_val(
+fn show_base_value(
     ui: &mut Ui,
     key_texts: Vec<RichText>,
-    value: String,
-    color: Color32,
+    base_value: &BaseValue,
     search_term: &Option<SearchTerm>,
-    highlight_color: Color32,
+    style: &JsonTreeStyle,
 ) {
     for key_text in key_texts {
         ui.monospace(key_text);
     }
 
-    for text in get_highlighted_texts(&value, color, search_term, highlight_color) {
+    for text in get_highlighted_texts(
+        &base_value.value_str,
+        style.get_color(base_value.value_type),
+        search_term,
+        style.highlight_color,
+    ) {
         ui.monospace(text);
     }
 }

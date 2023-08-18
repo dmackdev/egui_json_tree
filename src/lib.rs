@@ -4,6 +4,8 @@ mod delimiters;
 mod search;
 mod style;
 mod tree;
+mod value;
 
 pub use style::JsonTreeStyle;
 pub use tree::*;
+pub use value::*;

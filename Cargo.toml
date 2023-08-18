@@ -9,7 +9,12 @@ license = "MIT"
 
 [dependencies]
 egui = { git = "https://github.com/emilk/egui", rev = "481f448" }
-serde_json = "1.0.104"
+indexmap = "2.0.0"
+serde_json = { version = "1.0.104", optional = true }
 
 [dev-dependencies]
 eframe = { git = "https://github.com/emilk/egui", rev = "481f448" }
+
+[features]
+default = ["serde_json"]
+serde_json = ["dep:serde_json"]

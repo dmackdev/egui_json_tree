@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use serde_json::Value;
+use crate::{value::JsonTreeValue, BaseValue};
 
 #[derive(Debug, Clone)]
 pub struct SearchTerm(String);
@@ -26,7 +26,7 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &Value) -> BTreeSet<String> {
+    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> BTreeSet<String> {
         let mut matching_paths = BTreeSet::new();
         matching_paths.insert("".to_string());
 
@@ -45,43 +45,26 @@ impl SearchTerm {
     }
 }
 
-const NULL_STR: &str = "null";
-
 fn search_impl(
-    value: &Value,
+    value: &JsonTreeValue,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
     matching_paths: &mut BTreeSet<String>,
 ) {
     match value {
-        Value::Null => {
-            if search_term.matches(NULL_STR) {
+        JsonTreeValue::BaseValue(BaseValue { value_str, .. }) => {
+            if search_term.matches(value_str) {
                 update_matches(path_segments, matching_paths);
             }
         }
-        Value::Bool(b) => {
-            if search_term.matches(b) {
-                update_matches(path_segments, matching_paths);
-            }
-        }
-        Value::Number(n) => {
-            if search_term.matches(n) {
-                update_matches(path_segments, matching_paths);
-            }
-        }
-        Value::String(s) => {
-            if search_term.matches(s) {
-                update_matches(path_segments, matching_paths);
-            }
-        }
-        Value::Array(arr) => {
+        JsonTreeValue::Array(arr) => {
             for (idx, elem) in arr.iter().enumerate() {
                 path_segments.push(idx.to_string());
                 search_impl(elem, search_term, path_segments, matching_paths);
                 path_segments.pop();
             }
         }
-        Value::Object(obj) => {
+        JsonTreeValue::Object(obj) => {
             for (key, val) in obj.iter() {
                 path_segments.push(key.to_string());
                 if search_term.matches(key) {

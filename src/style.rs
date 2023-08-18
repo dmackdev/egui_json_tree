@@ -1,5 +1,7 @@
 use egui::Color32;
 
+use crate::value::BaseValueType;
+
 /// Contains coloring parameters for JSON syntax highlighting, and search match highlighting.
 #[derive(Debug, Clone)]
 pub struct JsonTreeStyle {
@@ -22,6 +24,17 @@ impl Default for JsonTreeStyle {
             number_color: Color32::from_rgb(181, 199, 166),
             string_color: Color32::from_rgb(194, 146, 122),
             highlight_color: Color32::from_rgba_premultiplied(72, 72, 72, 50),
+        }
+    }
+}
+
+impl JsonTreeStyle {
+    pub fn get_color(&self, base_value_type: BaseValueType) -> Color32 {
+        match base_value_type {
+            BaseValueType::Null => self.null_color,
+            BaseValueType::Bool => self.bool_color,
+            BaseValueType::Number => self.number_color,
+            BaseValueType::String => self.string_color,
         }
     }
 }

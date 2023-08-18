@@ -7,6 +7,7 @@ use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
     value::JsonTreeValue,
@@ -389,25 +390,6 @@ enum InnerExpand {
     None,
     ToLevel(u8),
     Paths(BTreeSet<String>),
-}
-
-/// The response from showing a [`JsonTree`].
-pub struct JsonTreeResponse {
-    // TODO: Add me.
-    // pub response: Response,
-    collapsing_state_ids: HashSet<Id>,
-}
-
-impl JsonTreeResponse {
-    /// For the [`JsonTree`] that provided this response,
-    /// resets the expanded state for all of its arrays/objects to respect its `default_expand` setting.
-    pub fn reset_expanded(&self, ui: &mut Ui) {
-        for id in self.collapsing_state_ids.iter() {
-            if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
-                state.remove(ui.ctx());
-            }
-        }
-    }
 }
 
 struct Expandable {

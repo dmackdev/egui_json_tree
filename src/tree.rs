@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashSet, VecDeque},
+    collections::{BTreeSet, HashMap, VecDeque},
     hash::Hash,
 };
 
@@ -83,16 +83,24 @@ impl JsonTree {
 
     /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
-        let mut collapsing_state_ids = HashSet::new();
+        let mut id_map: HashMap<Vec<String>, Id> = HashMap::new();
+
+        populate_ids(
+            ui,
+            &mut id_map,
+            &mut vec![],
+            self.id.with(&self.default_expand),
+            &self.value,
+        );
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            self.show_impl(ui, &mut vec![], &mut collapsing_state_ids);
+            self.show_impl(ui, &mut vec![], &mut id_map);
         });
 
         JsonTreeResponse {
-            collapsing_state_ids,
+            collapsing_state_ids: id_map.into_values().collect(),
         }
     }
 
@@ -100,7 +108,7 @@ impl JsonTree {
         self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
-        collapsing_state_ids: &mut HashSet<Id>,
+        id_map: &mut HashMap<Vec<String>, Id>,
     ) {
         match self.value {
             JsonTreeValue::BaseValue(base_value) => {
@@ -119,21 +127,10 @@ impl JsonTree {
                     search_term: self.search_term,
                     parent: self.parent,
                 };
-                show_expandable(
-                    ui,
-                    path_segments,
-                    collapsing_state_ids,
-                    expandable,
-                    &self.style,
-                );
+                show_expandable(ui, path_segments, id_map, expandable, &self.style);
             }
         };
     }
-}
-
-fn generate_id(id: Id, path: &[String]) -> Id {
-    // TODO: Use .with(path)
-    Id::new(format!("{:?}-{}", id, path.join("/")))
 }
 
 fn show_base_value(
@@ -160,7 +157,7 @@ fn show_base_value(
 fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
-    collapsing_state_ids: &mut HashSet<Id>,
+    id_map: &mut HashMap<Vec<String>, Id>,
     expandable: Expandable,
     style: &JsonTreeStyle,
 ) {
@@ -176,11 +173,9 @@ fn show_expandable(
         InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
     };
 
-    let id_source = ui.make_persistent_id(
-        generate_id(expandable.id, path_segments).with(&expandable.default_expand),
-    );
-
-    collapsing_state_ids.insert(id_source);
+    let id_source = *id_map
+        .entry(path_segments.to_vec())
+        .or_insert_with(|| generate_id(expandable.id, &path_segments));
 
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
@@ -261,7 +256,7 @@ fn show_expandable(
 
                 let add_nested_tree = |ui: &mut Ui| {
                     let nested_tree = JsonTree {
-                        id: generate_id(expandable.id, path_segments),
+                        id: expandable.id,
                         value: elem,
                         default_expand: expandable.default_expand.clone(),
                         search_term: expandable.search_term.clone(),
@@ -269,7 +264,7 @@ fn show_expandable(
                         parent: Some(Parent::new(key, expandable.expandable_type)),
                     };
 
-                    nested_tree.show_impl(ui, path_segments, collapsing_state_ids);
+                    nested_tree.show_impl(ui, path_segments, id_map);
                 };
 
                 if is_expandable {
@@ -413,4 +408,32 @@ impl Parent {
             expandable_type,
         }
     }
+}
+
+fn populate_ids(
+    ui: &mut Ui,
+    id_map: &mut HashMap<Vec<String>, Id>,
+    path_segments: &mut Vec<String>,
+    base_id: Id,
+    value: &JsonTreeValue,
+) {
+    match value {
+        JsonTreeValue::BaseValue(_) => {}
+        JsonTreeValue::Expandable(entries, _) => {
+            for (key, val) in entries {
+                let id = generate_id(base_id, &path_segments);
+                id_map.insert(path_segments.clone(), id);
+
+                path_segments.push(key.to_owned());
+
+                populate_ids(ui, id_map, path_segments, base_id, val);
+
+                path_segments.pop();
+            }
+        }
+    }
+}
+
+fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
+    Id::new(base_id).with(&path_segments)
 }

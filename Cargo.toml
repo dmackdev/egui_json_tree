@@ -9,7 +9,6 @@ license = "MIT"
 
 [dependencies]
 egui = { git = "https://github.com/emilk/egui", rev = "481f448" }
-indexmap = "2.0.0"
 serde_json = { version = "1.0.104", optional = true }
 
 [dev-dependencies]

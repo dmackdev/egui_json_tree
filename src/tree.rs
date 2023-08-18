@@ -10,7 +10,7 @@ use crate::{
     search::SearchTerm,
     style::JsonTreeStyle,
     value::JsonTreeValue,
-    BaseValue,
+    BaseValue, ExpandableType,
 };
 
 /// An interactive JSON tree visualiser.
@@ -36,7 +36,7 @@ pub struct JsonTree {
     default_expand: InnerExpand,
     search_term: Option<SearchTerm>,
     style: JsonTreeStyle,
-    key: Option<String>,
+    parent: Option<Parent>,
 }
 
 impl JsonTree {
@@ -49,7 +49,7 @@ impl JsonTree {
             default_expand: InnerExpand::None,
             search_term: None,
             style: JsonTreeStyle::default(),
-            key: None,
+            parent: None,
         }
     }
 
@@ -87,7 +87,7 @@ impl JsonTree {
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            self.show_impl(ui, &mut vec![], None, &mut collapsing_state_ids);
+            self.show_impl(ui, &mut vec![], &mut collapsing_state_ids);
         });
 
         JsonTreeResponse {
@@ -96,208 +96,38 @@ impl JsonTree {
     }
 
     fn show_impl(
-        &self,
+        self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
-        parent: Option<Expandable>,
         collapsing_state_ids: &mut HashSet<Id>,
     ) {
-        match &self.value {
+        match self.value {
             JsonTreeValue::BaseValue(base_value) => {
-                let key_texts = get_key_text(&self.key, parent, &self.style, &self.search_term);
+                let key_texts = get_key_text(&self.style, &self.parent, &self.search_term);
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    show_base_value(ui, key_texts, base_value, &self.search_term, &self.style);
+                    show_base_value(ui, &self.style, key_texts, &base_value, &self.search_term);
                 });
             }
-            JsonTreeValue::Array(arr) => {
-                let entries = arr
-                    .iter()
-                    .enumerate()
-                    .map(|(idx, val)| (idx.to_string(), val))
-                    .collect();
-                self.show_expandable(
-                    path_segments,
-                    ui,
+            JsonTreeValue::Expandable(entries, expandable_type) => {
+                let expandable = Expandable {
+                    id: self.id,
+                    default_expand: self.default_expand,
                     entries,
-                    parent,
-                    Expandable::Array,
-                    collapsing_state_ids,
-                );
-            }
-            JsonTreeValue::Object(obj) => {
-                let entries = obj.iter().map(|(key, val)| (key.to_owned(), val)).collect();
-                self.show_expandable(
-                    path_segments,
+                    expandable_type,
+                    search_term: self.search_term,
+                    parent: self.parent,
+                };
+                show_expandable(
                     ui,
-                    entries,
-                    parent,
-                    Expandable::Object,
+                    path_segments,
                     collapsing_state_ids,
+                    expandable,
+                    &self.style,
                 );
             }
         };
     }
-
-    // TODO: Convert to function so self can be consumed. Pass all data needed from self as struct.
-    fn show_expandable(
-        &self,
-        path_segments: &mut Vec<String>,
-        ui: &mut Ui,
-        entries: Vec<(String, &JsonTreeValue)>,
-        parent: Option<Expandable>,
-        expandable: Expandable,
-        collapsing_state_ids: &mut HashSet<Id>,
-    ) {
-        let delimiters = match expandable {
-            Expandable::Array => &ARRAY_DELIMITERS,
-            Expandable::Object => &OBJECT_DELIMITERS,
-        };
-
-        let default_open = match &self.default_expand {
-            InnerExpand::All => true,
-            InnerExpand::None => false,
-            InnerExpand::ToLevel(num_levels_open) => {
-                (path_segments.len() as u8) <= *num_levels_open
-            }
-            InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
-        };
-
-        let id_source =
-            ui.make_persistent_id(generate_id(self.id, path_segments).with(&self.default_expand));
-
-        collapsing_state_ids.insert(id_source);
-
-        let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
-        let is_expanded = state.is_open();
-
-        state
-            .show_header(ui, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-
-                    if path_segments.is_empty() && !is_expanded {
-                        ui.label(delimiters.opening);
-                        ui.monospace(" ");
-
-                        let entries_len = entries.len();
-
-                        for (idx, (key, elem)) in entries.iter().enumerate() {
-                            let key_texts = if matches!(expandable, Expandable::Array) {
-                                vec![]
-                            } else {
-                                get_key_text(
-                                    &Some(key.to_string()),
-                                    Some(expandable),
-                                    &self.style,
-                                    &self.search_term,
-                                )
-                            };
-
-                            match elem {
-                                JsonTreeValue::BaseValue(base_value) => {
-                                    show_base_value(
-                                        ui,
-                                        key_texts,
-                                        base_value,
-                                        &self.search_term,
-                                        &self.style,
-                                    );
-                                }
-                                JsonTreeValue::Array(_) => {
-                                    for key_text in key_texts {
-                                        ui.monospace(key_text);
-                                    }
-                                    ui.label(ARRAY_DELIMITERS.collapsed);
-                                }
-                                JsonTreeValue::Object(_) => {
-                                    for key_text in key_texts {
-                                        ui.monospace(key_text);
-                                    }
-                                    ui.label(OBJECT_DELIMITERS.collapsed);
-                                }
-                            };
-
-                            if idx == entries_len - 1 {
-                                ui.monospace(" ");
-                            } else {
-                                ui.monospace(", ");
-                            }
-                        }
-
-                        ui.label(delimiters.closing);
-                    } else {
-                        for key_text in
-                            get_key_text(&self.key, parent, &self.style, &self.search_term)
-                        {
-                            ui.monospace(key_text);
-                        }
-
-                        ui.label(if is_expanded {
-                            delimiters.opening
-                        } else {
-                            delimiters.collapsed
-                        });
-                    }
-                });
-            })
-            .body(|ui| {
-                for (key, elem) in entries {
-                    let is_expandable = is_expandable(elem);
-
-                    path_segments.push(key.clone());
-
-                    let add_nested_tree = |ui: &mut Ui| {
-                        let nested_tree = JsonTree {
-                            id: generate_id(self.id, path_segments),
-                            value: elem.clone(),
-                            default_expand: self.default_expand.clone(),
-                            search_term: self.search_term.clone(),
-                            style: self.style.clone(),
-                            key: Some(key),
-                        };
-
-                        nested_tree.show_impl(
-                            ui,
-                            path_segments,
-                            Some(expandable),
-                            collapsing_state_ids,
-                        );
-                    };
-
-                    if is_expandable {
-                        add_nested_tree(ui);
-                    } else {
-                        let original_indent_has_left_vline = ui.visuals_mut().indent_has_left_vline;
-                        let original_indent = ui.spacing().indent;
-
-                        ui.visuals_mut().indent_has_left_vline = false;
-                        ui.spacing_mut().indent =
-                            ui.spacing().icon_width + ui.spacing().icon_spacing;
-
-                        ui.indent(id_source, |ui| add_nested_tree(ui));
-
-                        ui.visuals_mut().indent_has_left_vline = original_indent_has_left_vline;
-                        ui.spacing_mut().indent = original_indent;
-                    }
-
-                    path_segments.pop();
-                }
-            });
-
-        if is_expanded {
-            ui.horizontal_wrapped(|ui| {
-                let indent = ui.spacing().icon_width / 2.0;
-                ui.add_space(indent);
-
-                ui.monospace(delimiters.closing);
-            });
-        }
-    }
-}
-
-fn is_expandable(value: &JsonTreeValue) -> bool {
-    matches!(value, JsonTreeValue::Array(_) | JsonTreeValue::Object(_))
 }
 
 fn generate_id(id: Id, path: &[String]) -> Id {
@@ -305,30 +135,12 @@ fn generate_id(id: Id, path: &[String]) -> Id {
     Id::new(format!("{:?}-{}", id, path.join("/")))
 }
 
-fn get_key_text(
-    key: &Option<String>,
-    parent: Option<Expandable>,
-    style: &JsonTreeStyle,
-    search_term: &Option<SearchTerm>,
-) -> Vec<RichText> {
-    match (key, parent) {
-        (Some(key), Some(Expandable::Array)) => format_array_idx(key, style.array_idx_color),
-        (Some(key), Some(Expandable::Object)) => format_object_key(
-            key,
-            style.object_key_color,
-            search_term,
-            style.highlight_color,
-        ),
-        _ => vec![],
-    }
-}
-
 fn show_base_value(
     ui: &mut Ui,
+    style: &JsonTreeStyle,
     key_texts: Vec<RichText>,
     base_value: &BaseValue,
     search_term: &Option<SearchTerm>,
-    style: &JsonTreeStyle,
 ) {
     for key_text in key_texts {
         ui.monospace(key_text);
@@ -341,6 +153,173 @@ fn show_base_value(
         style.highlight_color,
     ) {
         ui.monospace(text);
+    }
+}
+
+fn show_expandable(
+    ui: &mut Ui,
+    path_segments: &mut Vec<String>,
+    collapsing_state_ids: &mut HashSet<Id>,
+    expandable: Expandable,
+    style: &JsonTreeStyle,
+) {
+    let delimiters = match expandable.expandable_type {
+        ExpandableType::Array => &ARRAY_DELIMITERS,
+        ExpandableType::Object => &OBJECT_DELIMITERS,
+    };
+
+    let default_open = match &expandable.default_expand {
+        InnerExpand::All => true,
+        InnerExpand::None => false,
+        InnerExpand::ToLevel(num_levels_open) => (path_segments.len() as u8) <= *num_levels_open,
+        InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
+    };
+
+    let id_source = ui.make_persistent_id(
+        generate_id(expandable.id, path_segments).with(&expandable.default_expand),
+    );
+
+    collapsing_state_ids.insert(id_source);
+
+    let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
+    let is_expanded = state.is_open();
+
+    state
+        .show_header(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+
+                if path_segments.is_empty() && !is_expanded {
+                    ui.label(delimiters.opening);
+                    ui.monospace(" ");
+
+                    let entries_len = expandable.entries.len();
+
+                    for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
+                        let key_texts =
+                            if matches!(expandable.expandable_type, ExpandableType::Array) {
+                                // Don't show array indices when the array is collapsed.
+                                vec![]
+                            } else {
+                                get_key_text(
+                                    style,
+                                    &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
+                                    &expandable.search_term,
+                                )
+                            };
+
+                        match elem {
+                            JsonTreeValue::BaseValue(base_value) => {
+                                show_base_value(
+                                    ui,
+                                    style,
+                                    key_texts,
+                                    base_value,
+                                    &expandable.search_term,
+                                );
+                            }
+                            JsonTreeValue::Expandable(_, expandable_type) => {
+                                for key_text in key_texts {
+                                    ui.monospace(key_text);
+                                }
+                                let nested_delimiters = match expandable_type {
+                                    ExpandableType::Array => &ARRAY_DELIMITERS,
+                                    ExpandableType::Object => &OBJECT_DELIMITERS,
+                                };
+                                ui.label(nested_delimiters.collapsed);
+                            }
+                        };
+
+                        if idx == entries_len - 1 {
+                            ui.monospace(" ");
+                        } else {
+                            ui.monospace(", ");
+                        }
+                    }
+
+                    ui.label(delimiters.closing);
+                } else {
+                    for key_text in get_key_text(style, &expandable.parent, &expandable.search_term)
+                    {
+                        ui.monospace(key_text);
+                    }
+
+                    ui.label(if is_expanded {
+                        delimiters.opening
+                    } else {
+                        delimiters.collapsed
+                    });
+                }
+            });
+        })
+        .body(|ui| {
+            for (key, elem) in expandable.entries {
+                let is_expandable = matches!(elem, JsonTreeValue::Expandable(_, _));
+
+                path_segments.push(key.clone());
+
+                let add_nested_tree = |ui: &mut Ui| {
+                    let nested_tree = JsonTree {
+                        id: generate_id(expandable.id, path_segments),
+                        value: elem,
+                        default_expand: expandable.default_expand.clone(),
+                        search_term: expandable.search_term.clone(),
+                        style: style.clone(),
+                        parent: Some(Parent::new(key, expandable.expandable_type)),
+                    };
+
+                    nested_tree.show_impl(ui, path_segments, collapsing_state_ids);
+                };
+
+                if is_expandable {
+                    add_nested_tree(ui);
+                } else {
+                    let original_indent_has_left_vline = ui.visuals_mut().indent_has_left_vline;
+                    let original_indent = ui.spacing().indent;
+
+                    ui.visuals_mut().indent_has_left_vline = false;
+                    ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
+
+                    ui.indent(id_source, |ui| add_nested_tree(ui));
+
+                    ui.visuals_mut().indent_has_left_vline = original_indent_has_left_vline;
+                    ui.spacing_mut().indent = original_indent;
+                }
+
+                path_segments.pop();
+            }
+        });
+
+    if is_expanded {
+        ui.horizontal_wrapped(|ui| {
+            let indent = ui.spacing().icon_width / 2.0;
+            ui.add_space(indent);
+
+            ui.monospace(delimiters.closing);
+        });
+    }
+}
+
+fn get_key_text(
+    style: &JsonTreeStyle,
+    parent: &Option<Parent>,
+    search_term: &Option<SearchTerm>,
+) -> Vec<RichText> {
+    match parent {
+        Some(Parent {
+            key,
+            expandable_type: ExpandableType::Array,
+        }) => format_array_idx(key, style.array_idx_color),
+        Some(Parent {
+            key,
+            expandable_type: ExpandableType::Object,
+        }) => format_object_key(
+            key,
+            style.object_key_color,
+            search_term,
+            style.highlight_color,
+        ),
+        _ => vec![],
     }
 }
 
@@ -382,12 +361,6 @@ fn get_highlighted_texts(
         }
     }
     VecDeque::from_iter([RichText::new(text).color(text_color)])
-}
-
-#[derive(Clone, Copy)]
-enum Expandable {
-    Array,
-    Object,
 }
 
 #[derive(Clone)]
@@ -433,6 +406,29 @@ impl JsonTreeResponse {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
                 state.remove(ui.ctx());
             }
+        }
+    }
+}
+
+struct Expandable {
+    id: Id,
+    default_expand: InnerExpand,
+    entries: Vec<(String, JsonTreeValue)>,
+    expandable_type: ExpandableType,
+    search_term: Option<SearchTerm>,
+    parent: Option<Parent>,
+}
+
+struct Parent {
+    key: String,
+    expandable_type: ExpandableType,
+}
+
+impl Parent {
+    fn new(key: String, expandable_type: ExpandableType) -> Self {
+        Self {
+            key,
+            expandable_type,
         }
     }
 }

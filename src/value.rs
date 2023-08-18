@@ -1,10 +1,7 @@
-use indexmap::IndexMap;
-
 #[derive(Debug, Clone)]
 pub enum JsonTreeValue {
     BaseValue(BaseValue),
-    Array(Vec<JsonTreeValue>),
-    Object(IndexMap<String, JsonTreeValue>),
+    Expandable(Vec<(String, JsonTreeValue)>, ExpandableType),
 }
 
 #[derive(Debug, Clone)]
@@ -13,12 +10,18 @@ pub struct BaseValue {
     pub value_type: BaseValueType,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BaseValueType {
     Null,
     Bool,
     Number,
     String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExpandableType {
+    Array,
+    Object,
 }
 
 #[cfg(feature = "serde_json")]
@@ -41,12 +44,19 @@ impl From<&serde_json::Value> for JsonTreeValue {
                 value_str: format!("\"{}\"", s),
                 value_type: BaseValueType::String,
             }),
-            serde_json::Value::Array(arr) => {
-                JsonTreeValue::Array(arr.iter().map(|elem| elem.into()).collect())
-            }
-            serde_json::Value::Object(obj) => JsonTreeValue::Object(IndexMap::from_iter(
-                obj.iter().map(|(key, val)| (key.to_owned(), val.into())),
-            )),
+            serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
+                arr.iter()
+                    .enumerate()
+                    .map(|(idx, elem)| (idx.to_string(), elem.into()))
+                    .collect(),
+                ExpandableType::Array,
+            ),
+            serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
+                obj.iter()
+                    .map(|(key, val)| (key.to_owned(), val.into()))
+                    .collect(),
+                ExpandableType::Object,
+            ),
         }
     }
 }

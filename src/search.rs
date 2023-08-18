@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::{value::JsonTreeValue, BaseValue};
+use crate::{value::JsonTreeValue, BaseValue, ExpandableType};
 
 #[derive(Debug, Clone)]
 pub struct SearchTerm(String);
@@ -57,19 +57,15 @@ fn search_impl(
                 update_matches(path_segments, matching_paths);
             }
         }
-        JsonTreeValue::Array(arr) => {
-            for (idx, elem) in arr.iter().enumerate() {
-                path_segments.push(idx.to_string());
-                search_impl(elem, search_term, path_segments, matching_paths);
-                path_segments.pop();
-            }
-        }
-        JsonTreeValue::Object(obj) => {
-            for (key, val) in obj.iter() {
+        JsonTreeValue::Expandable(entries, expandable_type) => {
+            for (key, val) in entries.iter() {
                 path_segments.push(key.to_string());
-                if search_term.matches(key) {
+
+                // Ignore matches for indices in an array.
+                if *expandable_type == ExpandableType::Object && search_term.matches(key) {
                     update_matches(path_segments, matching_paths);
                 }
+
                 search_impl(val, search_term, path_segments, matching_paths);
                 path_segments.pop();
             }

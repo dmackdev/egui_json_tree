@@ -10,8 +10,7 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
-    value::JsonTreeValue,
-    BaseValue, ExpandableType,
+    value::{BaseValue, ExpandableType, JsonTreeValue},
 };
 
 /// An interactive JSON tree visualiser.

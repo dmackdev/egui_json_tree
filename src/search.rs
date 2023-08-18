@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::{value::JsonTreeValue, BaseValue, ExpandableType};
+use crate::value::{BaseValue, ExpandableType, JsonTreeValue};
 
 #[derive(Debug, Clone)]
 pub struct SearchTerm(String);

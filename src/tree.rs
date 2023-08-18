@@ -170,7 +170,7 @@ fn show_expandable(
         InnerExpand::All => true,
         InnerExpand::None => false,
         InnerExpand::ToLevel(num_levels_open) => (path_segments.len() as u8) <= *num_levels_open,
-        InnerExpand::Paths(paths) => paths.contains(&path_segments.join("/").to_string()),
+        InnerExpand::Paths(paths) => paths.contains(path_segments),
     };
 
     let id_source = *id_map
@@ -384,7 +384,7 @@ enum InnerExpand {
     All,
     None,
     ToLevel(u8),
-    Paths(BTreeSet<String>),
+    Paths(BTreeSet<Vec<String>>),
 }
 
 struct Expandable {

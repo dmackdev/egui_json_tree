@@ -26,9 +26,8 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> BTreeSet<String> {
+    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> BTreeSet<Vec<String>> {
         let mut matching_paths = BTreeSet::new();
-        matching_paths.insert("".to_string());
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
 
@@ -49,7 +48,7 @@ fn search_impl(
     value: &JsonTreeValue,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
-    matching_paths: &mut BTreeSet<String>,
+    matching_paths: &mut BTreeSet<Vec<String>>,
 ) {
     match value {
         JsonTreeValue::BaseValue(BaseValue { value_str, .. }) => {
@@ -73,9 +72,8 @@ fn search_impl(
     };
 }
 
-fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut BTreeSet<String>) {
+fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut BTreeSet<Vec<String>>) {
     for i in 0..path_segments.len() {
-        let path_str = path_segments[0..i].join("/").to_string();
-        matching_paths.insert(path_str);
+        matching_paths.insert(path_segments[0..i].to_vec());
     }
 }

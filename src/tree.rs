@@ -182,7 +182,7 @@ fn show_expandable(
 
     let id_source = *id_map
         .entry(path_segments.to_vec())
-        .or_insert_with(|| generate_id(expandable.id, &path_segments));
+        .or_insert_with(|| ui.make_persistent_id(generate_id(expandable.id, &path_segments)));
 
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
@@ -427,7 +427,7 @@ fn populate_ids(
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value {
         for (key, val) in entries {
-            let id = generate_id(base_id, &path_segments);
+            let id = ui.make_persistent_id(generate_id(base_id, &path_segments));
             id_map.insert(path_segments.clone(), id);
 
             path_segments.push(key.to_owned());

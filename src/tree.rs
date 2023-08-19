@@ -10,7 +10,7 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
-    value::{BaseValue, ExpandableType, JsonTreeValue},
+    value::{BaseValueType, ExpandableType, JsonTreeValue},
 };
 
 /// An interactive JSON tree visualiser.
@@ -110,11 +110,18 @@ impl JsonTree {
         id_map: &mut HashMap<Vec<String>, Id>,
     ) {
         match self.value {
-            JsonTreeValue::BaseValue(base_value) => {
+            JsonTreeValue::Base(value_str, value_type) => {
                 let key_texts = get_key_text(&self.style, &self.parent, &self.search_term);
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    show_base_value(ui, &self.style, key_texts, &base_value, &self.search_term);
+                    show_base_value(
+                        ui,
+                        &self.style,
+                        key_texts,
+                        &value_str,
+                        &value_type,
+                        &self.search_term,
+                    );
                 });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -136,7 +143,8 @@ fn show_base_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
     key_texts: Vec<RichText>,
-    base_value: &BaseValue,
+    value_str: &String,
+    value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) {
     for key_text in key_texts {
@@ -144,8 +152,8 @@ fn show_base_value(
     }
 
     for text in get_highlighted_texts(
-        &base_value.value_str,
-        style.get_color(base_value.value_type),
+        value_str,
+        style.get_color(value_type),
         search_term,
         style.highlight_color,
     ) {
@@ -204,12 +212,13 @@ fn show_expandable(
                             };
 
                         match elem {
-                            JsonTreeValue::BaseValue(base_value) => {
+                            JsonTreeValue::Base(value_str, value_type) => {
                                 show_base_value(
                                     ui,
                                     style,
                                     key_texts,
-                                    base_value,
+                                    value_str,
+                                    value_type,
                                     &expandable.search_term,
                                 );
                             }
@@ -416,19 +425,16 @@ fn populate_ids(
     base_id: Id,
     value: &JsonTreeValue,
 ) {
-    match value {
-        JsonTreeValue::BaseValue(_) => {}
-        JsonTreeValue::Expandable(entries, _) => {
-            for (key, val) in entries {
-                let id = generate_id(base_id, &path_segments);
-                id_map.insert(path_segments.clone(), id);
+    if let JsonTreeValue::Expandable(entries, _) = value {
+        for (key, val) in entries {
+            let id = generate_id(base_id, &path_segments);
+            id_map.insert(path_segments.clone(), id);
 
-                path_segments.push(key.to_owned());
+            path_segments.push(key.to_owned());
 
-                populate_ids(ui, id_map, path_segments, base_id, val);
+            populate_ids(ui, id_map, path_segments, base_id, val);
 
-                path_segments.pop();
-            }
+            path_segments.pop();
         }
     }
 }

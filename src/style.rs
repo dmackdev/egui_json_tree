@@ -29,7 +29,7 @@ impl Default for JsonTreeStyle {
 }
 
 impl JsonTreeStyle {
-    pub fn get_color(&self, base_value_type: BaseValueType) -> Color32 {
+    pub fn get_color(&self, base_value_type: &BaseValueType) -> Color32 {
         match base_value_type {
             BaseValueType::Null => self.null_color,
             BaseValueType::Bool => self.bool_color,

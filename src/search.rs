@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::value::{BaseValue, ExpandableType, JsonTreeValue};
+use crate::value::{ExpandableType, JsonTreeValue};
 
 #[derive(Debug, Clone)]
 pub struct SearchTerm(String);
@@ -51,7 +51,7 @@ fn search_impl(
     matching_paths: &mut BTreeSet<Vec<String>>,
 ) {
     match value {
-        JsonTreeValue::BaseValue(BaseValue { value_str, .. }) => {
+        JsonTreeValue::Base(value_str, _) => {
             if search_term.matches(value_str) {
                 update_matches(path_segments, matching_paths);
             }

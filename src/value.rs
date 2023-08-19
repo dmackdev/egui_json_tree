@@ -1,11 +1,17 @@
+//! Internal representation of JSON values for presentation purposes.
+//!
+//! Implement your own `From` or `Into` conversion to [`JsonTreeValue`] if you wish to visualise a custom JSON type with a [`JsonTree`](crate::JsonTree).
+//! See the [`From<&serde_json::Value> for JsonTreeValue`](../../src/egui_json_tree/value.rs.html#34-68) implementation for reference.
 #[derive(Debug, Clone)]
 pub enum JsonTreeValue {
     BaseValue(BaseValue),
     Expandable(Vec<(String, JsonTreeValue)>, ExpandableType),
 }
 
+/// A representation for a non-recursive JSON value.
 #[derive(Debug, Clone)]
 pub struct BaseValue {
+    /// The string representation for this base value.
     pub value_str: String,
     pub value_type: BaseValueType,
 }

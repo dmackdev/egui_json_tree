@@ -31,6 +31,8 @@ use crate::{
 /// // Reset which arrays and objects are expanded to respect the `default_expand` setting.
 /// // In this case, this will expand all arrays and objects again,
 /// // if a user had collapsed any manually.
+/// // You should call this anytime the `default_expand` value changes,
+/// // including if the search string in the `Expand::SearchResults(String)` variant changes.
 /// response.reset_expanded(ui);
 /// # });
 /// ```

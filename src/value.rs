@@ -3,7 +3,7 @@
 //! Implement your own `From` or `Into` conversion to [`JsonTreeValue`] if you wish to visualise a custom JSON type with a [`JsonTree`](crate::JsonTree).
 //! See the [`From<&serde_json::Value> for JsonTreeValue`](../../src/egui_json_tree/value.rs.html#37-63) implementation for reference.
 /// Representation of JSON values for presentation purposes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum JsonTreeValue {
     /// Representation for a non-recursive JSON value:
     /// - A `String` representation of the base value.
@@ -18,7 +18,7 @@ pub enum JsonTreeValue {
 }
 
 /// The type of a non-recursive JSON value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BaseValueType {
     Null,
     Bool,
@@ -27,7 +27,7 @@ pub enum BaseValueType {
 }
 
 /// The type of a recursive JSON value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ExpandableType {
     Array,
     Object,

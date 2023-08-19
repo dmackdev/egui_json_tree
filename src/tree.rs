@@ -3,7 +3,11 @@ use std::{
     hash::Hash,
 };
 
-use egui::{collapsing_header::CollapsingState, Color32, Id, RichText, Ui};
+use egui::{
+    collapsing_header::CollapsingState,
+    util::cache::{ComputerMut, FrameCache},
+    Color32, Id, RichText, Ui,
+};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
@@ -82,33 +86,27 @@ impl JsonTree {
 
     /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
-        let mut id_map: HashMap<Vec<String>, Id> = HashMap::new();
+        let mut path_id_map = ui.ctx().memory_mut(|mem| {
+            let cache = mem.caches.cache::<PathIdMapCache<'_>>();
+            cache.get(&(self.id, &self.value))
+        });
 
-        populate_ids(
-            ui,
-            &mut id_map,
-            &mut vec![],
-            self.id.with(&self.default_expand),
-            &self.value,
-        );
+        for value in path_id_map.values_mut() {
+            *value = ui.make_persistent_id(&value);
+        }
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            self.show_impl(ui, &mut vec![], &mut id_map);
+            self.show_impl(ui, &mut vec![], &mut path_id_map);
         });
 
         JsonTreeResponse {
-            collapsing_state_ids: id_map.into_values().collect(),
+            collapsing_state_ids: path_id_map.into_values().collect(),
         }
     }
 
-    fn show_impl(
-        self,
-        ui: &mut Ui,
-        path_segments: &mut Vec<String>,
-        id_map: &mut HashMap<Vec<String>, Id>,
-    ) {
+    fn show_impl(self, ui: &mut Ui, path_segments: &mut Vec<String>, path_id_map: &mut PathIdMap) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
                 let key_texts = get_key_text(&self.style, &self.parent, &self.search_term);
@@ -133,7 +131,7 @@ impl JsonTree {
                     search_term: self.search_term,
                     parent: self.parent,
                 };
-                show_expandable(ui, path_segments, id_map, expandable, &self.style);
+                show_expandable(ui, path_segments, path_id_map, expandable, &self.style);
             }
         };
     }
@@ -164,7 +162,7 @@ fn show_base_value(
 fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
-    id_map: &mut HashMap<Vec<String>, Id>,
+    path_id_map: &mut PathIdMap,
     expandable: Expandable,
     style: &JsonTreeStyle,
 ) {
@@ -180,7 +178,7 @@ fn show_expandable(
         InnerExpand::Paths(paths) => paths.contains(path_segments),
     };
 
-    let id_source = *id_map
+    let id_source = *path_id_map
         .entry(path_segments.to_vec())
         .or_insert_with(|| ui.make_persistent_id(generate_id(expandable.id, &path_segments)));
 
@@ -272,7 +270,7 @@ fn show_expandable(
                         parent: Some(Parent::new(key, expandable.expandable_type)),
                     };
 
-                    nested_tree.show_impl(ui, path_segments, id_map);
+                    nested_tree.show_impl(ui, path_segments, path_id_map);
                 };
 
                 if is_expandable {
@@ -418,27 +416,40 @@ impl Parent {
     }
 }
 
-fn populate_ids(
-    ui: &mut Ui,
-    id_map: &mut HashMap<Vec<String>, Id>,
-    path_segments: &mut Vec<String>,
+fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
+    Id::new(base_id).with(&path_segments)
+}
+
+type PathIdMap = HashMap<Vec<String>, Id>;
+
+fn get_path_id_map(base_id: Id, value: &JsonTreeValue) -> PathIdMap {
+    let mut path_id_map = HashMap::new();
+    get_path_id_map_impl(base_id, value, &mut vec![], &mut path_id_map);
+    path_id_map
+}
+
+fn get_path_id_map_impl(
     base_id: Id,
     value: &JsonTreeValue,
+    path_segments: &mut Vec<String>,
+    path_id_map: &mut PathIdMap,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value {
         for (key, val) in entries {
-            let id = ui.make_persistent_id(generate_id(base_id, &path_segments));
-            id_map.insert(path_segments.clone(), id);
-
+            let id = generate_id(base_id, &path_segments);
+            path_id_map.insert(path_segments.clone(), id);
             path_segments.push(key.to_owned());
-
-            populate_ids(ui, id_map, path_segments, base_id, val);
-
+            get_path_id_map_impl(base_id, val, path_segments, path_id_map);
             path_segments.pop();
         }
     }
 }
 
-fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
-    Id::new(base_id).with(&path_segments)
+#[derive(Default)]
+struct PathIdMapComputer;
+impl ComputerMut<&(Id, &JsonTreeValue), PathIdMap> for PathIdMapComputer {
+    fn compute(&mut self, (base_id, value): &(Id, &JsonTreeValue)) -> PathIdMap {
+        get_path_id_map(*base_id, value)
+    }
 }
+type PathIdMapCache<'a> = FrameCache<PathIdMap, PathIdMapComputer>;

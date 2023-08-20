@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::value::{ExpandableType, JsonTreeValue};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);
 
 impl SearchTerm {

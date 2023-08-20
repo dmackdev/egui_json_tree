@@ -26,7 +26,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value).show(ui);
+        JsonTree::new(self.title, &self.value).show(ui, Expand::None);
     }
 }
 
@@ -78,7 +78,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui);
+                JsonTree::new(self.title, value).show(ui, Expand::None);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -113,9 +113,6 @@ impl Show for SearchExample {
     fn show(&mut self, ui: &mut Ui) {
         ui.label("Search:");
 
-        let tree = JsonTree::new(self.title, &self.value)
-            .default_expand(Expand::SearchResults(self.search_input.clone()));
-
         let (text_edit_response, clear_button_response) = ui
             .horizontal(|ui| {
                 let text_edit_response = ui.text_edit_singleline(&mut self.search_input);
@@ -124,7 +121,8 @@ impl Show for SearchExample {
             })
             .inner;
 
-        let response = tree.show(ui);
+        let tree = JsonTree::new(self.title, &self.value);
+        let response = tree.show(ui, Expand::SearchResults(self.search_input.clone()));
 
         if text_edit_response.changed() {
             response.reset_expanded(ui);
@@ -132,6 +130,7 @@ impl Show for SearchExample {
 
         if clear_button_response.clicked() {
             self.search_input.clear();
+            response.reset_expanded(ui);
         }
 
         if ui.button("Reset expanded").clicked() {

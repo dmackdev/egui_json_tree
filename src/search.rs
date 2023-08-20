@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use crate::value::{ExpandableType, JsonTreeValue};
 
@@ -26,8 +26,8 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> BTreeSet<Vec<String>> {
-        let mut matching_paths = BTreeSet::new();
+    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> HashSet<Vec<String>> {
+        let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
 
@@ -48,7 +48,7 @@ fn search_impl(
     value: &JsonTreeValue,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
-    matching_paths: &mut BTreeSet<Vec<String>>,
+    matching_paths: &mut HashSet<Vec<String>>,
 ) {
     match value {
         JsonTreeValue::Base(value_str, _) => {
@@ -72,7 +72,7 @@ fn search_impl(
     };
 }
 
-fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut BTreeSet<Vec<String>>) {
+fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut HashSet<Vec<String>>) {
     for i in 0..path_segments.len() {
         matching_paths.insert(path_segments[0..i].to_vec());
     }

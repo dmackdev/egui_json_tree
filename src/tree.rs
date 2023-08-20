@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     hash::Hash,
 };
 
@@ -405,12 +405,12 @@ pub enum Expand {
     SearchResults(String),
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 enum InnerExpand {
     All,
     None,
     ToLevel(u8),
-    Paths(BTreeSet<Vec<String>>),
+    Paths(HashSet<Vec<String>>),
 }
 
 struct Expandable {
@@ -474,12 +474,12 @@ type PathIdMapCache<'a> = FrameCache<PathIdMap, PathIdMapComputer>;
 
 #[derive(Default)]
 struct SearchResultsComputer;
-impl ComputerMut<&(&SearchTerm, &JsonTreeValue), BTreeSet<Vec<String>>> for SearchResultsComputer {
+impl ComputerMut<&(&SearchTerm, &JsonTreeValue), HashSet<Vec<String>>> for SearchResultsComputer {
     fn compute(
         &mut self,
         (search_term, value): &(&SearchTerm, &JsonTreeValue),
-    ) -> BTreeSet<Vec<String>> {
+    ) -> HashSet<Vec<String>> {
         search_term.find_matching_paths_in(value)
     }
 }
-type SearchResultsCache<'a> = FrameCache<BTreeSet<Vec<String>>, SearchResultsComputer>;
+type SearchResultsCache<'a> = FrameCache<HashSet<Vec<String>>, SearchResultsComputer>;

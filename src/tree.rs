@@ -385,9 +385,9 @@ fn get_highlighted_texts(
     VecDeque::from_iter([RichText::new(text).color(text_color)])
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 /// Configuration for how a `JsonTree` should expand arrays and objects by default.
-pub enum DefaultExpand {
+pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.
     All,
     /// Collapse all arrays and objects.
@@ -402,10 +402,10 @@ pub enum DefaultExpand {
     /// Expand arrays and objects to display object keys and values,
     /// and array elements, that match the search term. Letter case is ignored. The matches are highlighted.
     /// If the search term is empty, nothing will be expanded by default.
-    SearchResults(String),
+    SearchResults(&'a String),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum InnerExpand {
     All,
     None,

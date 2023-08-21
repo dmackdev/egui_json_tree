@@ -122,7 +122,7 @@ impl Show for SearchExample {
             .inner;
 
         let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, DefaultExpand::SearchResults(self.search_input.clone()));
+        let response = tree.show(ui, DefaultExpand::SearchResults(&self.search_input));
 
         if text_edit_response.changed() {
             response.reset_expanded(ui);

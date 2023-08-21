@@ -156,7 +156,7 @@ fn show_base_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
     key_texts: Vec<RichText>,
-    value_str: &String,
+    value_str: &str,
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) {
@@ -347,14 +347,14 @@ fn get_key_text(
 }
 
 fn format_object_key(
-    key: &String,
+    key_str: &str,
     color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) -> Vec<RichText> {
     let mut texts = vec![RichText::new("\"").color(color)];
 
-    add_texts_with_highlighting(&mut texts, key, color, search_term, highlight_color);
+    add_texts_with_highlighting(&mut texts, key_str, color, search_term, highlight_color);
 
     texts.push(RichText::new("\"").color(color));
     texts.push(RichText::new(": ").monospace());
@@ -362,16 +362,16 @@ fn format_object_key(
     texts
 }
 
-fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
+fn format_array_idx(idx_str: &str, color: Color32) -> Vec<RichText> {
     vec![
-        RichText::new(idx).color(color),
+        RichText::new(idx_str).color(color),
         RichText::new(": ").monospace(),
     ]
 }
 
 fn add_texts_with_highlighting(
     texts: &mut Vec<RichText>,
-    text_str: &String,
+    text_str: &str,
     text_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
@@ -409,7 +409,7 @@ pub enum DefaultExpand<'a> {
     /// Expand arrays and objects to display object keys and values,
     /// and array elements, that match the search term. Letter case is ignored. The matches are highlighted.
     /// If the search term is empty, nothing will be expanded by default.
-    SearchResults(&'a String),
+    SearchResults(&'a str),
 }
 
 #[derive(Debug, Clone)]

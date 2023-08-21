@@ -14,12 +14,12 @@ impl SearchTerm {
         !search_str.is_empty()
     }
 
-    pub fn match_index(&self, other: &str) -> Option<usize> {
+    pub fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
         other
             .to_ascii_lowercase()
             .match_indices(&self.0)
-            .next()
             .map(|(idx, _)| idx)
+            .collect()
     }
 
     pub fn len(&self) -> usize {

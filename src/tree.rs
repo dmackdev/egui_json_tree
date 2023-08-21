@@ -377,15 +377,23 @@ fn add_texts_with_highlighting(
     highlight_color: Color32,
 ) {
     if let Some(search_term) = search_term {
-        if let Some(idx) = search_term.match_index(text_str) {
-            texts.push(RichText::new(&text_str[..idx]).color(text_color));
-            texts.push(
-                RichText::new(&text_str[idx..idx + search_term.len()])
-                    .color(text_color)
-                    .background_color(highlight_color),
-            );
-            texts.push(RichText::new(&text_str[idx + search_term.len()..]).color(text_color));
+        let matches = search_term.find_match_indices_in(text_str);
+        if !matches.is_empty() {
+            let mut start = 0;
+            for match_idx in matches {
+                texts.push(RichText::new(&text_str[start..match_idx]).color(text_color));
 
+                let highlight_end_idx = match_idx + search_term.len();
+
+                texts.push(
+                    RichText::new(&text_str[match_idx..highlight_end_idx])
+                        .color(text_color)
+                        .background_color(highlight_color),
+                );
+
+                start = highlight_end_idx;
+            }
+            texts.push(RichText::new(&text_str[start..]).color(text_color));
             return;
         }
     }

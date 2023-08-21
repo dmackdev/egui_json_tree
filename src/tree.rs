@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     hash::Hash,
 };
 
@@ -160,16 +160,17 @@ fn show_base_value(
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) {
-    for key_text in key_texts {
-        ui.monospace(key_text);
-    }
+    let mut texts = key_texts;
 
-    for text in get_highlighted_texts(
+    add_texts_with_highlighting(
+        &mut texts,
         value_str,
         style.get_color(value_type),
         search_term,
         style.highlight_color,
-    ) {
+    );
+
+    for text in texts {
         ui.monospace(text);
     }
 }
@@ -351,11 +352,14 @@ fn format_object_key(
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
 ) -> Vec<RichText> {
-    let mut texts = get_highlighted_texts(key, color, search_term, highlight_color);
-    texts.push_front(RichText::new("\"").color(color));
-    texts.push_back(RichText::new("\"").color(color));
-    texts.push_back(RichText::new(": ").monospace());
-    texts.into()
+    let mut texts = vec![RichText::new("\"").color(color)];
+
+    add_texts_with_highlighting(&mut texts, key, color, search_term, highlight_color);
+
+    texts.push(RichText::new("\"").color(color));
+    texts.push(RichText::new(": ").monospace());
+
+    texts
 }
 
 fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
@@ -365,24 +369,27 @@ fn format_array_idx(idx: &String, color: Color32) -> Vec<RichText> {
     ]
 }
 
-fn get_highlighted_texts(
-    text: &String,
+fn add_texts_with_highlighting(
+    texts: &mut Vec<RichText>,
+    text_str: &String,
     text_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
-) -> VecDeque<RichText> {
+) {
     if let Some(search_term) = search_term {
-        if let Some(idx) = search_term.match_index(text) {
-            return VecDeque::from_iter([
-                RichText::new(&text[..idx]).color(text_color),
-                RichText::new(&text[idx..idx + search_term.len()])
+        if let Some(idx) = search_term.match_index(text_str) {
+            texts.push(RichText::new(&text_str[..idx]).color(text_color));
+            texts.push(
+                RichText::new(&text_str[idx..idx + search_term.len()])
                     .color(text_color)
                     .background_color(highlight_color),
-                RichText::new(&text[idx + search_term.len()..]).color(text_color),
-            ]);
+            );
+            texts.push(RichText::new(&text_str[idx + search_term.len()..]).color(text_color));
+
+            return;
         }
     }
-    VecDeque::from_iter([RichText::new(text).color(text_color)])
+    texts.push(RichText::new(text_str).color(text_color));
 }
 
 #[derive(Debug, Clone)]

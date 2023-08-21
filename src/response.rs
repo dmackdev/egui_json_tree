@@ -14,7 +14,7 @@ impl JsonTreeResponse {
     /// resets the expanded state for all of its arrays/objects to respect its `default_expand` setting.
     ///
     /// You should call this anytime the `default_expand` value changes,
-    /// including if the search string in the [`Expand::SearchResults(String)`](crate::Expand::SearchResults) variant changes.
+    /// including if the search string in the [`DefaultExpand::SearchResults(String)`](crate::DefaultExpand::SearchResults) variant changes.
     pub fn reset_expanded(&self, ui: &mut Ui) {
         for id in self.collapsing_state_ids.iter() {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {

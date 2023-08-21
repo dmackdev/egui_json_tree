@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use eframe::egui::{RichText, Ui};
-use egui_json_tree::{Expand, JsonTree};
+use egui_json_tree::{DefaultExpand, JsonTree};
 use serde_json::{json, Value};
 
 trait Show {
@@ -26,7 +26,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value).show(ui, Expand::None);
+        JsonTree::new(self.title, &self.value).show(ui, DefaultExpand::None);
     }
 }
 
@@ -78,7 +78,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui, Expand::None);
+                JsonTree::new(self.title, value).show(ui, DefaultExpand::None);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -122,7 +122,7 @@ impl Show for SearchExample {
             .inner;
 
         let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, Expand::SearchResults(self.search_input.clone()));
+        let response = tree.show(ui, DefaultExpand::SearchResults(self.search_input.clone()));
 
         if text_edit_response.changed() {
             response.reset_expanded(ui);

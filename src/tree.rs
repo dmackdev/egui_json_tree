@@ -19,20 +19,20 @@ use crate::{
 
 /// An interactive JSON tree visualiser.
 /// ```
-/// use egui_json_tree::{JsonTree, Expand};
+/// use egui_json_tree::{JsonTree, DefaultExpand};
 ///
 /// # egui::__run_test_ui(|ui| {
 /// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
 /// let tree = JsonTree::new("globally-unique-id", &value);
 ///
 /// // Show the JSON tree:
-/// let response = tree.show(ui, Expand::All);
+/// let response = tree.show(ui, DefaultExpand::All);
 ///
 /// // Reset which arrays and objects are expanded to respect the `default_expand` argument.
 /// // In this case, this will expand all arrays and objects again,
 /// // if a user had collapsed any manually.
 /// // You should call this anytime the `default_expand` value changes,
-/// // including if the search string in the `Expand::SearchResults(String)` variant changes.
+/// // including if the search string in the `DefaultExpand::SearchResults(String)` variant changes.
 /// response.reset_expanded(ui);
 /// # });
 /// ```
@@ -62,7 +62,7 @@ impl JsonTree {
     }
 
     /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(self, ui: &mut Ui, default_expand: Expand) -> JsonTreeResponse {
+    pub fn show(self, ui: &mut Ui, default_expand: DefaultExpand) -> JsonTreeResponse {
         let mut path_id_map = ui.ctx().memory_mut(|mem| {
             let cache = mem.caches.cache::<PathIdMapCache<'_>>();
             cache.get(&(self.id, &self.value))
@@ -73,10 +73,10 @@ impl JsonTree {
         }
 
         let (default_expand, search_term) = match default_expand {
-            Expand::All => (InnerExpand::All, None),
-            Expand::None => (InnerExpand::None, None),
-            Expand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
-            Expand::SearchResults(search_str) => {
+            DefaultExpand::All => (InnerExpand::All, None),
+            DefaultExpand::None => (InnerExpand::None, None),
+            DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
+            DefaultExpand::SearchResults(search_str) => {
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
@@ -387,7 +387,7 @@ fn get_highlighted_texts(
 
 #[derive(Clone)]
 /// Configuration for how a `JsonTree` should expand arrays and objects by default.
-pub enum Expand {
+pub enum DefaultExpand {
     /// Expand all arrays and objects.
     All,
     /// Collapse all arrays and objects.

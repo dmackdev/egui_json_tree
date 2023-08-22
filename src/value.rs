@@ -1,18 +1,20 @@
 //! Representation of JSON values for presentation purposes.
 //!
-//! Implement your own `From` or `Into` conversion to [`JsonTreeValue`] if you wish to visualise a custom JSON type with a [`JsonTree`](crate::JsonTree).
-//! See the [`From<&serde_json::Value> for JsonTreeValue`](../../src/egui_json_tree/value.rs.html#37-63) implementation for reference.
+//! Write your own [`From`] or [`Into`] implementation which converts to [`JsonTreeValue`] if you wish to visualise a custom JSON type with a [`JsonTree`](crate::JsonTree),
+//! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`](serde_json) dependency.
+//!
+//! See the [`From<&serde_json::Value> for JsonTreeValue`](../../src/egui_json_tree/value.rs.html#39-65) implementation for reference.
 /// Representation of JSON values for presentation purposes.
 #[derive(Debug, Clone, Hash)]
 pub enum JsonTreeValue {
     /// Representation for a non-recursive JSON value:
-    /// - A `String` representation of the base value.
+    /// - A `String` representation of the base value, e.g. `"true"` for the boolean value `true`. The representation for a JSON `String` should be quoted.
     /// - The type of the base value.
     Base(String, BaseValueType),
     /// Representation for a recursive JSON value:
-    /// - A `Vec` of key-value pairs. The order *must* always be the same.
+    /// - A `Vec` of key-value pairs. The order *must always* be the same.
     ///   - For arrays, the key should be the index of each element.
-    ///   - For objects, the key should be the key of each object entry, in quotes.
+    ///   - For objects, the key should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
     Expandable(Vec<(String, JsonTreeValue)>, ExpandableType),
 }

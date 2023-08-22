@@ -18,6 +18,7 @@ use crate::{
 };
 
 /// An interactive JSON tree visualiser.
+///
 /// ```
 /// use egui_json_tree::{JsonTree, DefaultExpand};
 ///
@@ -28,11 +29,9 @@ use crate::{
 /// // Show the JSON tree:
 /// let response = tree.show(ui, DefaultExpand::All);
 ///
-/// // Reset which arrays and objects are expanded to respect the `default_expand` argument.
+/// // Reset which arrays and objects are expanded to respect the `default_expand` argument on the next render.
 /// // In this case, this will expand all arrays and objects again,
 /// // if a user had collapsed any manually.
-/// // You should call this anytime the `default_expand` value changes,
-/// // including if the search string in the `DefaultExpand::SearchResults(String)` variant changes.
 /// response.reset_expanded(ui);
 /// # });
 /// ```

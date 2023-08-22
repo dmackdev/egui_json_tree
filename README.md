@@ -2,7 +2,11 @@
 
 An interactive JSON tree visualiser for egui, with search and highlight functionality.
 
-## Example
+<p align="center">
+  <img src="./media/search_example.gif" alt="Search Example"/>
+</p>
+
+## Usage
 
 ```rust
 let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});

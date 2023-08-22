@@ -1,6 +1,6 @@
 # egui_json_tree
 
-An interactive JSON tree visualiser for egui, with search and highlight functionality.
+An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
 
 <p align="center">
   <img src="./media/search_example.gif" alt="Search Example"/>
@@ -24,6 +24,12 @@ See [demo.rs](./examples/demo.rs) for more detailed examples.
 
 ```bash
 cargo run --example=demo
+```
+
+## Open Docs
+
+```bash
+cargo doc --no-deps --open
 ```
 
 ## Notes

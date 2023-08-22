@@ -1,4 +1,4 @@
-//! An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
+//! An interactive JSON tree visualisation library for `egui`, with search and highlight functionality.
 //!
 //! ```
 //! use egui_json_tree::{JsonTree, DefaultExpand};

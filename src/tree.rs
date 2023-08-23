@@ -6,7 +6,7 @@ use std::{
 use egui::{
     collapsing_header::CollapsingState,
     util::cache::{ComputerMut, FrameCache},
-    Color32, Id, RichText, Ui,
+    Color32, Id, Label, Response, RichText, Sense, Ui,
 };
 
 use crate::{
@@ -90,6 +90,8 @@ impl JsonTree {
             }
         };
 
+        let mut response = None;
+
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
@@ -97,12 +99,14 @@ impl JsonTree {
                 ui,
                 &mut vec![],
                 &mut path_id_map,
+                &mut response,
                 &default_expand,
                 &search_term,
             );
         });
 
         JsonTreeResponse {
+            response,
             collapsing_state_ids: path_id_map.into_values().collect(),
         }
     }
@@ -112,23 +116,35 @@ impl JsonTree {
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
+        response: &mut Option<(Response, String)>,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
     ) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
                 let key_texts = get_key_text(&self.style, &self.parent, search_term);
-                ui.horizontal_wrapped(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    show_base_value(
-                        ui,
-                        &self.style,
-                        key_texts,
-                        &value_str,
-                        &value_type,
-                        search_term,
-                    );
-                });
+                let base_value_response = ui
+                    .horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing.x = 0.0;
+                        show_base_value(
+                            ui,
+                            &self.style,
+                            key_texts,
+                            &value_str,
+                            &value_type,
+                            search_term,
+                        )
+                    })
+                    .inner;
+
+                if let Some(base_value_response) = base_value_response {
+                    if base_value_response.hovered() {
+                        let mut path_str = "/".to_string();
+                        path_str.push_str(&path_segments.join("/"));
+
+                        *response = Some((base_value_response, path_str));
+                    }
+                }
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
                 let expandable = Expandable {
@@ -141,6 +157,7 @@ impl JsonTree {
                     ui,
                     path_segments,
                     path_id_map,
+                    response,
                     expandable,
                     &self.style,
                     default_expand,
@@ -158,7 +175,7 @@ fn show_base_value(
     value_str: &str,
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
-) {
+) -> Option<Response> {
     let mut texts = key_texts;
 
     add_texts_with_highlighting(
@@ -169,15 +186,17 @@ fn show_base_value(
         style.highlight_color,
     );
 
-    for text in texts {
-        ui.monospace(text);
-    }
+    texts
+        .into_iter()
+        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
+        .reduce(|acc, next| acc.union(next))
 }
 
 fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
+    response: &mut Option<(Response, String)>,
     expandable: Expandable,
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
@@ -228,7 +247,7 @@ fn show_expandable(
 
                         match elem {
                             JsonTreeValue::Base(value_str, value_type) => {
-                                show_base_value(
+                                let value_response = show_base_value(
                                     ui,
                                     style,
                                     key_texts,
@@ -236,11 +255,33 @@ fn show_expandable(
                                     value_type,
                                     search_term,
                                 );
+
+                                if let Some(value_response) = value_response {
+                                    if value_response.hovered() {
+                                        let mut path_str = "/".to_string();
+                                        path_str.push_str(&path_segments.join("/"));
+                                        path_str.push_str(key);
+                                        *response = Some((value_response, path_str));
+                                    }
+                                }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
-                                for key_text in key_texts {
-                                    ui.monospace(key_text);
+                                let key_response = key_texts
+                                    .into_iter()
+                                    .map(|text| {
+                                        ui.add(Label::new(text.monospace()).sense(Sense::click()))
+                                    })
+                                    .reduce(|acc, next| acc.union(next));
+
+                                if let Some(key_response) = key_response {
+                                    if key_response.hovered() {
+                                        let mut path_str = "/".to_string();
+                                        path_str.push_str(&path_segments.join("/"));
+                                        path_str.push_str(key);
+                                        *response = Some((key_response, path_str));
+                                    }
                                 }
+
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
@@ -258,8 +299,18 @@ fn show_expandable(
 
                     ui.label(delimiters.closing);
                 } else {
-                    for key_text in get_key_text(style, &expandable.parent, search_term) {
-                        ui.monospace(key_text);
+                    let key_response = get_key_text(style, &expandable.parent, search_term)
+                        .into_iter()
+                        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
+                        .reduce(|acc, next| acc.union(next));
+
+                    if let Some(key_response) = key_response {
+                        if key_response.hovered() {
+                            let mut path_str = "/".to_string();
+                            path_str.push_str(&path_segments.join("/"));
+
+                            *response = Some((key_response, path_str));
+                        }
                     }
 
                     ui.label(if is_expanded {
@@ -288,6 +339,7 @@ fn show_expandable(
                         ui,
                         path_segments,
                         path_id_map,
+                        response,
                         default_expand,
                         search_term,
                     );

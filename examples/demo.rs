@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use eframe::egui::{RichText, Ui};
+use egui::{Align, Align2, Area, Button, Frame, Layout, Order, Pos2};
 use egui_json_tree::{DefaultExpand, JsonTree};
 use serde_json::{json, Value};
 
@@ -139,6 +140,89 @@ impl Show for SearchExample {
     }
 }
 
+struct CopyToClipboardExample {
+    title: &'static str,
+    value: Value,
+    popup_response: Option<(Pos2, String)>,
+}
+
+impl CopyToClipboardExample {
+    fn new(value: Value) -> Self {
+        Self {
+            title: "Copy To Clipboard Example",
+            value,
+            popup_response: None,
+        }
+    }
+}
+
+impl Show for CopyToClipboardExample {
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn show(&mut self, ui: &mut Ui) {
+        let popup_id = ui.make_persistent_id("popup");
+
+        let mut should_close_popup = false;
+        if let Some((pos, path)) = &self.popup_response {
+            let area_response = Area::new(popup_id)
+                .order(Order::Foreground)
+                .constrain(true)
+                .fixed_pos(*pos)
+                .pivot(Align2::LEFT_TOP)
+                .show(ui.ctx(), |ui| {
+                    Frame::popup(ui.style()).show(ui, |ui| {
+                        ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                            ui.set_width(150.0);
+                            if ui
+                                .add(Button::new("Copy property path").frame(false))
+                                .clicked()
+                            {
+                                ui.output_mut(|o| o.copied_text = path.clone());
+                                should_close_popup = true;
+                            }
+
+                            if ui.add(Button::new("Copy contents").frame(false)).clicked() {
+                                if let Some(val) = self.value.pointer(path) {
+                                    if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
+                                        ui.output_mut(|o| o.copied_text = pretty_str);
+                                    }
+                                }
+                                should_close_popup = true;
+                            }
+                        });
+                    });
+                })
+                .response;
+
+            if area_response.clicked_elsewhere() {
+                should_close_popup = true;
+            }
+        }
+
+        if should_close_popup {
+            self.popup_response = None;
+        }
+
+        let tree = JsonTree::new(self.title, &self.value);
+        let response = tree.show(ui, DefaultExpand::None);
+
+        if let Some((response, path)) = response.response {
+            if response.secondary_clicked() {
+                println!("{}", path);
+
+                self.popup_response = Some((
+                    response
+                        .interact_pointer_pos()
+                        .unwrap_or(response.rect.left_bottom()),
+                    path,
+                ));
+            }
+        }
+    }
+}
+
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_titles: HashMap<&'static str, bool>,
@@ -167,7 +251,8 @@ impl Default for DemoApp {
                 )),
                 Box::new(Example::new("Complex Object", complex_object.clone())),
                 Box::new(CustomExample::new("Custom Input")),
-                Box::new(SearchExample::new(complex_object)),
+                Box::new(SearchExample::new(complex_object.clone())),
+                Box::new(CopyToClipboardExample::new(complex_object)),
             ],
             open_example_titles: HashMap::new(),
         }

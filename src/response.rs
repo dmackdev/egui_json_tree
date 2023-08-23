@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
-use egui::{collapsing_header::CollapsingState, Id, Ui};
+use egui::{collapsing_header::CollapsingState, Id, Response, Ui};
 
 /// The response from showing a [`JsonTree`](crate::JsonTree).
 pub struct JsonTreeResponse {
+    pub response: Option<(Response, String)>,
     pub(crate) collapsing_state_ids: HashSet<Id>,
 }
 

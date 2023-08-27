@@ -179,10 +179,7 @@ fn show_base_value(
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) -> Option<Response> {
-    let key_response = key_texts
-        .into_iter()
-        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
-        .reduce(|acc, next| acc.union(next));
+    let key_response = render_texts(ui, key_texts);
 
     let mut texts = vec![];
 
@@ -194,14 +191,9 @@ fn show_base_value(
         style.highlight_color,
     );
 
-    let value_response = texts
-        .into_iter()
-        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
-        .reduce(|acc, next| acc.union(next));
+    let value_response = render_texts(ui, texts);
 
-    key_response
-        .filter(Response::hovered)
-        .or_else(|| value_response.filter(Response::hovered))
+    key_response.or(value_response)
 }
 
 fn show_expandable(
@@ -275,17 +267,10 @@ fn show_expandable(
                                 }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
-                                let key_response = key_texts
-                                    .into_iter()
-                                    .map(|text| {
-                                        ui.add(Label::new(text.monospace()).sense(Sense::click()))
-                                    })
-                                    .reduce(|acc, next| acc.union(next));
+                                let key_response = render_texts(ui, key_texts);
 
                                 if let Some(key_response) = key_response {
-                                    if key_response.hovered() {
-                                        *response = Some((key_response, "/".to_string()));
-                                    }
+                                    *response = Some((key_response, "/".to_string()));
                                 }
 
                                 let nested_delimiters = match expandable_type {
@@ -307,18 +292,13 @@ fn show_expandable(
 
                     ui.label(delimiters.closing);
                 } else {
-                    let key_response = get_key_text(style, &expandable.parent, search_term)
-                        .into_iter()
-                        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
-                        .reduce(|acc, next| acc.union(next));
+                    let key_texts = get_key_text(style, &expandable.parent, search_term);
+                    let key_response = render_texts(ui, key_texts);
 
                     if let Some(key_response) = key_response {
-                        if key_response.hovered() {
-                            let mut path_str = "/".to_string();
-                            path_str.push_str(&path_segments.join("/"));
-
-                            *response = Some((key_response, path_str));
-                        }
+                        let mut path_str = "/".to_string();
+                        path_str.push_str(&path_segments.join("/"));
+                        *response = Some((key_response, path_str));
                     }
 
                     ui.label(if is_expanded {
@@ -457,6 +437,14 @@ fn add_texts_with_highlighting(
         }
     }
     texts.push(RichText::new(text_str).color(text_color));
+}
+
+fn render_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
+    texts
+        .into_iter()
+        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
+        .reduce(|acc, next| acc.union(next))
+        .filter(Response::hovered)
 }
 
 #[derive(Debug, Clone)]

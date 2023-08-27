@@ -271,9 +271,7 @@ fn show_expandable(
                                 );
 
                                 if let Some(value_response) = value_response {
-                                    let mut path_str = "/".to_string();
-                                    path_str.push_str(&path_segments.join("/"));
-                                    *response = Some((value_response, path_str));
+                                    *response = Some((value_response, "/".to_string()));
                                 }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
@@ -286,9 +284,7 @@ fn show_expandable(
 
                                 if let Some(key_response) = key_response {
                                     if key_response.hovered() {
-                                        let mut path_str = "/".to_string();
-                                        path_str.push_str(&path_segments.join("/"));
-                                        *response = Some((key_response, path_str));
+                                        *response = Some((key_response, "/".to_string()));
                                     }
                                 }
 

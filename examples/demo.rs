@@ -175,16 +175,23 @@ impl Show for CopyToClipboardExample {
                     Frame::popup(ui.style()).show(ui, |ui| {
                         ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                             ui.set_width(150.0);
-                            if ui
-                                .add(Button::new("Copy property path").frame(false))
-                                .clicked()
+
+                            if path != "/"
+                                && ui
+                                    .add(Button::new("Copy property path").frame(false))
+                                    .clicked()
                             {
                                 ui.output_mut(|o| o.copied_text = path.clone());
                                 should_close_popup = true;
                             }
 
                             if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                                if let Some(val) = self.value.pointer(path) {
+                                let val = if path == "/" {
+                                    Some(&self.value)
+                                } else {
+                                    self.value.pointer(path)
+                                };
+                                if let Some(val) = val {
                                     if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
                                         ui.output_mut(|o| o.copied_text = pretty_str);
                                     }

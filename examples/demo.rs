@@ -176,23 +176,20 @@ impl Show for CopyToClipboardExample {
                         ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                             ui.set_width(150.0);
 
-                            if path != "/"
+                            if path != ""
                                 && ui
                                     .add(Button::new("Copy property path").frame(false))
                                     .clicked()
                             {
+                                println!("{}", path);
                                 ui.output_mut(|o| o.copied_text = path.clone());
                                 should_close_popup = true;
                             }
 
                             if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                                let val = if path == "/" {
-                                    Some(&self.value)
-                                } else {
-                                    self.value.pointer(path)
-                                };
-                                if let Some(val) = val {
+                                if let Some(val) = self.value.pointer(path) {
                                     if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
+                                        println!("{}", pretty_str);
                                         ui.output_mut(|o| o.copied_text = pretty_str);
                                     }
                                 }
@@ -217,8 +214,6 @@ impl Show for CopyToClipboardExample {
 
         if let Some((response, path)) = response.inner {
             if response.secondary_clicked() {
-                println!("{}", path);
-
                 self.popup_response = Some((
                     response
                         .interact_pointer_pos()

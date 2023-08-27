@@ -237,8 +237,6 @@ fn show_expandable(
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
-                        path_segments.push(key.clone());
-
                         let key_texts =
                             if matches!(expandable.expandable_type, ExpandableType::Array) {
                                 // Don't show array indices when the array is collapsed.
@@ -263,14 +261,14 @@ fn show_expandable(
                                 );
 
                                 if let Some(value_response) = value_response {
-                                    *response = Some((value_response, "/".to_string()));
+                                    *response = Some((value_response, "".to_string()));
                                 }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
                                 let key_response = render_texts(ui, key_texts);
 
                                 if let Some(key_response) = key_response {
-                                    *response = Some((key_response, "/".to_string()));
+                                    *response = Some((key_response, "".to_string()));
                                 }
 
                                 let nested_delimiters = match expandable_type {
@@ -286,8 +284,6 @@ fn show_expandable(
                         } else {
                             ui.monospace(", ");
                         }
-
-                        path_segments.pop();
                     }
 
                     ui.label(delimiters.closing);

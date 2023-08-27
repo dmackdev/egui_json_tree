@@ -9,7 +9,7 @@ pub struct JsonTreeResponse {
     ///
     /// The JSON pointer is an identifier composed of each subsequent object key or array index, e.g. `"/foo/bar/0"`.
     ///
-    /// For anything hovered within a collapsed top-level array/object, the JSON pointer string will refer to the entire JSON document, i.e. `"/"`.
+    /// For anything hovered within a collapsed top-level array/object, the JSON pointer string will refer to the entire JSON document, i.e. `""`.
     pub inner: Option<(Response, String)>,
     pub(crate) collapsing_state_ids: HashSet<Id>,
 }

@@ -233,6 +233,8 @@ fn show_expandable(
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
+                        path_segments.push(key.clone());
+
                         let key_texts =
                             if matches!(expandable.expandable_type, ExpandableType::Array) {
                                 // Don't show array indices when the array is collapsed.
@@ -260,7 +262,6 @@ fn show_expandable(
                                     if value_response.hovered() {
                                         let mut path_str = "/".to_string();
                                         path_str.push_str(&path_segments.join("/"));
-                                        path_str.push_str(key);
                                         *response = Some((value_response, path_str));
                                     }
                                 }
@@ -277,7 +278,6 @@ fn show_expandable(
                                     if key_response.hovered() {
                                         let mut path_str = "/".to_string();
                                         path_str.push_str(&path_segments.join("/"));
-                                        path_str.push_str(key);
                                         *response = Some((key_response, path_str));
                                     }
                                 }
@@ -295,6 +295,8 @@ fn show_expandable(
                         } else {
                             ui.monospace(", ");
                         }
+
+                        path_segments.pop();
                     }
 
                     ui.label(delimiters.closing);

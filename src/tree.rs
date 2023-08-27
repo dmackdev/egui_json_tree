@@ -438,7 +438,7 @@ fn add_texts_with_highlighting(
 fn render_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
     texts
         .into_iter()
-        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
+        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click_and_drag())))
         .reduce(|acc, next| acc.union(next))
         .filter(Response::hovered)
 }

@@ -106,7 +106,7 @@ impl JsonTree {
         });
 
         JsonTreeResponse {
-            response,
+            inner: response,
             collapsing_state_ids: path_id_map.into_values().collect(),
         }
     }

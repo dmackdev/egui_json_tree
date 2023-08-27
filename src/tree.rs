@@ -138,12 +138,9 @@ impl JsonTree {
                     .inner;
 
                 if let Some(base_value_response) = base_value_response {
-                    if base_value_response.hovered() {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-
-                        *response = Some((base_value_response, path_str));
-                    }
+                    let mut path_str = "/".to_string();
+                    path_str.push_str(&path_segments.join("/"));
+                    *response = Some((base_value_response, path_str));
                 }
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -168,6 +165,12 @@ impl JsonTree {
     }
 }
 
+/// Renders the key-value entry with highlighting applied for search term matches.
+///
+/// Returns an `Option` containing a `Response` which corresponds to either the key if the key was hovered,
+/// or the value if the value was hovered.
+///
+/// Returns `None` if neither were hovered.
 fn show_base_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
@@ -176,7 +179,12 @@ fn show_base_value(
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) -> Option<Response> {
-    let mut texts = key_texts;
+    let key_response = key_texts
+        .into_iter()
+        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
+        .reduce(|acc, next| acc.union(next));
+
+    let mut texts = vec![];
 
     add_texts_with_highlighting(
         &mut texts,
@@ -186,10 +194,14 @@ fn show_base_value(
         style.highlight_color,
     );
 
-    texts
+    let value_response = texts
         .into_iter()
         .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click())))
-        .reduce(|acc, next| acc.union(next))
+        .reduce(|acc, next| acc.union(next));
+
+    key_response
+        .filter(Response::hovered)
+        .or_else(|| value_response.filter(Response::hovered))
 }
 
 fn show_expandable(
@@ -259,11 +271,9 @@ fn show_expandable(
                                 );
 
                                 if let Some(value_response) = value_response {
-                                    if value_response.hovered() {
-                                        let mut path_str = "/".to_string();
-                                        path_str.push_str(&path_segments.join("/"));
-                                        *response = Some((value_response, path_str));
-                                    }
+                                    let mut path_str = "/".to_string();
+                                    path_str.push_str(&path_segments.join("/"));
+                                    *response = Some((value_response, path_str));
                                 }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {

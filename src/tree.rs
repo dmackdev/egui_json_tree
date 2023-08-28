@@ -143,8 +143,13 @@ impl JsonTree {
                     .inner;
 
                 if let Some(base_value_response) = base_value_response {
-                    let mut path_str = "/".to_string();
-                    path_str.push_str(&path_segments.join("/"));
+                    let path_str = if path_segments.is_empty() {
+                        "".to_string()
+                    } else {
+                        let mut path_str = "/".to_string();
+                        path_str.push_str(&path_segments.join("/"));
+                        path_str
+                    };
                     *response = Some((base_value_response, path_str));
                 }
             }

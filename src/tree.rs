@@ -196,6 +196,7 @@ fn show_base_value(
     key_response.or(value_response)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,

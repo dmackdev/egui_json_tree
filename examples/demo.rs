@@ -176,7 +176,7 @@ impl Show for CopyToClipboardExample {
                         ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                             ui.set_width(150.0);
 
-                            if path != ""
+                            if !path.is_empty()
                                 && ui
                                     .add(Button::new("Copy property path").frame(false))
                                     .clicked()

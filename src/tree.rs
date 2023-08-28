@@ -95,6 +95,8 @@ impl JsonTree {
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
+            ui.visuals_mut().override_text_color = Some(self.style.punctuation_color);
+
             self.show_impl(
                 ui,
                 &mut vec![],
@@ -226,14 +228,20 @@ fn show_expandable(
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
-    state
+    let (header_icon_response, ..) = state
         .show_header(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    ui.label(delimiters.opening);
-                    ui.monospace(" ");
+                    ui.monospace(delimiters.opening);
+                    let initial_space_response = ui.add(
+                        Label::new(RichText::new(" ").monospace()).sense(Sense::click_and_drag()),
+                    );
+
+                    if initial_space_response.hovered() {
+                        *response = Some((initial_space_response, "".to_string()));
+                    }
 
                     let entries_len = expandable.entries.len();
 
@@ -250,59 +258,60 @@ fn show_expandable(
                                 )
                             };
 
-                        match elem {
-                            JsonTreeValue::Base(value_str, value_type) => {
-                                let value_response = show_base_value(
-                                    ui,
-                                    style,
-                                    key_texts,
-                                    value_str,
-                                    value_type,
-                                    search_term,
-                                );
-
-                                if let Some(value_response) = value_response {
-                                    *response = Some((value_response, "".to_string()));
-                                }
-                            }
+                        let texts_response = match elem {
+                            JsonTreeValue::Base(value_str, value_type) => show_base_value(
+                                ui,
+                                style,
+                                key_texts,
+                                value_str,
+                                value_type,
+                                search_term,
+                            ),
                             JsonTreeValue::Expandable(_, expandable_type) => {
-                                let key_response = show_texts(ui, key_texts);
-
-                                if let Some(key_response) = key_response {
-                                    *response = Some((key_response, "".to_string()));
-                                }
+                                let mut texts = key_texts;
 
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
-                                ui.label(nested_delimiters.collapsed);
+
+                                texts.push(RichText::new(nested_delimiters.collapsed));
+
+                                show_texts(ui, texts)
                             }
                         };
 
-                        if idx == entries_len - 1 {
-                            ui.monospace(" ");
-                        } else {
-                            ui.monospace(", ");
+                        let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
+
+                        let spacing_response = ui.add(
+                            Label::new(RichText::new(spacing_str).monospace())
+                                .sense(Sense::click_and_drag()),
+                        );
+
+                        if let Some(r) = texts_response
+                            .or_else(|| spacing_response.hovered().then_some(spacing_response))
+                        {
+                            *response = Some((r, "".to_string()))
                         }
                     }
 
-                    ui.label(delimiters.closing);
+                    ui.monospace(delimiters.closing);
                 } else {
-                    let key_texts = get_key_texts(style, &expandable.parent, search_term);
-                    let key_response = show_texts(ui, key_texts);
+                    let mut texts = get_key_texts(style, &expandable.parent, search_term);
 
-                    if let Some(key_response) = key_response {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-                        *response = Some((key_response, path_str));
+                    if !is_expanded {
+                        texts.push(RichText::new(delimiters.collapsed));
                     }
 
-                    ui.label(if is_expanded {
-                        delimiters.opening
-                    } else {
-                        delimiters.collapsed
-                    });
+                    if let Some(texts_response) = show_texts(ui, texts) {
+                        let mut path_str = "/".to_string();
+                        path_str.push_str(&path_segments.join("/"));
+                        *response = Some((texts_response, path_str));
+                    }
+
+                    if is_expanded {
+                        ui.monospace(delimiters.opening);
+                    }
                 }
             });
         })
@@ -349,6 +358,18 @@ fn show_expandable(
             }
         });
 
+    if header_icon_response.hovered() {
+        let path_str = if path_segments.is_empty() {
+            "".to_string()
+        } else {
+            let mut path_str = "/".to_string();
+            path_str.push_str(&path_segments.join("/"));
+            path_str
+        };
+
+        *response = Some((header_icon_response, path_str));
+    }
+
     if is_expanded {
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
@@ -393,16 +414,13 @@ fn get_object_key_texts(
     add_texts_with_highlighting(&mut texts, key_str, color, search_term, highlight_color);
 
     texts.push(RichText::new("\"").color(color));
-    texts.push(RichText::new(": ").monospace());
+    texts.push(RichText::new(": "));
 
     texts
 }
 
 fn get_array_idx_texts(idx_str: &str, color: Color32) -> Vec<RichText> {
-    vec![
-        RichText::new(idx_str).color(color),
-        RichText::new(": ").monospace(),
-    ]
+    vec![RichText::new(idx_str).color(color), RichText::new(": ")]
 }
 
 fn add_texts_with_highlighting(

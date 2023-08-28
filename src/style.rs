@@ -12,6 +12,8 @@ pub struct JsonTreeStyle {
     pub number_color: Color32,
     pub string_color: Color32,
     pub highlight_color: Color32,
+    /// The text color for array brackets, object braces, colons and commas.
+    pub punctuation_color: Color32,
 }
 
 impl Default for JsonTreeStyle {
@@ -24,6 +26,7 @@ impl Default for JsonTreeStyle {
             number_color: Color32::from_rgb(181, 199, 166),
             string_color: Color32::from_rgb(194, 146, 122),
             highlight_color: Color32::from_rgba_premultiplied(72, 72, 72, 50),
+            punctuation_color: Color32::from_gray(140),
         }
     }
 }

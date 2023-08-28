@@ -122,7 +122,7 @@ impl JsonTree {
     ) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
-                let key_texts = get_key_text(&self.style, &self.parent, search_term);
+                let key_texts = get_key_texts(&self.style, &self.parent, search_term);
                 let base_value_response = ui
                     .horizontal_wrapped(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.0;
@@ -179,7 +179,7 @@ fn show_base_value(
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
 ) -> Option<Response> {
-    let key_response = render_texts(ui, key_texts);
+    let key_response = show_texts(ui, key_texts);
 
     let mut texts = vec![];
 
@@ -191,7 +191,7 @@ fn show_base_value(
         style.highlight_color,
     );
 
-    let value_response = render_texts(ui, texts);
+    let value_response = show_texts(ui, texts);
 
     key_response.or(value_response)
 }
@@ -242,7 +242,7 @@ fn show_expandable(
                                 // Don't show array indices when the array is collapsed.
                                 vec![]
                             } else {
-                                get_key_text(
+                                get_key_texts(
                                     style,
                                     &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
                                     search_term,
@@ -265,7 +265,7 @@ fn show_expandable(
                                 }
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
-                                let key_response = render_texts(ui, key_texts);
+                                let key_response = show_texts(ui, key_texts);
 
                                 if let Some(key_response) = key_response {
                                     *response = Some((key_response, "".to_string()));
@@ -288,8 +288,8 @@ fn show_expandable(
 
                     ui.label(delimiters.closing);
                 } else {
-                    let key_texts = get_key_text(style, &expandable.parent, search_term);
-                    let key_response = render_texts(ui, key_texts);
+                    let key_texts = get_key_texts(style, &expandable.parent, search_term);
+                    let key_response = show_texts(ui, key_texts);
 
                     if let Some(key_response) = key_response {
                         let mut path_str = "/".to_string();
@@ -358,7 +358,7 @@ fn show_expandable(
     }
 }
 
-fn get_key_text(
+fn get_key_texts(
     style: &JsonTreeStyle,
     parent: &Option<Parent>,
     search_term: &Option<SearchTerm>,
@@ -367,11 +367,11 @@ fn get_key_text(
         Some(Parent {
             key,
             expandable_type: ExpandableType::Array,
-        }) => format_array_idx(key, style.array_idx_color),
+        }) => get_array_idx_texts(key, style.array_idx_color),
         Some(Parent {
             key,
             expandable_type: ExpandableType::Object,
-        }) => format_object_key(
+        }) => get_object_key_texts(
             key,
             style.object_key_color,
             search_term,
@@ -381,7 +381,7 @@ fn get_key_text(
     }
 }
 
-fn format_object_key(
+fn get_object_key_texts(
     key_str: &str,
     color: Color32,
     search_term: &Option<SearchTerm>,
@@ -397,7 +397,7 @@ fn format_object_key(
     texts
 }
 
-fn format_array_idx(idx_str: &str, color: Color32) -> Vec<RichText> {
+fn get_array_idx_texts(idx_str: &str, color: Color32) -> Vec<RichText> {
     vec![
         RichText::new(idx_str).color(color),
         RichText::new(": ").monospace(),
@@ -435,7 +435,7 @@ fn add_texts_with_highlighting(
     texts.push(RichText::new(text_str).color(text_color));
 }
 
-fn render_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
+fn show_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
     texts
         .into_iter()
         .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click_and_drag())))

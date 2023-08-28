@@ -20,11 +20,14 @@ use crate::{
 /// An interactive JSON tree visualiser.
 ///
 /// ```
-/// use egui_json_tree::{JsonTree, DefaultExpand};
+/// use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle};
 ///
 /// # egui::__run_test_ui(|ui| {
 /// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
-/// let tree = JsonTree::new("globally-unique-id", &value);
+/// let tree = JsonTree::new("globally-unique-id", &value).style(JsonTreeStyle {
+///     null_color: egui::Color32::RED,
+///     ..Default::default()
+/// });
 ///
 /// // Show the JSON tree:
 /// let response = tree.show(ui, DefaultExpand::All);

@@ -16,9 +16,11 @@ let tree = JsonTree::new("globally-unique-id", &value);
 let response = tree.show(ui, DefaultExpand::All);
 ```
 
-See [demo.rs](./examples/demo.rs) for more detailed examples.
+See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cases, including the search match highlight/auto expand functionality, and how to copy JSON paths and values to the clipboard.
 
 `JsonTree` can visualise any type that implements `Into<JsonTreeValue>`. An implementation to support `serde_json::Value` is provided with this crate. If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
+
+Coloring for JSON syntax highlighting and search match highlighting may be overriden through the `JsonTree::style` builder method.
 
 ## Run Examples
 
@@ -34,4 +36,4 @@ cargo doc --no-deps --open
 
 ## Notes
 
-This crate currently depends on an unpublished version of `egui` from the master branch, in order to expose the ability to reset the expanded state of arrays/objects in a ` JsonTree`. On the next `egui` release, this crate will update its `egui` dependency to the latest published version, and this crate will be published to `crates.io`.
+This crate currently depends on an unpublished version of `egui` from the master branch, in order to expose the ability to reset the expanded state of arrays/objects in a `JsonTree`. On the next `egui` release, this crate will update its `egui` dependency to the latest published version, and this crate will be published to `crates.io`.

@@ -5,13 +5,13 @@ pub struct Delimiters {
 }
 
 pub const ARRAY_DELIMITERS: Delimiters = Delimiters {
-    collapsed: "[ ... ]",
+    collapsed: "[...]",
     opening: "[",
     closing: "]",
 };
 
 pub const OBJECT_DELIMITERS: Delimiters = Delimiters {
-    collapsed: "{ ... }",
+    collapsed: "{...}",
     opening: "{",
     closing: "}",
 };

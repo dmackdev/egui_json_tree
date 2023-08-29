@@ -1,16 +1,9 @@
 use std::collections::HashSet;
 
-use egui::{collapsing_header::CollapsingState, Id, Response, Ui};
+use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 /// The response from showing a [`JsonTree`](crate::JsonTree).
 pub struct JsonTreeResponse {
-    /// If any object key, array index, or value was hovered, this `Option` will contain the [`Response`](egui::Response)
-    /// and JSON pointer string.
-    ///
-    /// The JSON pointer is an identifier composed of each subsequent object key or array index, e.g. `"/foo/bar/0"`.
-    ///
-    /// For anything hovered within a collapsed top-level array/object, the JSON pointer string will refer to the entire JSON document, i.e. `""`.
-    pub inner: Option<(Response, String)>,
     pub(crate) collapsing_state_ids: HashSet<Id>,
 }
 

@@ -5,8 +5,9 @@ use std::{
 
 use egui::{
     collapsing_header::CollapsingState,
+    text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
-    Color32, Id, Label, Response, RichText, Sense, Ui,
+    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
 };
 
 use crate::{
@@ -93,25 +94,19 @@ impl JsonTree {
             }
         };
 
-        let mut response = None;
-
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            ui.visuals_mut().override_text_color = Some(self.style.punctuation_color);
-
             self.show_impl(
                 ui,
                 &mut vec![],
                 &mut path_id_map,
-                &mut response,
                 &default_expand,
                 &search_term,
             );
         });
 
         JsonTreeResponse {
-            inner: response,
             collapsing_state_ids: path_id_map.into_values().collect(),
         }
     }
@@ -121,37 +116,20 @@ impl JsonTree {
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
-        response: &mut Option<(Response, String)>,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
     ) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
-                let key_texts = get_key_texts(&self.style, &self.parent, search_term);
-                let base_value_response = ui
-                    .horizontal_wrapped(|ui| {
-                        ui.spacing_mut().item_spacing.x = 0.0;
-                        show_base_value(
-                            ui,
-                            &self.style,
-                            key_texts,
-                            &value_str,
-                            &value_type,
-                            search_term,
-                        )
-                    })
-                    .inner;
+                let mut job = LayoutJob::default();
+                add_key(&mut job, &self.style, &self.parent, search_term);
+                add_value(&mut job, &self.style, &value_str, &value_type, search_term);
 
-                if let Some(base_value_response) = base_value_response {
-                    let path_str = if path_segments.is_empty() {
-                        "".to_string()
-                    } else {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-                        path_str
-                    };
-                    *response = Some((base_value_response, path_str));
-                }
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    show_job(ui, job)
+                })
+                .inner;
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
                 let expandable = Expandable {
@@ -164,7 +142,6 @@ impl JsonTree {
                     ui,
                     path_segments,
                     path_id_map,
-                    response,
                     expandable,
                     &self.style,
                     default_expand,
@@ -175,35 +152,20 @@ impl JsonTree {
     }
 }
 
-/// Renders the key-value entry with highlighting applied for search term matches.
-///
-/// Returns an `Option` containing a `Response` which corresponds to either the key if the key was hovered,
-/// or the value if the value was hovered.
-///
-/// Returns `None` if neither were hovered.
-fn show_base_value(
-    ui: &mut Ui,
+fn add_value(
+    job: &mut LayoutJob,
     style: &JsonTreeStyle,
-    key_texts: Vec<RichText>,
     value_str: &str,
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
-) -> Option<Response> {
-    let key_response = show_texts(ui, key_texts);
-
-    let mut texts = vec![];
-
-    add_texts_with_highlighting(
-        &mut texts,
+) {
+    add_text_with_highlighting(
+        job,
         value_str,
         style.get_color(value_type),
         search_term,
         style.highlight_color,
     );
-
-    let value_response = show_texts(ui, texts);
-
-    key_response.or(value_response)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -211,7 +173,6 @@ fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
-    response: &mut Option<(Response, String)>,
     expandable: Expandable,
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
@@ -236,90 +197,72 @@ fn show_expandable(
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
-    let (header_icon_response, ..) = state
+    state
         .show_header(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    ui.monospace(delimiters.opening);
-                    let initial_space_response = ui.add(
-                        Label::new(RichText::new(" ").monospace()).sense(Sense::click_and_drag()),
-                    );
-
-                    if initial_space_response.hovered() {
-                        *response = Some((initial_space_response, "".to_string()));
-                    }
+                    let mut job = LayoutJob::default();
+                    append(&mut job, delimiters.opening, style.punctuation_color, None);
+                    append(&mut job, " ", style.punctuation_color, None);
+                    show_job(ui, job);
 
                     let entries_len = expandable.entries.len();
+                    let mut job = LayoutJob::default();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
-                        let key_texts =
-                            if matches!(expandable.expandable_type, ExpandableType::Array) {
-                                // Don't show array indices when the array is collapsed.
-                                vec![]
-                            } else {
-                                get_key_texts(
-                                    style,
-                                    &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
-                                    search_term,
-                                )
-                            };
-
-                        let texts_response = match elem {
-                            JsonTreeValue::Base(value_str, value_type) => show_base_value(
-                                ui,
+                        // Don't show array indices when the array is collapsed.
+                        if matches!(expandable.expandable_type, ExpandableType::Object) {
+                            add_key(
+                                &mut job,
                                 style,
-                                key_texts,
-                                value_str,
-                                value_type,
+                                &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
                                 search_term,
-                            ),
-                            JsonTreeValue::Expandable(_, expandable_type) => {
-                                let mut texts = key_texts;
+                            );
+                        }
 
+                        match elem {
+                            JsonTreeValue::Base(value_str, value_type) => {
+                                add_value(&mut job, style, value_str, value_type, search_term);
+                            }
+                            JsonTreeValue::Expandable(_, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
 
-                                texts.push(RichText::new(nested_delimiters.collapsed));
-
-                                show_texts(ui, texts)
+                                append(
+                                    &mut job,
+                                    nested_delimiters.collapsed,
+                                    style.punctuation_color,
+                                    None,
+                                );
                             }
                         };
 
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-
-                        let spacing_response = ui.add(
-                            Label::new(RichText::new(spacing_str).monospace())
-                                .sense(Sense::click_and_drag()),
-                        );
-
-                        if let Some(r) = texts_response
-                            .or_else(|| spacing_response.hovered().then_some(spacing_response))
-                        {
-                            *response = Some((r, "".to_string()))
-                        }
+                        append(&mut job, spacing_str, style.punctuation_color, None);
                     }
 
-                    ui.monospace(delimiters.closing);
+                    append(&mut job, delimiters.closing, style.punctuation_color, None);
+                    show_job(ui, job);
                 } else {
-                    let mut texts = get_key_texts(style, &expandable.parent, search_term);
+                    let mut job = LayoutJob::default();
 
-                    if !is_expanded {
-                        texts.push(RichText::new(delimiters.collapsed));
-                    }
-
-                    if let Some(texts_response) = show_texts(ui, texts) {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-                        *response = Some((texts_response, path_str));
-                    }
+                    add_key(&mut job, style, &expandable.parent, search_term);
 
                     if is_expanded {
-                        ui.monospace(delimiters.opening);
+                        append(&mut job, delimiters.opening, style.punctuation_color, None);
+                    } else {
+                        append(
+                            &mut job,
+                            delimiters.collapsed,
+                            style.punctuation_color,
+                            None,
+                        );
                     }
+                    show_job(ui, job);
                 }
             });
         })
@@ -341,7 +284,6 @@ fn show_expandable(
                         ui,
                         path_segments,
                         path_id_map,
-                        response,
                         default_expand,
                         search_term,
                     );
@@ -366,73 +308,65 @@ fn show_expandable(
             }
         });
 
-    if header_icon_response.hovered() {
-        let path_str = if path_segments.is_empty() {
-            "".to_string()
-        } else {
-            let mut path_str = "/".to_string();
-            path_str.push_str(&path_segments.join("/"));
-            path_str
-        };
-
-        *response = Some((header_icon_response, path_str));
-    }
-
     if is_expanded {
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
 
-            ui.monospace(delimiters.closing);
+            let mut job = LayoutJob::default();
+            append(&mut job, delimiters.closing, style.punctuation_color, None);
+            show_job(ui, job);
         });
     }
 }
 
-fn get_key_texts(
+fn add_key(
+    job: &mut LayoutJob,
     style: &JsonTreeStyle,
     parent: &Option<Parent>,
     search_term: &Option<SearchTerm>,
-) -> Vec<RichText> {
+) {
     match parent {
         Some(Parent {
             key,
             expandable_type: ExpandableType::Array,
-        }) => get_array_idx_texts(key, style.array_idx_color),
+        }) => add_array_idx(job, key, style.array_idx_color, style.punctuation_color),
         Some(Parent {
             key,
             expandable_type: ExpandableType::Object,
-        }) => get_object_key_texts(
+        }) => add_object_key(
+            job,
             key,
             style.object_key_color,
+            style.punctuation_color,
             search_term,
             style.highlight_color,
         ),
-        _ => vec![],
-    }
+        _ => {}
+    };
 }
 
-fn get_object_key_texts(
+fn add_object_key(
+    job: &mut LayoutJob,
     key_str: &str,
     color: Color32,
+    punctuation_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
-) -> Vec<RichText> {
-    let mut texts = vec![RichText::new("\"").color(color)];
-
-    add_texts_with_highlighting(&mut texts, key_str, color, search_term, highlight_color);
-
-    texts.push(RichText::new("\"").color(color));
-    texts.push(RichText::new(": "));
-
-    texts
+) {
+    append(job, "\"", color, None);
+    add_text_with_highlighting(job, key_str, color, search_term, highlight_color);
+    append(job, "\"", color, None);
+    append(job, ": ", punctuation_color, None);
 }
 
-fn get_array_idx_texts(idx_str: &str, color: Color32) -> Vec<RichText> {
-    vec![RichText::new(idx_str).color(color), RichText::new(": ")]
+fn add_array_idx(job: &mut LayoutJob, idx_str: &str, color: Color32, punctuation_color: Color32) {
+    append(job, idx_str, color, None);
+    append(job, ": ", punctuation_color, None);
 }
 
-fn add_texts_with_highlighting(
-    texts: &mut Vec<RichText>,
+fn add_text_with_highlighting(
+    job: &mut LayoutJob,
     text_str: &str,
     text_color: Color32,
     search_term: &Option<SearchTerm>,
@@ -443,31 +377,42 @@ fn add_texts_with_highlighting(
         if !matches.is_empty() {
             let mut start = 0;
             for match_idx in matches {
-                texts.push(RichText::new(&text_str[start..match_idx]).color(text_color));
+                append(job, &text_str[start..match_idx], text_color, None);
 
                 let highlight_end_idx = match_idx + search_term.len();
 
-                texts.push(
-                    RichText::new(&text_str[match_idx..highlight_end_idx])
-                        .color(text_color)
-                        .background_color(highlight_color),
+                append(
+                    job,
+                    &text_str[match_idx..highlight_end_idx],
+                    text_color,
+                    Some(highlight_color),
                 );
 
                 start = highlight_end_idx;
             }
-            texts.push(RichText::new(&text_str[start..]).color(text_color));
+            append(job, &text_str[start..], text_color, None);
             return;
         }
     }
-    texts.push(RichText::new(text_str).color(text_color));
+    append(job, text_str, text_color, None);
 }
 
-fn show_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
-    texts
-        .into_iter()
-        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click_and_drag())))
-        .reduce(|acc, next| acc.union(next))
-        .filter(Response::hovered)
+fn append(job: &mut LayoutJob, text_str: &str, color: Color32, background_color: Option<Color32>) {
+    let mut text_format = TextFormat {
+        color,
+        font_id: FontId::monospace(12.0),
+        ..Default::default()
+    };
+
+    if let Some(background_color) = background_color {
+        text_format.background = background_color;
+    }
+
+    job.append(text_str, 0.0, text_format);
+}
+
+fn show_job(ui: &mut Ui, job: LayoutJob) -> Response {
+    ui.add(Label::new(job).sense(Sense::click_and_drag()))
 }
 
 #[derive(Debug, Clone)]

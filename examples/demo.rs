@@ -211,17 +211,6 @@ impl Show for CopyToClipboardExample {
 
         let tree = JsonTree::new(self.title, &self.value);
         let response = tree.show(ui, DefaultExpand::None);
-
-        if let Some((response, path)) = response.inner {
-            if response.secondary_clicked() {
-                self.popup_response = Some((
-                    response
-                        .interact_pointer_pos()
-                        .unwrap_or(response.rect.left_bottom()),
-                    path,
-                ));
-            }
-        }
     }
 }
 

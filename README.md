@@ -9,11 +9,24 @@ An interactive JSON tree visualisation library for `egui`, with search and highl
 ## Usage
 
 ```rust
-let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
-let tree = JsonTree::new("globally-unique-id", &value);
+use egui::{Color32};
+use egui_json_tree::{DefaultExpand, JsonTreeBuilder, JsonTreeStyle};
 
-// Show the JSON tree:
-let response = tree.show(ui, DefaultExpand::All);
+let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
+
+let response = JsonTreeBuilder::new("globally-unique-id", &value)
+    .style(JsonTreeStyle {
+        bool_color: Color32::YELLOW,
+        ..Default::default()
+    })
+    .default_expand(DefaultExpand::All)
+    .response_callback(|response, json_pointer_str| {
+      // Handle interactions within the JsonTree.
+    })
+    .show(ui);
+
+// Reset the expanded state of all arrays/objects to respect the `default_expand` setting.
+response.reset_expanded(ui);
 ```
 
 See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cases, including the search match highlight/auto expand functionality, and how to copy JSON paths and values to the clipboard.

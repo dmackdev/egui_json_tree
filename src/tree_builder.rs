@@ -15,6 +15,7 @@ pub struct JsonTreeConfig<'a> {
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
 }
 
+/// Builder for a [`JsonTree`]. Use this to configure and show a [`JsonTree`].
 #[must_use = "You should call .show()"]
 pub struct JsonTreeBuilder<'a> {
     id: Id,
@@ -39,11 +40,15 @@ impl<'a> JsonTreeBuilder<'a> {
         self
     }
 
+    /// Override how the [`JsonTree`] expands arrays/objects by default.
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
         self.config.default_expand = default_expand;
         self
     }
 
+    /// Register a callback to handle interactions within a [`JsonTree`].
+    /// - `Response`: The `Response` from rendering an array index, object key or value.
+    /// - `&String`: A JSON pointer string.
     pub fn response_callback(
         mut self,
         response_callback: impl FnMut(Response, &String) + 'a,

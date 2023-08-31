@@ -17,26 +17,6 @@ use crate::{
 };
 
 /// An interactive JSON tree visualiser.
-///
-/// ```
-/// use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle};
-///
-/// # egui::__run_test_ui(|ui| {
-/// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
-/// let tree = JsonTree::new("globally-unique-id", &value).style(JsonTreeStyle {
-///     null_color: egui::Color32::RED,
-///     ..Default::default()
-/// });
-///
-/// // Show the JSON tree:
-/// let response = tree.show(ui, DefaultExpand::All);
-///
-/// // Reset which arrays and objects are expanded to respect the `default_expand` argument on the next render.
-/// // In this case, this will expand all arrays and objects again,
-/// // if a user had collapsed any manually.
-/// response.reset_expanded(ui);
-/// # });
-/// ```
 pub struct JsonTree {
     id: Id,
     value: JsonTreeValue,
@@ -433,7 +413,7 @@ fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
 }
 
 #[derive(Default, Debug, Clone)]
-/// Configuration for how a `JsonTree` should expand arrays and objects by default.
+/// Configuration for how a [`JsonTree`] should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.
     All,

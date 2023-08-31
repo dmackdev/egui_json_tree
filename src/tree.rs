@@ -1,12 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::collections::{HashMap, HashSet};
 
 use egui::{
     collapsing_header::CollapsingState,
+    text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
-    Color32, Id, Label, Response, RichText, Sense, Ui,
+    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
 };
 
 use crate::{
@@ -14,57 +12,27 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
+    tree_builder::JsonTreeConfig,
     value::{BaseValueType, ExpandableType, JsonTreeValue},
 };
 
 /// An interactive JSON tree visualiser.
-///
-/// ```
-/// use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle};
-///
-/// # egui::__run_test_ui(|ui| {
-/// let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
-/// let tree = JsonTree::new("globally-unique-id", &value).style(JsonTreeStyle {
-///     null_color: egui::Color32::RED,
-///     ..Default::default()
-/// });
-///
-/// // Show the JSON tree:
-/// let response = tree.show(ui, DefaultExpand::All);
-///
-/// // Reset which arrays and objects are expanded to respect the `default_expand` argument on the next render.
-/// // In this case, this will expand all arrays and objects again,
-/// // if a user had collapsed any manually.
-/// response.reset_expanded(ui);
-/// # });
-/// ```
 pub struct JsonTree {
     id: Id,
     value: JsonTreeValue,
-    style: JsonTreeStyle,
     parent: Option<Parent>,
 }
 
 impl JsonTree {
-    /// Creates a new [`JsonTree`].
-    /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
+    pub(crate) fn new(id: Id, value: JsonTreeValue) -> Self {
         Self {
-            id: Id::new(id),
-            value: value.into(),
-            style: JsonTreeStyle::default(),
+            id,
+            value,
             parent: None,
         }
     }
 
-    /// Override colors for JSON syntax highlighting, and search match highlighting.
-    pub fn style(mut self, style: JsonTreeStyle) -> Self {
-        self.style = style;
-        self
-    }
-
-    /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(self, ui: &mut Ui, default_expand: DefaultExpand) -> JsonTreeResponse {
+    pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
         let mut path_id_map = ui.ctx().memory_mut(|mem| {
             let cache = mem.caches.cache::<PathIdMapCache<'_>>();
             cache.get(&(self.id, &self.value))
@@ -74,7 +42,7 @@ impl JsonTree {
             *value = ui.make_persistent_id(&value);
         }
 
-        let (default_expand, search_term) = match default_expand {
+        let (default_expand, search_term) = match config.default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
@@ -93,65 +61,55 @@ impl JsonTree {
             }
         };
 
-        let mut response = None;
+        let response_callback = &mut config
+            .response_callback
+            .unwrap_or_else(|| Box::new(|_, _| {}));
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
-            ui.visuals_mut().override_text_color = Some(self.style.punctuation_color);
-
             self.show_impl(
                 ui,
                 &mut vec![],
                 &mut path_id_map,
-                &mut response,
+                &config.style,
                 &default_expand,
                 &search_term,
+                response_callback,
             );
         });
 
         JsonTreeResponse {
-            inner: response,
             collapsing_state_ids: path_id_map.into_values().collect(),
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_impl(
         self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
-        response: &mut Option<(Response, String)>,
+        style: &JsonTreeStyle,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
+        response_callback: &mut dyn FnMut(Response, &String),
     ) {
+        let pointer_string = &get_pointer_string(path_segments);
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
-                let key_texts = get_key_texts(&self.style, &self.parent, search_term);
-                let base_value_response = ui
-                    .horizontal_wrapped(|ui| {
-                        ui.spacing_mut().item_spacing.x = 0.0;
-                        show_base_value(
-                            ui,
-                            &self.style,
-                            key_texts,
-                            &value_str,
-                            &value_type,
-                            search_term,
-                        )
-                    })
-                    .inner;
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
 
-                if let Some(base_value_response) = base_value_response {
-                    let path_str = if path_segments.is_empty() {
-                        "".to_string()
-                    } else {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-                        path_str
-                    };
-                    *response = Some((base_value_response, path_str));
-                }
+                    if let Some(parent) = &self.parent {
+                        let key_response = render_key(ui, style, parent, search_term);
+                        response_callback(key_response, pointer_string);
+                    }
+
+                    let value_response =
+                        render_value(ui, style, &value_str, &value_type, search_term);
+                    response_callback(value_response, pointer_string);
+                });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
                 let expandable = Expandable {
@@ -164,46 +122,33 @@ impl JsonTree {
                     ui,
                     path_segments,
                     path_id_map,
-                    response,
                     expandable,
-                    &self.style,
+                    style,
                     default_expand,
                     search_term,
+                    response_callback,
                 );
             }
         };
     }
 }
 
-/// Renders the key-value entry with highlighting applied for search term matches.
-///
-/// Returns an `Option` containing a `Response` which corresponds to either the key if the key was hovered,
-/// or the value if the value was hovered.
-///
-/// Returns `None` if neither were hovered.
-fn show_base_value(
+fn render_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
-    key_texts: Vec<RichText>,
     value_str: &str,
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
-) -> Option<Response> {
-    let key_response = show_texts(ui, key_texts);
-
-    let mut texts = vec![];
-
-    add_texts_with_highlighting(
-        &mut texts,
+) -> Response {
+    let mut job = LayoutJob::default();
+    add_text_with_highlighting(
+        &mut job,
         value_str,
         style.get_color(value_type),
         search_term,
         style.highlight_color,
     );
-
-    let value_response = show_texts(ui, texts);
-
-    key_response.or(value_response)
+    render_job(ui, job)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -211,12 +156,14 @@ fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
-    response: &mut Option<(Response, String)>,
     expandable: Expandable,
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
     search_term: &Option<SearchTerm>,
+    response_callback: &mut dyn FnMut(Response, &String),
 ) {
+    let pointer_string = &get_pointer_string(path_segments);
+
     let delimiters = match expandable.expandable_type {
         ExpandableType::Array => &ARRAY_DELIMITERS,
         ExpandableType::Object => &OBJECT_DELIMITERS,
@@ -236,89 +183,67 @@ fn show_expandable(
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
-    let (header_icon_response, ..) = state
+    state
         .show_header(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    ui.monospace(delimiters.opening);
-                    let initial_space_response = ui.add(
-                        Label::new(RichText::new(" ").monospace()).sense(Sense::click_and_drag()),
-                    );
-
-                    if initial_space_response.hovered() {
-                        *response = Some((initial_space_response, "".to_string()));
-                    }
+                    render_punc(ui, delimiters.opening, style.punctuation_color, None);
+                    render_punc(ui, " ", style.punctuation_color, None);
 
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
-                        let key_texts =
-                            if matches!(expandable.expandable_type, ExpandableType::Array) {
-                                // Don't show array indices when the array is collapsed.
-                                vec![]
-                            } else {
-                                get_key_texts(
-                                    style,
-                                    &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
-                                    search_term,
-                                )
-                            };
-
-                        let texts_response = match elem {
-                            JsonTreeValue::Base(value_str, value_type) => show_base_value(
+                        // Don't show array indices when the array is collapsed.
+                        if matches!(expandable.expandable_type, ExpandableType::Object) {
+                            let key_response = render_key(
                                 ui,
                                 style,
-                                key_texts,
-                                value_str,
-                                value_type,
+                                &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term,
-                            ),
-                            JsonTreeValue::Expandable(_, expandable_type) => {
-                                let mut texts = key_texts;
+                            );
+                            response_callback(key_response, pointer_string);
+                        }
 
+                        match elem {
+                            JsonTreeValue::Base(value_str, value_type) => {
+                                let value_response =
+                                    render_value(ui, style, value_str, value_type, search_term);
+                                response_callback(value_response, pointer_string);
+                            }
+                            JsonTreeValue::Expandable(_, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
 
-                                texts.push(RichText::new(nested_delimiters.collapsed));
-
-                                show_texts(ui, texts)
+                                let collapsed_expandable_response = render_punc(
+                                    ui,
+                                    nested_delimiters.collapsed,
+                                    style.punctuation_color,
+                                    None,
+                                );
+                                response_callback(collapsed_expandable_response, pointer_string);
                             }
                         };
-
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-
-                        let spacing_response = ui.add(
-                            Label::new(RichText::new(spacing_str).monospace())
-                                .sense(Sense::click_and_drag()),
-                        );
-
-                        if let Some(r) = texts_response
-                            .or_else(|| spacing_response.hovered().then_some(spacing_response))
-                        {
-                            *response = Some((r, "".to_string()))
-                        }
+                        render_punc(ui, spacing_str, style.punctuation_color, None);
                     }
 
-                    ui.monospace(delimiters.closing);
+                    render_punc(ui, delimiters.closing, style.punctuation_color, None);
                 } else {
-                    let mut texts = get_key_texts(style, &expandable.parent, search_term);
-
-                    if !is_expanded {
-                        texts.push(RichText::new(delimiters.collapsed));
-                    }
-
-                    if let Some(texts_response) = show_texts(ui, texts) {
-                        let mut path_str = "/".to_string();
-                        path_str.push_str(&path_segments.join("/"));
-                        *response = Some((texts_response, path_str));
+                    if let Some(parent) = &expandable.parent {
+                        let key_response = render_key(ui, style, parent, search_term);
+                        response_callback(key_response, pointer_string);
                     }
 
                     if is_expanded {
-                        ui.monospace(delimiters.opening);
+                        render_punc(ui, delimiters.opening, style.punctuation_color, None);
+                    } else {
+                        let collapsed_expandable_response =
+                            render_punc(ui, delimiters.collapsed, style.punctuation_color, None);
+                        response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }
             });
@@ -333,7 +258,6 @@ fn show_expandable(
                     let nested_tree = JsonTree {
                         id: expandable.id,
                         value: elem,
-                        style: style.clone(),
                         parent: Some(Parent::new(key, expandable.expandable_type)),
                     };
 
@@ -341,9 +265,10 @@ fn show_expandable(
                         ui,
                         path_segments,
                         path_id_map,
-                        response,
+                        style,
                         default_expand,
                         search_term,
+                        response_callback,
                     );
                 };
 
@@ -366,73 +291,68 @@ fn show_expandable(
             }
         });
 
-    if header_icon_response.hovered() {
-        let path_str = if path_segments.is_empty() {
-            "".to_string()
-        } else {
-            let mut path_str = "/".to_string();
-            path_str.push_str(&path_segments.join("/"));
-            path_str
-        };
-
-        *response = Some((header_icon_response, path_str));
-    }
-
     if is_expanded {
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-
-            ui.monospace(delimiters.closing);
+            render_punc(ui, delimiters.closing, style.punctuation_color, None);
         });
     }
 }
 
-fn get_key_texts(
+fn render_key(
+    ui: &mut Ui,
     style: &JsonTreeStyle,
-    parent: &Option<Parent>,
+    parent: &Parent,
     search_term: &Option<SearchTerm>,
-) -> Vec<RichText> {
+) -> Response {
+    let mut job = LayoutJob::default();
     match parent {
-        Some(Parent {
+        Parent {
             key,
             expandable_type: ExpandableType::Array,
-        }) => get_array_idx_texts(key, style.array_idx_color),
-        Some(Parent {
+        } => add_array_idx(
+            &mut job,
+            key,
+            style.array_idx_color,
+            style.punctuation_color,
+        ),
+        Parent {
             key,
             expandable_type: ExpandableType::Object,
-        }) => get_object_key_texts(
+        } => add_object_key(
+            &mut job,
             key,
             style.object_key_color,
+            style.punctuation_color,
             search_term,
             style.highlight_color,
         ),
-        _ => vec![],
-    }
+    };
+    render_job(ui, job)
 }
 
-fn get_object_key_texts(
+fn add_object_key(
+    job: &mut LayoutJob,
     key_str: &str,
     color: Color32,
+    punctuation_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
-) -> Vec<RichText> {
-    let mut texts = vec![RichText::new("\"").color(color)];
-
-    add_texts_with_highlighting(&mut texts, key_str, color, search_term, highlight_color);
-
-    texts.push(RichText::new("\"").color(color));
-    texts.push(RichText::new(": "));
-
-    texts
+) {
+    append(job, "\"", color, None);
+    add_text_with_highlighting(job, key_str, color, search_term, highlight_color);
+    append(job, "\"", color, None);
+    append(job, ": ", punctuation_color, None);
 }
 
-fn get_array_idx_texts(idx_str: &str, color: Color32) -> Vec<RichText> {
-    vec![RichText::new(idx_str).color(color), RichText::new(": ")]
+fn add_array_idx(job: &mut LayoutJob, idx_str: &str, color: Color32, punctuation_color: Color32) {
+    append(job, idx_str, color, None);
+    append(job, ": ", punctuation_color, None);
 }
 
-fn add_texts_with_highlighting(
-    texts: &mut Vec<RichText>,
+fn add_text_with_highlighting(
+    job: &mut LayoutJob,
     text_str: &str,
     text_color: Color32,
     search_term: &Option<SearchTerm>,
@@ -443,39 +363,62 @@ fn add_texts_with_highlighting(
         if !matches.is_empty() {
             let mut start = 0;
             for match_idx in matches {
-                texts.push(RichText::new(&text_str[start..match_idx]).color(text_color));
+                append(job, &text_str[start..match_idx], text_color, None);
 
                 let highlight_end_idx = match_idx + search_term.len();
 
-                texts.push(
-                    RichText::new(&text_str[match_idx..highlight_end_idx])
-                        .color(text_color)
-                        .background_color(highlight_color),
+                append(
+                    job,
+                    &text_str[match_idx..highlight_end_idx],
+                    text_color,
+                    Some(highlight_color),
                 );
 
                 start = highlight_end_idx;
             }
-            texts.push(RichText::new(&text_str[start..]).color(text_color));
+            append(job, &text_str[start..], text_color, None);
             return;
         }
     }
-    texts.push(RichText::new(text_str).color(text_color));
+    append(job, text_str, text_color, None);
 }
 
-fn show_texts(ui: &mut Ui, texts: Vec<RichText>) -> Option<Response> {
-    texts
-        .into_iter()
-        .map(|text| ui.add(Label::new(text.monospace()).sense(Sense::click_and_drag())))
-        .reduce(|acc, next| acc.union(next))
-        .filter(Response::hovered)
+fn append(job: &mut LayoutJob, text_str: &str, color: Color32, background_color: Option<Color32>) {
+    let mut text_format = TextFormat {
+        color,
+        font_id: FontId::monospace(12.0),
+        ..Default::default()
+    };
+
+    if let Some(background_color) = background_color {
+        text_format.background = background_color;
+    }
+
+    job.append(text_str, 0.0, text_format);
 }
 
-#[derive(Debug, Clone)]
-/// Configuration for how a `JsonTree` should expand arrays and objects by default.
+fn render_punc(
+    ui: &mut Ui,
+    punc_str: &str,
+    color: Color32,
+    background_color: Option<Color32>,
+) -> Response {
+    let mut job = LayoutJob::default();
+    append(&mut job, punc_str, color, background_color);
+    render_job(ui, job)
+}
+
+fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
+    ui.add(Label::new(job).sense(Sense::click_and_drag()))
+}
+
+#[derive(Default, Debug, Clone)]
+/// Configuration for how a [`JsonTree`] should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.
     All,
     /// Collapse all arrays and objects.
+    #[default]
     None,
     /// Expand arrays and objects according to how many levels deep they are nested:
     /// - `0` would expand a top-level array/object only,
@@ -505,7 +448,7 @@ struct Expandable {
     parent: Option<Parent>,
 }
 
-struct Parent {
+pub struct Parent {
     key: String,
     expandable_type: ExpandableType,
 }
@@ -521,6 +464,14 @@ impl Parent {
 
 fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
     Id::new(base_id).with(path_segments)
+}
+
+fn get_pointer_string(path_segments: &[String]) -> String {
+    if path_segments.is_empty() {
+        "".to_string()
+    } else {
+        format!("/{}", path_segments.join("/"))
+    }
 }
 
 type PathIdMap = HashMap<Vec<String>, Id>;

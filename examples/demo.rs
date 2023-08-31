@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use eframe::egui::{RichText, Ui};
-use egui::{Align, Align2, Area, Button, Frame, Layout, Order, Pos2};
-use egui_json_tree::{DefaultExpand, JsonTree};
+use egui::{Align, Button, Layout};
+use egui_json_tree::{DefaultExpand, JsonTreeBuilder};
 use serde_json::{json, Value};
 
 trait Show {
@@ -27,7 +27,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value).show(ui, DefaultExpand::None);
+        JsonTreeBuilder::new(self.title, &self.value).show(ui);
     }
 }
 
@@ -79,7 +79,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui, DefaultExpand::None);
+                JsonTreeBuilder::new(self.title, value).show(ui);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -122,8 +122,9 @@ impl Show for SearchExample {
             })
             .inner;
 
-        let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, DefaultExpand::SearchResults(&self.search_input));
+        let response = JsonTreeBuilder::new(self.title, &self.value)
+            .default_expand(DefaultExpand::SearchResults(&self.search_input))
+            .show(ui);
 
         if text_edit_response.changed() {
             response.reset_expanded(ui);
@@ -143,7 +144,6 @@ impl Show for SearchExample {
 struct CopyToClipboardExample {
     title: &'static str,
     value: Value,
-    popup_response: Option<(Pos2, String)>,
 }
 
 impl CopyToClipboardExample {
@@ -151,7 +151,6 @@ impl CopyToClipboardExample {
         Self {
             title: "Copy To Clipboard Example",
             value,
-            popup_response: None,
         }
     }
 }
@@ -162,66 +161,35 @@ impl Show for CopyToClipboardExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        let popup_id = ui.make_persistent_id("popup");
+        JsonTreeBuilder::new(self.title, &self.value)
+            .response_callback(|response, pointer| {
+                response.context_menu(|ui| {
+                    ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                        ui.set_width(150.0);
 
-        let mut should_close_popup = false;
-        if let Some((pos, path)) = &self.popup_response {
-            let area_response = Area::new(popup_id)
-                .order(Order::Foreground)
-                .constrain(true)
-                .fixed_pos(*pos)
-                .pivot(Align2::LEFT_TOP)
-                .show(ui.ctx(), |ui| {
-                    Frame::popup(ui.style()).show(ui, |ui| {
-                        ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                            ui.set_width(150.0);
+                        if !pointer.is_empty()
+                            && ui
+                                .add(Button::new("Copy property path").frame(false))
+                                .clicked()
+                        {
+                            println!("{}", pointer);
+                            ui.output_mut(|o| o.copied_text = pointer.clone());
+                            ui.close_menu();
+                        }
 
-                            if !path.is_empty()
-                                && ui
-                                    .add(Button::new("Copy property path").frame(false))
-                                    .clicked()
-                            {
-                                println!("{}", path);
-                                ui.output_mut(|o| o.copied_text = path.clone());
-                                should_close_popup = true;
-                            }
-
-                            if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                                if let Some(val) = self.value.pointer(path) {
-                                    if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
-                                        println!("{}", pretty_str);
-                                        ui.output_mut(|o| o.copied_text = pretty_str);
-                                    }
+                        if ui.add(Button::new("Copy contents").frame(false)).clicked() {
+                            if let Some(val) = self.value.pointer(pointer) {
+                                if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
+                                    println!("{}", pretty_str);
+                                    ui.output_mut(|o| o.copied_text = pretty_str);
                                 }
-                                should_close_popup = true;
                             }
-                        });
+                            ui.close_menu();
+                        }
                     });
-                })
-                .response;
-
-            if area_response.clicked_elsewhere() {
-                should_close_popup = true;
-            }
-        }
-
-        if should_close_popup {
-            self.popup_response = None;
-        }
-
-        let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, DefaultExpand::None);
-
-        if let Some((response, path)) = response.inner {
-            if response.secondary_clicked() {
-                self.popup_response = Some((
-                    response
-                        .interact_pointer_pos()
-                        .unwrap_or(response.rect.left_bottom()),
-                    path,
-                ));
-            }
-        }
+                });
+            })
+            .show(ui);
     }
 }
 

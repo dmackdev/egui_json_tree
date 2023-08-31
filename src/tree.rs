@@ -15,7 +15,7 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
-    tree_builder::{JsonTreeBuilder, JsonTreeConfig},
+    tree_builder::JsonTreeConfig,
     value::{BaseValueType, ExpandableType, JsonTreeValue},
 };
 
@@ -46,28 +46,13 @@ pub struct JsonTree {
     parent: Option<Parent>,
 }
 
-impl<'a> JsonTree {
-    /// Creates a new [`JsonTree`].
-    /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
+impl JsonTree {
+    pub(crate) fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
         Self {
             id: Id::new(id),
             value: value.into(),
             parent: None,
         }
-    }
-
-    pub fn builder(id: impl Hash, value: impl Into<JsonTreeValue>) -> JsonTreeBuilder<'a> {
-        JsonTreeBuilder {
-            id: Id::new(id),
-            value: value.into(),
-            config: JsonTreeConfig::default(),
-        }
-    }
-
-    /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
-        self.show_with_config(ui, JsonTreeConfig::default())
     }
 
     pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
@@ -145,8 +130,7 @@ impl<'a> JsonTree {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
                     show_job(ui, job)
-                })
-                .inner;
+                });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
                 let expandable = Expandable {

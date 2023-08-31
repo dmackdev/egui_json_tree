@@ -27,5 +27,6 @@ mod tree_builder;
 
 pub use response::JsonTreeResponse;
 pub use style::JsonTreeStyle;
-pub use tree::*;
 pub mod value;
+pub use tree::DefaultExpand;
+pub use tree_builder::*;

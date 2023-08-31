@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use eframe::egui::{RichText, Ui};
 use egui::{Align, Button, Layout};
-use egui_json_tree::{DefaultExpand, JsonTree};
+use egui_json_tree::{DefaultExpand, JsonTreeBuilder};
 use serde_json::{json, Value};
 
 trait Show {
@@ -27,7 +27,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value).show(ui);
+        JsonTreeBuilder::new(self.title, &self.value).show(ui);
     }
 }
 
@@ -79,7 +79,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui);
+                JsonTreeBuilder::new(self.title, value).show(ui);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -122,7 +122,7 @@ impl Show for SearchExample {
             })
             .inner;
 
-        let response = JsonTree::builder(self.title, &self.value)
+        let response = JsonTreeBuilder::new(self.title, &self.value)
             .default_expand(DefaultExpand::SearchResults(&self.search_input))
             .show(ui);
 
@@ -161,7 +161,7 @@ impl Show for CopyToClipboardExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::builder(self.title, &self.value)
+        JsonTreeBuilder::new(self.title, &self.value)
             .response_callback(|response, pointer| {
                 response.context_menu(|ui| {
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {

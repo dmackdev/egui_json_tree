@@ -1,6 +1,10 @@
+use crate::{
+    tree::{DefaultExpand, JsonTree},
+    value::JsonTreeValue,
+    JsonTreeResponse, JsonTreeStyle,
+};
 use egui::{Id, Response, Ui};
-
-use crate::{value::JsonTreeValue, DefaultExpand, JsonTree, JsonTreeResponse, JsonTreeStyle};
+use std::hash::Hash;
 
 #[derive(Default)]
 pub struct JsonTreeConfig<'a> {
@@ -9,6 +13,7 @@ pub struct JsonTreeConfig<'a> {
     pub(crate) response_callback: Option<Box<dyn FnMut(Response, String) + 'a>>,
 }
 
+#[must_use = "You should call .show()"]
 pub struct JsonTreeBuilder<'a> {
     pub(crate) id: Id,
     pub(crate) value: JsonTreeValue,
@@ -16,6 +21,17 @@ pub struct JsonTreeBuilder<'a> {
 }
 
 impl<'a> JsonTreeBuilder<'a> {
+    /// Creates a new [`JsonTreeBuilder`].
+    /// `id` must be a globally unique identifier.
+    pub fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
+        Self {
+            id: Id::new(id),
+            value: value.into(),
+            config: JsonTreeConfig::default(),
+        }
+    }
+
+    /// Override colors for JSON syntax highlighting, and search match highlighting.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
         self.config.style = style;
         self
@@ -34,6 +50,7 @@ impl<'a> JsonTreeBuilder<'a> {
         self
     }
 
+    /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
         JsonTree::new(self.id, self.value).show_with_config(ui, self.config)
     }

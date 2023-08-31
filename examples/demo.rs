@@ -178,7 +178,7 @@ impl Show for CopyToClipboardExample {
                         }
 
                         if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                            if let Some(val) = self.value.pointer(&pointer) {
+                            if let Some(val) = self.value.pointer(pointer) {
                                 if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
                                     println!("{}", pretty_str);
                                     ui.output_mut(|o| o.copied_text = pretty_str);

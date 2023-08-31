@@ -10,7 +10,7 @@ use std::hash::Hash;
 pub struct JsonTreeConfig<'a> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
-    pub(crate) response_callback: Option<Box<dyn FnMut(Response, String) + 'a>>,
+    pub(crate) response_callback: Option<Box<dyn FnMut(Response, &String) + 'a>>,
 }
 
 #[must_use = "You should call .show()"]
@@ -44,7 +44,7 @@ impl<'a> JsonTreeBuilder<'a> {
 
     pub fn response_callback(
         mut self,
-        response_callback: impl FnMut(Response, String) + 'a,
+        response_callback: impl FnMut(Response, &String) + 'a,
     ) -> Self {
         self.config.response_callback = Some(Box::new(response_callback));
         self

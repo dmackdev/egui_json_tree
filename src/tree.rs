@@ -115,21 +115,22 @@ impl JsonTree {
         style: &JsonTreeStyle,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
-        response_callback: &mut dyn FnMut(Response, String),
+        response_callback: &mut dyn FnMut(Response, &String),
     ) {
+        let pointer_string = &get_pointer_string(path_segments);
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
-                let mut job = LayoutJob::default();
-
-                if let Some(parent) = &self.parent {
-                    add_key(&mut job, style, parent, search_term);
-                }
-
-                add_value(&mut job, style, &value_str, &value_type, search_term);
-
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    show_job(ui, job)
+
+                    if let Some(parent) = &self.parent {
+                        let key_response = render_key(ui, style, parent, search_term);
+                        response_callback(key_response, pointer_string);
+                    }
+
+                    let value_response =
+                        render_value(ui, style, &value_str, &value_type, search_term);
+                    response_callback(value_response, pointer_string);
                 });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -154,20 +155,22 @@ impl JsonTree {
     }
 }
 
-fn add_value(
-    job: &mut LayoutJob,
+fn render_value(
+    ui: &mut Ui,
     style: &JsonTreeStyle,
     value_str: &str,
     value_type: &BaseValueType,
     search_term: &Option<SearchTerm>,
-) {
+) -> Response {
+    let mut job = LayoutJob::default();
     add_text_with_highlighting(
-        job,
+        &mut job,
         value_str,
         style.get_color(value_type),
         search_term,
         style.highlight_color,
     );
+    render_job(ui, job)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -179,8 +182,10 @@ fn show_expandable(
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
     search_term: &Option<SearchTerm>,
-    response_callback: &mut dyn FnMut(Response, String),
+    response_callback: &mut dyn FnMut(Response, &String),
 ) {
+    let pointer_string = &get_pointer_string(path_segments);
+
     let delimiters = match expandable.expandable_type {
         ExpandableType::Array => &ARRAY_DELIMITERS,
         ExpandableType::Object => &OBJECT_DELIMITERS,
@@ -206,28 +211,28 @@ fn show_expandable(
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    let mut job = LayoutJob::default();
-                    append(&mut job, delimiters.opening, style.punctuation_color, None);
-                    append(&mut job, " ", style.punctuation_color, None);
-                    show_job(ui, job);
+                    render_punc(ui, delimiters.opening, style.punctuation_color, None);
+                    render_punc(ui, " ", style.punctuation_color, None);
 
                     let entries_len = expandable.entries.len();
-                    let mut job = LayoutJob::default();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            add_key(
-                                &mut job,
+                            let key_response = render_key(
+                                ui,
                                 style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term,
                             );
+                            response_callback(key_response, pointer_string);
                         }
 
                         match elem {
                             JsonTreeValue::Base(value_str, value_type) => {
-                                add_value(&mut job, style, value_str, value_type, search_term);
+                                let value_response =
+                                    render_value(ui, style, value_str, value_type, search_term);
+                                response_callback(value_response, pointer_string);
                             }
                             JsonTreeValue::Expandable(_, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
@@ -235,39 +240,33 @@ fn show_expandable(
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
 
-                                append(
-                                    &mut job,
+                                let collapsed_expandable_response = render_punc(
+                                    ui,
                                     nested_delimiters.collapsed,
                                     style.punctuation_color,
                                     None,
                                 );
+                                response_callback(collapsed_expandable_response, pointer_string);
                             }
                         };
-
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-                        append(&mut job, spacing_str, style.punctuation_color, None);
+                        render_punc(ui, spacing_str, style.punctuation_color, None);
                     }
 
-                    append(&mut job, delimiters.closing, style.punctuation_color, None);
-                    show_job(ui, job);
+                    render_punc(ui, delimiters.closing, style.punctuation_color, None);
                 } else {
-                    let mut job = LayoutJob::default();
-
                     if let Some(parent) = &expandable.parent {
-                        add_key(&mut job, style, parent, search_term);
+                        let key_response = render_key(ui, style, parent, search_term);
+                        response_callback(key_response, pointer_string);
                     }
 
                     if is_expanded {
-                        append(&mut job, delimiters.opening, style.punctuation_color, None);
+                        render_punc(ui, delimiters.opening, style.punctuation_color, None);
                     } else {
-                        append(
-                            &mut job,
-                            delimiters.collapsed,
-                            style.punctuation_color,
-                            None,
-                        );
+                        let collapsed_expandable_response =
+                            render_punc(ui, delimiters.collapsed, style.punctuation_color, None);
+                        response_callback(collapsed_expandable_response, pointer_string);
                     }
-                    show_job(ui, job);
                 }
             });
         })
@@ -318,30 +317,33 @@ fn show_expandable(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-
-            let mut job = LayoutJob::default();
-            append(&mut job, delimiters.closing, style.punctuation_color, None);
-            show_job(ui, job);
+            render_punc(ui, delimiters.closing, style.punctuation_color, None);
         });
     }
 }
 
-fn add_key(
-    job: &mut LayoutJob,
+fn render_key(
+    ui: &mut Ui,
     style: &JsonTreeStyle,
     parent: &Parent,
     search_term: &Option<SearchTerm>,
-) {
+) -> Response {
+    let mut job = LayoutJob::default();
     match parent {
         Parent {
             key,
             expandable_type: ExpandableType::Array,
-        } => add_array_idx(job, key, style.array_idx_color, style.punctuation_color),
+        } => add_array_idx(
+            &mut job,
+            key,
+            style.array_idx_color,
+            style.punctuation_color,
+        ),
         Parent {
             key,
             expandable_type: ExpandableType::Object,
         } => add_object_key(
-            job,
+            &mut job,
             key,
             style.object_key_color,
             style.punctuation_color,
@@ -349,6 +351,7 @@ fn add_key(
             style.highlight_color,
         ),
     };
+    render_job(ui, job)
 }
 
 fn add_object_key(
@@ -416,7 +419,18 @@ fn append(job: &mut LayoutJob, text_str: &str, color: Color32, background_color:
     job.append(text_str, 0.0, text_format);
 }
 
-fn show_job(ui: &mut Ui, job: LayoutJob) -> Response {
+fn render_punc(
+    ui: &mut Ui,
+    punc_str: &str,
+    color: Color32,
+    background_color: Option<Color32>,
+) -> Response {
+    let mut job = LayoutJob::default();
+    append(&mut job, punc_str, color, background_color);
+    render_job(ui, job)
+}
+
+fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
     ui.add(Label::new(job).sense(Sense::click_and_drag()))
 }
 
@@ -472,6 +486,14 @@ impl Parent {
 
 fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
     Id::new(base_id).with(path_segments)
+}
+
+fn get_pointer_string(path_segments: &[String]) -> String {
+    if path_segments.is_empty() {
+        "".to_string()
+    } else {
+        format!("/{}", path_segments.join("/"))
+    }
 }
 
 type PathIdMap = HashMap<Vec<String>, Id>;

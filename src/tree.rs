@@ -99,6 +99,10 @@ impl<'a> JsonTree {
             }
         };
 
+        let response_callback = &mut config
+            .response_callback
+            .unwrap_or_else(|| Box::new(|_, _| {}));
+
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
@@ -109,6 +113,7 @@ impl<'a> JsonTree {
                 &config.style,
                 &default_expand,
                 &search_term,
+                response_callback,
             );
         });
 
@@ -125,6 +130,7 @@ impl<'a> JsonTree {
         style: &JsonTreeStyle,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
+        response_callback: &mut dyn FnMut(Response, String),
     ) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
@@ -153,6 +159,7 @@ impl<'a> JsonTree {
                     style,
                     default_expand,
                     search_term,
+                    response_callback,
                 );
             }
         };
@@ -184,6 +191,7 @@ fn show_expandable(
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
     search_term: &Option<SearchTerm>,
+    response_callback: &mut dyn FnMut(Response, String),
 ) {
     let delimiters = match expandable.expandable_type {
         ExpandableType::Array => &ARRAY_DELIMITERS,
@@ -293,6 +301,7 @@ fn show_expandable(
                         style,
                         default_expand,
                         search_term,
+                        response_callback,
                     );
                 };
 

@@ -1,4 +1,4 @@
-use egui::{Id, Ui};
+use egui::{Id, Response, Ui};
 
 use crate::{value::JsonTreeValue, DefaultExpand, JsonTree, JsonTreeResponse, JsonTreeStyle};
 
@@ -6,6 +6,7 @@ use crate::{value::JsonTreeValue, DefaultExpand, JsonTree, JsonTreeResponse, Jso
 pub struct JsonTreeConfig<'a> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
+    pub(crate) response_callback: Option<Box<dyn FnMut(Response, String) + 'a>>,
 }
 
 pub struct JsonTreeBuilder<'a> {
@@ -22,6 +23,14 @@ impl<'a> JsonTreeBuilder<'a> {
 
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
         self.config.default_expand = default_expand;
+        self
+    }
+
+    pub fn response_callback(
+        mut self,
+        response_callback: impl FnMut(Response, String) + 'a,
+    ) -> Self {
+        self.config.response_callback = Some(Box::new(response_callback));
         self
     }
 

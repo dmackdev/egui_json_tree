@@ -135,7 +135,11 @@ impl<'a> JsonTree {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
                 let mut job = LayoutJob::default();
-                add_key(&mut job, style, &self.parent, search_term);
+
+                if let Some(parent) = &self.parent {
+                    add_key(&mut job, style, parent, search_term);
+                }
+
                 add_value(&mut job, style, &value_str, &value_type, search_term);
 
                 ui.horizontal_wrapped(|ui| {
@@ -232,7 +236,7 @@ fn show_expandable(
                             add_key(
                                 &mut job,
                                 style,
-                                &Some(Parent::new(key.to_owned(), expandable.expandable_type)),
+                                &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term,
                             );
                         }
@@ -265,7 +269,9 @@ fn show_expandable(
                 } else {
                     let mut job = LayoutJob::default();
 
-                    add_key(&mut job, style, &expandable.parent, search_term);
+                    if let Some(parent) = &expandable.parent {
+                        add_key(&mut job, style, parent, search_term);
+                    }
 
                     if is_expanded {
                         append(&mut job, delimiters.opening, style.punctuation_color, None);
@@ -339,18 +345,18 @@ fn show_expandable(
 fn add_key(
     job: &mut LayoutJob,
     style: &JsonTreeStyle,
-    parent: &Option<Parent>,
+    parent: &Parent,
     search_term: &Option<SearchTerm>,
 ) {
     match parent {
-        Some(Parent {
+        Parent {
             key,
             expandable_type: ExpandableType::Array,
-        }) => add_array_idx(job, key, style.array_idx_color, style.punctuation_color),
-        Some(Parent {
+        } => add_array_idx(job, key, style.array_idx_color, style.punctuation_color),
+        Parent {
             key,
             expandable_type: ExpandableType::Object,
-        }) => add_object_key(
+        } => add_object_key(
             job,
             key,
             style.object_key_color,
@@ -358,7 +364,6 @@ fn add_key(
             search_term,
             style.highlight_color,
         ),
-        _ => {}
     };
 }
 

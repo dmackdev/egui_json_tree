@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::collections::{HashMap, HashSet};
 
 use egui::{
     collapsing_header::CollapsingState,
@@ -47,10 +44,10 @@ pub struct JsonTree {
 }
 
 impl JsonTree {
-    pub(crate) fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
+    pub(crate) fn new(id: Id, value: JsonTreeValue) -> Self {
         Self {
-            id: Id::new(id),
-            value: value.into(),
+            id,
+            value,
             parent: None,
         }
     }
@@ -471,7 +468,7 @@ struct Expandable {
     parent: Option<Parent>,
 }
 
-pub(crate) struct Parent {
+pub struct Parent {
     key: String,
     expandable_type: ExpandableType,
 }

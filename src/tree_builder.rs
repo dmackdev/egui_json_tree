@@ -17,9 +17,9 @@ pub struct JsonTreeConfig<'a> {
 
 #[must_use = "You should call .show()"]
 pub struct JsonTreeBuilder<'a> {
-    pub(crate) id: Id,
-    pub(crate) value: JsonTreeValue,
-    pub(crate) config: JsonTreeConfig<'a>,
+    id: Id,
+    value: JsonTreeValue,
+    config: JsonTreeConfig<'a>,
 }
 
 impl<'a> JsonTreeBuilder<'a> {

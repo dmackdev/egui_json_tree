@@ -15,6 +15,7 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
+    tree_builder::{JsonTreeBuilder, JsonTreeConfig},
     value::{BaseValueType, ExpandableType, JsonTreeValue},
 };
 
@@ -42,30 +43,34 @@ use crate::{
 pub struct JsonTree {
     id: Id,
     value: JsonTreeValue,
-    style: JsonTreeStyle,
     parent: Option<Parent>,
 }
 
-impl JsonTree {
+impl<'a> JsonTree {
     /// Creates a new [`JsonTree`].
     /// `id` must be a globally unique identifier.
     pub fn new(id: impl Hash, value: impl Into<JsonTreeValue>) -> Self {
         Self {
             id: Id::new(id),
             value: value.into(),
-            style: JsonTreeStyle::default(),
             parent: None,
         }
     }
 
-    /// Override colors for JSON syntax highlighting, and search match highlighting.
-    pub fn style(mut self, style: JsonTreeStyle) -> Self {
-        self.style = style;
-        self
+    pub fn builder(id: impl Hash, value: impl Into<JsonTreeValue>) -> JsonTreeBuilder<'a> {
+        JsonTreeBuilder {
+            id: Id::new(id),
+            value: value.into(),
+            config: JsonTreeConfig::default(),
+        }
     }
 
     /// Show the JSON tree visualisation within the `Ui`.
-    pub fn show(self, ui: &mut Ui, default_expand: DefaultExpand) -> JsonTreeResponse {
+    pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
+        self.show_with_config(ui, JsonTreeConfig::default())
+    }
+
+    pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
         let mut path_id_map = ui.ctx().memory_mut(|mem| {
             let cache = mem.caches.cache::<PathIdMapCache<'_>>();
             cache.get(&(self.id, &self.value))
@@ -75,7 +80,7 @@ impl JsonTree {
             *value = ui.make_persistent_id(&value);
         }
 
-        let (default_expand, search_term) = match default_expand {
+        let (default_expand, search_term) = match config.default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
@@ -101,6 +106,7 @@ impl JsonTree {
                 ui,
                 &mut vec![],
                 &mut path_id_map,
+                &config.style,
                 &default_expand,
                 &search_term,
             );
@@ -116,14 +122,15 @@ impl JsonTree {
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
+        style: &JsonTreeStyle,
         default_expand: &InnerExpand,
         search_term: &Option<SearchTerm>,
     ) {
         match self.value {
             JsonTreeValue::Base(value_str, value_type) => {
                 let mut job = LayoutJob::default();
-                add_key(&mut job, &self.style, &self.parent, search_term);
-                add_value(&mut job, &self.style, &value_str, &value_type, search_term);
+                add_key(&mut job, style, &self.parent, search_term);
+                add_value(&mut job, style, &value_str, &value_type, search_term);
 
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
@@ -143,7 +150,7 @@ impl JsonTree {
                     path_segments,
                     path_id_map,
                     expandable,
-                    &self.style,
+                    style,
                     default_expand,
                     search_term,
                 );
@@ -276,7 +283,6 @@ fn show_expandable(
                     let nested_tree = JsonTree {
                         id: expandable.id,
                         value: elem,
-                        style: style.clone(),
                         parent: Some(Parent::new(key, expandable.expandable_type)),
                     };
 
@@ -284,6 +290,7 @@ fn show_expandable(
                         ui,
                         path_segments,
                         path_id_map,
+                        style,
                         default_expand,
                         search_term,
                     );
@@ -415,12 +422,13 @@ fn show_job(ui: &mut Ui, job: LayoutJob) -> Response {
     ui.add(Label::new(job).sense(Sense::click_and_drag()))
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 /// Configuration for how a `JsonTree` should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.
     All,
     /// Collapse all arrays and objects.
+    #[default]
     None,
     /// Expand arrays and objects according to how many levels deep they are nested:
     /// - `0` would expand a top-level array/object only,
@@ -450,7 +458,7 @@ struct Expandable {
     parent: Option<Parent>,
 }
 
-struct Parent {
+pub(crate) struct Parent {
     key: String,
     expandable_type: ExpandableType,
 }

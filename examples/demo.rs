@@ -27,7 +27,7 @@ impl Show for Example {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value).show(ui, DefaultExpand::None);
+        JsonTree::new(self.title, &self.value).show(ui);
     }
 }
 
@@ -79,7 +79,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui, DefaultExpand::None);
+                JsonTree::new(self.title, value).show(ui);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));
@@ -122,8 +122,9 @@ impl Show for SearchExample {
             })
             .inner;
 
-        let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, DefaultExpand::SearchResults(&self.search_input));
+        let response = JsonTree::builder(self.title, &self.value)
+            .default_expand(DefaultExpand::SearchResults(&self.search_input))
+            .show(ui);
 
         if text_edit_response.changed() {
             response.reset_expanded(ui);
@@ -210,7 +211,7 @@ impl Show for CopyToClipboardExample {
         }
 
         let tree = JsonTree::new(self.title, &self.value);
-        let response = tree.show(ui, DefaultExpand::None);
+        let response = tree.show(ui);
     }
 }
 

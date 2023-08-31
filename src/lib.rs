@@ -23,6 +23,7 @@ mod response;
 mod search;
 mod style;
 mod tree;
+mod tree_builder;
 
 pub use response::JsonTreeResponse;
 pub use style::JsonTreeStyle;

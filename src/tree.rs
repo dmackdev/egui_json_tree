@@ -107,6 +107,7 @@ impl JsonTree {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_impl(
         self,
         ui: &mut Ui,

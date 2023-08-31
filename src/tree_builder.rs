@@ -6,11 +6,13 @@ use crate::{
 use egui::{Id, Response, Ui};
 use std::hash::Hash;
 
+type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
+
 #[derive(Default)]
 pub struct JsonTreeConfig<'a> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
-    pub(crate) response_callback: Option<Box<dyn FnMut(Response, &String) + 'a>>,
+    pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
 }
 
 #[must_use = "You should call .show()"]

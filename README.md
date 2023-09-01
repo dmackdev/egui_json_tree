@@ -1,6 +1,6 @@
 # egui_json_tree
 
-An interactive JSON tree visualisation library for `egui`, with search and highlight functionality.
+An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
 
 <p align="center">
   <img src="./media/search_example.gif" alt="Search Example"/>
@@ -10,11 +10,11 @@ An interactive JSON tree visualisation library for `egui`, with search and highl
 
 ```rust
 use egui::{Color32};
-use egui_json_tree::{DefaultExpand, JsonTreeBuilder, JsonTreeStyle};
+use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle};
 
 let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
 
-let response = JsonTreeBuilder::new("globally-unique-id", &value)
+let response = JsonTree::new("globally-unique-id", &value)
     .style(JsonTreeStyle {
         bool_color: Color32::YELLOW,
         ..Default::default()
@@ -32,8 +32,6 @@ response.reset_expanded(ui);
 See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cases, including the search match highlight/auto expand functionality, and how to copy JSON paths and values to the clipboard.
 
 `JsonTree` can visualise any type that implements `Into<JsonTreeValue>`. An implementation to support `serde_json::Value` is provided with this crate. If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
-
-Coloring for JSON syntax highlighting and search match highlighting may be overriden through the `JsonTree::style` builder method.
 
 ## Run Examples
 

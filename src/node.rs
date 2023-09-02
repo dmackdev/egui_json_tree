@@ -17,6 +17,8 @@ use crate::{
     DefaultExpand,
 };
 
+const FONT_SIZE: f32 = 12.0;
+
 pub struct JsonTreeNode {
     id: Id,
     value: JsonTreeValue,
@@ -68,6 +70,9 @@ impl JsonTreeNode {
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
+            // Centres the collapsing header icon.
+            ui.spacing_mut().interact_size.y = FONT_SIZE;
+
             self.show_impl(
                 ui,
                 &mut vec![],
@@ -386,7 +391,7 @@ fn add_text_with_highlighting(
 fn append(job: &mut LayoutJob, text_str: &str, color: Color32, background_color: Option<Color32>) {
     let mut text_format = TextFormat {
         color,
-        font_id: FontId::monospace(12.0),
+        font_id: FontId::monospace(FONT_SIZE),
         ..Default::default()
     };
 

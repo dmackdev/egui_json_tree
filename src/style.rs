@@ -1,4 +1,4 @@
-use egui::Color32;
+use egui::{Color32, FontId};
 
 use crate::value::BaseValueType;
 
@@ -14,6 +14,7 @@ pub struct JsonTreeStyle {
     pub highlight_color: Color32,
     /// The text color for array brackets, object braces, colons and commas.
     pub punctuation_color: Color32,
+    pub font_id: FontId,
 }
 
 impl Default for JsonTreeStyle {
@@ -27,6 +28,7 @@ impl Default for JsonTreeStyle {
             string_color: Color32::from_rgb(194, 146, 122),
             highlight_color: Color32::from_rgba_premultiplied(72, 72, 72, 50),
             punctuation_color: Color32::from_gray(140),
+            font_id: FontId::monospace(12.0),
         }
     }
 }

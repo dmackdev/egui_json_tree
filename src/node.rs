@@ -17,8 +17,6 @@ use crate::{
     DefaultExpand,
 };
 
-const FONT_SIZE: f32 = 12.0;
-
 pub struct JsonTreeNode {
     id: Id,
     value: JsonTreeValue,
@@ -71,7 +69,7 @@ impl JsonTreeNode {
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = FONT_SIZE;
+            ui.spacing_mut().interact_size.y = config.style.font_id.size;
 
             self.show_impl(
                 ui,
@@ -152,6 +150,7 @@ fn render_value(
         style.get_color(value_type),
         search_term,
         style.highlight_color,
+        &style.font_id,
     );
     render_job(ui, job)
 }
@@ -194,8 +193,14 @@ fn show_expandable(
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    render_punc(ui, delimiters.opening, style.punctuation_color, None);
-                    render_punc(ui, " ", style.punctuation_color, None);
+                    render_punc(
+                        ui,
+                        delimiters.opening,
+                        style.punctuation_color,
+                        None,
+                        &style.font_id,
+                    );
+                    render_punc(ui, " ", style.punctuation_color, None, &style.font_id);
 
                     let entries_len = expandable.entries.len();
 
@@ -228,15 +233,28 @@ fn show_expandable(
                                     nested_delimiters.collapsed,
                                     style.punctuation_color,
                                     None,
+                                    &style.font_id,
                                 );
                                 response_callback(collapsed_expandable_response, pointer_string);
                             }
                         };
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-                        render_punc(ui, spacing_str, style.punctuation_color, None);
+                        render_punc(
+                            ui,
+                            spacing_str,
+                            style.punctuation_color,
+                            None,
+                            &style.font_id,
+                        );
                     }
 
-                    render_punc(ui, delimiters.closing, style.punctuation_color, None);
+                    render_punc(
+                        ui,
+                        delimiters.closing,
+                        style.punctuation_color,
+                        None,
+                        &style.font_id,
+                    );
                 } else {
                     if let Some(parent) = &expandable.parent {
                         let key_response = render_key(ui, style, parent, search_term);
@@ -244,10 +262,21 @@ fn show_expandable(
                     }
 
                     if is_expanded {
-                        render_punc(ui, delimiters.opening, style.punctuation_color, None);
+                        render_punc(
+                            ui,
+                            delimiters.opening,
+                            style.punctuation_color,
+                            None,
+                            &style.font_id,
+                        );
                     } else {
-                        let collapsed_expandable_response =
-                            render_punc(ui, delimiters.collapsed, style.punctuation_color, None);
+                        let collapsed_expandable_response = render_punc(
+                            ui,
+                            delimiters.collapsed,
+                            style.punctuation_color,
+                            None,
+                            &style.font_id,
+                        );
                         response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }
@@ -300,7 +329,13 @@ fn show_expandable(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_punc(ui, delimiters.closing, style.punctuation_color, None);
+            render_punc(
+                ui,
+                delimiters.closing,
+                style.punctuation_color,
+                None,
+                &style.font_id,
+            );
         });
     }
 }
@@ -321,6 +356,7 @@ fn render_key(
             key,
             style.array_idx_color,
             style.punctuation_color,
+            &style.font_id,
         ),
         Parent {
             key,
@@ -332,6 +368,7 @@ fn render_key(
             style.punctuation_color,
             search_term,
             style.highlight_color,
+            &style.font_id,
         ),
     };
     render_job(ui, job)
@@ -344,16 +381,23 @@ fn add_object_key(
     punctuation_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
+    font_id: &FontId,
 ) {
-    append(job, "\"", color, None);
-    add_text_with_highlighting(job, key_str, color, search_term, highlight_color);
-    append(job, "\"", color, None);
-    append(job, ": ", punctuation_color, None);
+    append(job, "\"", color, None, font_id);
+    add_text_with_highlighting(job, key_str, color, search_term, highlight_color, font_id);
+    append(job, "\"", color, None, font_id);
+    append(job, ": ", punctuation_color, None, font_id);
 }
 
-fn add_array_idx(job: &mut LayoutJob, idx_str: &str, color: Color32, punctuation_color: Color32) {
-    append(job, idx_str, color, None);
-    append(job, ": ", punctuation_color, None);
+fn add_array_idx(
+    job: &mut LayoutJob,
+    idx_str: &str,
+    color: Color32,
+    punctuation_color: Color32,
+    font_id: &FontId,
+) {
+    append(job, idx_str, color, None, font_id);
+    append(job, ": ", punctuation_color, None, font_id);
 }
 
 fn add_text_with_highlighting(
@@ -362,13 +406,14 @@ fn add_text_with_highlighting(
     text_color: Color32,
     search_term: &Option<SearchTerm>,
     highlight_color: Color32,
+    font_id: &FontId,
 ) {
     if let Some(search_term) = search_term {
         let matches = search_term.find_match_indices_in(text_str);
         if !matches.is_empty() {
             let mut start = 0;
             for match_idx in matches {
-                append(job, &text_str[start..match_idx], text_color, None);
+                append(job, &text_str[start..match_idx], text_color, None, font_id);
 
                 let highlight_end_idx = match_idx + search_term.len();
 
@@ -377,21 +422,28 @@ fn add_text_with_highlighting(
                     &text_str[match_idx..highlight_end_idx],
                     text_color,
                     Some(highlight_color),
+                    font_id,
                 );
 
                 start = highlight_end_idx;
             }
-            append(job, &text_str[start..], text_color, None);
+            append(job, &text_str[start..], text_color, None, font_id);
             return;
         }
     }
-    append(job, text_str, text_color, None);
+    append(job, text_str, text_color, None, font_id);
 }
 
-fn append(job: &mut LayoutJob, text_str: &str, color: Color32, background_color: Option<Color32>) {
+fn append(
+    job: &mut LayoutJob,
+    text_str: &str,
+    color: Color32,
+    background_color: Option<Color32>,
+    font_id: &FontId,
+) {
     let mut text_format = TextFormat {
         color,
-        font_id: FontId::monospace(FONT_SIZE),
+        font_id: font_id.clone(),
         ..Default::default()
     };
 
@@ -407,9 +459,10 @@ fn render_punc(
     punc_str: &str,
     color: Color32,
     background_color: Option<Color32>,
+    font_id: &FontId,
 ) -> Response {
     let mut job = LayoutJob::default();
-    append(&mut job, punc_str, color, background_color);
+    append(&mut job, punc_str, color, background_color, font_id);
     render_job(ui, job)
 }
 

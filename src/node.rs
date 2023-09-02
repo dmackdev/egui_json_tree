@@ -77,7 +77,7 @@ impl JsonTreeNode {
                 &mut path_id_map,
                 &config.style,
                 &default_expand,
-                &search_term,
+                search_term.as_ref(),
                 response_callback,
             );
         });
@@ -95,7 +95,7 @@ impl JsonTreeNode {
         path_id_map: &mut PathIdMap,
         style: &JsonTreeStyle,
         default_expand: &InnerExpand,
-        search_term: &Option<SearchTerm>,
+        search_term: Option<&SearchTerm>,
         response_callback: &mut dyn FnMut(Response, &String),
     ) {
         let pointer_string = &get_pointer_string(path_segments);
@@ -141,7 +141,7 @@ fn render_value(
     style: &JsonTreeStyle,
     value_str: &str,
     value_type: &BaseValueType,
-    search_term: &Option<SearchTerm>,
+    search_term: Option<&SearchTerm>,
 ) -> Response {
     let mut job = LayoutJob::default();
     add_text_with_highlighting(
@@ -163,7 +163,7 @@ fn show_expandable(
     expandable: Expandable,
     style: &JsonTreeStyle,
     default_expand: &InnerExpand,
-    search_term: &Option<SearchTerm>,
+    search_term: Option<&SearchTerm>,
     response_callback: &mut dyn FnMut(Response, &String),
 ) {
     let pointer_string = &get_pointer_string(path_segments);
@@ -344,7 +344,7 @@ fn render_key(
     ui: &mut Ui,
     style: &JsonTreeStyle,
     parent: &Parent,
-    search_term: &Option<SearchTerm>,
+    search_term: Option<&SearchTerm>,
 ) -> Response {
     let mut job = LayoutJob::default();
     match parent {
@@ -379,7 +379,7 @@ fn add_object_key(
     key_str: &str,
     color: Color32,
     punctuation_color: Color32,
-    search_term: &Option<SearchTerm>,
+    search_term: Option<&SearchTerm>,
     highlight_color: Color32,
     font_id: &FontId,
 ) {
@@ -404,7 +404,7 @@ fn add_text_with_highlighting(
     job: &mut LayoutJob,
     text_str: &str,
     text_color: Color32,
-    search_term: &Option<SearchTerm>,
+    search_term: Option<&SearchTerm>,
     highlight_color: Color32,
     font_id: &FontId,
 ) {

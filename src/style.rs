@@ -14,7 +14,7 @@ pub struct JsonTreeStyle {
     pub highlight_color: Color32,
     /// The text color for array brackets, object braces, colons and commas.
     pub punctuation_color: Color32,
-    /// The font to use. Defaults to TextStyle::Monospace.resolve(ui.style())
+    /// The font to use. Defaults to `TextStyle::Monospace.resolve(ui.style())`.
     pub font_id: Option<FontId>,
 }
 

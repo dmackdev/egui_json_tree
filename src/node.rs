@@ -69,7 +69,7 @@ impl JsonTreeNode {
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = config.style.font_id.size;
+            ui.spacing_mut().interact_size.y = config.style.font_id(ui).size;
 
             self.show_impl(
                 ui,
@@ -150,7 +150,7 @@ fn render_value(
         style.get_color(value_type),
         search_term,
         style.highlight_color,
-        &style.font_id,
+        &style.font_id(ui),
     );
     render_job(ui, job)
 }
@@ -187,6 +187,8 @@ fn show_expandable(
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
+    let font_id = style.font_id(ui);
+
     state
         .show_header(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -198,9 +200,9 @@ fn show_expandable(
                         delimiters.opening,
                         style.punctuation_color,
                         None,
-                        &style.font_id,
+                        &font_id,
                     );
-                    render_punc(ui, " ", style.punctuation_color, None, &style.font_id);
+                    render_punc(ui, " ", style.punctuation_color, None, &font_id);
 
                     let entries_len = expandable.entries.len();
 
@@ -233,19 +235,13 @@ fn show_expandable(
                                     nested_delimiters.collapsed,
                                     style.punctuation_color,
                                     None,
-                                    &style.font_id,
+                                    &font_id,
                                 );
                                 response_callback(collapsed_expandable_response, pointer_string);
                             }
                         };
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-                        render_punc(
-                            ui,
-                            spacing_str,
-                            style.punctuation_color,
-                            None,
-                            &style.font_id,
-                        );
+                        render_punc(ui, spacing_str, style.punctuation_color, None, &font_id);
                     }
 
                     render_punc(
@@ -253,7 +249,7 @@ fn show_expandable(
                         delimiters.closing,
                         style.punctuation_color,
                         None,
-                        &style.font_id,
+                        &font_id,
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
@@ -267,7 +263,7 @@ fn show_expandable(
                             delimiters.opening,
                             style.punctuation_color,
                             None,
-                            &style.font_id,
+                            &font_id,
                         );
                     } else {
                         let collapsed_expandable_response = render_punc(
@@ -275,7 +271,7 @@ fn show_expandable(
                             delimiters.collapsed,
                             style.punctuation_color,
                             None,
-                            &style.font_id,
+                            &font_id,
                         );
                         response_callback(collapsed_expandable_response, pointer_string);
                     }
@@ -334,7 +330,7 @@ fn show_expandable(
                 delimiters.closing,
                 style.punctuation_color,
                 None,
-                &style.font_id,
+                &font_id,
             );
         });
     }
@@ -356,7 +352,7 @@ fn render_key(
             key,
             style.array_idx_color,
             style.punctuation_color,
-            &style.font_id,
+            &style.font_id(ui),
         ),
         Parent {
             key,
@@ -368,7 +364,7 @@ fn render_key(
             style.punctuation_color,
             search_term,
             style.highlight_color,
-            &style.font_id,
+            &style.font_id(ui),
         ),
     };
     render_job(ui, job)

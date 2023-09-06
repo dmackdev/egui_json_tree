@@ -1,4 +1,4 @@
-use egui::{Color32, FontId};
+use egui::{Color32, FontId, TextStyle, Ui};
 
 use crate::value::BaseValueType;
 
@@ -14,7 +14,8 @@ pub struct JsonTreeStyle {
     pub highlight_color: Color32,
     /// The text color for array brackets, object braces, colons and commas.
     pub punctuation_color: Color32,
-    pub font_id: FontId,
+    /// The font to use. Defaults to TextStyle::Monospace.resolve(ui.style())
+    pub font_id: Option<FontId>,
 }
 
 impl Default for JsonTreeStyle {
@@ -28,7 +29,7 @@ impl Default for JsonTreeStyle {
             string_color: Color32::from_rgb(194, 146, 122),
             highlight_color: Color32::from_rgba_premultiplied(72, 72, 72, 50),
             punctuation_color: Color32::from_gray(140),
-            font_id: FontId::monospace(12.0),
+            font_id: None,
         }
     }
 }
@@ -40,6 +41,14 @@ impl JsonTreeStyle {
             BaseValueType::Bool => self.bool_color,
             BaseValueType::Number => self.number_color,
             BaseValueType::String => self.string_color,
+        }
+    }
+
+    pub(crate) fn font_id(&self, ui: &Ui) -> FontId {
+        if let Some(font_id) = &self.font_id {
+            font_id.clone()
+        } else {
+            TextStyle::Monospace.resolve(ui.style())
         }
     }
 }

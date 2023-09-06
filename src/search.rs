@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::value::{ExpandableType, JsonTreeValue};
+use crate::value::{ExpandableType, IntoJsonTreeValue, JsonTreeValue};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);
@@ -26,7 +26,7 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &JsonTreeValue) -> HashSet<Vec<String>> {
+    pub fn find_matching_paths_in(&self, value: &dyn IntoJsonTreeValue) -> HashSet<Vec<String>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
@@ -45,14 +45,14 @@ impl SearchTerm {
 }
 
 fn search_impl(
-    value: &JsonTreeValue,
+    value: &dyn IntoJsonTreeValue,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
     matching_paths: &mut HashSet<Vec<String>>,
 ) {
-    match value {
+    match value.into_json_tree_value() {
         JsonTreeValue::Base(value_str, _) => {
-            if search_term.matches(value_str) {
+            if search_term.matches(&value_str) {
                 update_matches(path_segments, matching_paths);
             }
         }
@@ -61,11 +61,11 @@ fn search_impl(
                 path_segments.push(key.to_string());
 
                 // Ignore matches for indices in an array.
-                if *expandable_type == ExpandableType::Object && search_term.matches(key) {
+                if expandable_type == ExpandableType::Object && search_term.matches(key) {
                     update_matches(path_segments, matching_paths);
                 }
 
-                search_impl(val, search_term, path_segments, matching_paths);
+                search_impl(*val, search_term, path_segments, matching_paths);
                 path_segments.pop();
             }
         }

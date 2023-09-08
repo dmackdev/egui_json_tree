@@ -1,5 +1,5 @@
 use crate::{
-    node::JsonTreeNode, value::IntoJsonTreeValue, DefaultExpand, JsonTreeResponse, JsonTreeStyle,
+    node::JsonTreeNode, value::ToJsonTreeValue, DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Response, Ui};
 use std::hash::Hash;
@@ -17,14 +17,14 @@ pub struct JsonTreeConfig<'a> {
 #[must_use = "You should call .show()"]
 pub struct JsonTree<'a> {
     id: Id,
-    value: &'a dyn IntoJsonTreeValue,
+    value: &'a dyn ToJsonTreeValue,
     config: JsonTreeConfig<'a>,
 }
 
 impl<'a> JsonTree<'a> {
     /// Creates a new [`JsonTree`].
     /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: &'a impl IntoJsonTreeValue) -> Self {
+    pub fn new(id: impl Hash, value: &'a impl ToJsonTreeValue) -> Self {
         Self {
             id: Id::new(id),
             value,

@@ -16,7 +16,7 @@ pub enum JsonTreeValue<'a> {
     ///   - For arrays, the key should be the index of each element.
     ///   - For objects, the key should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
-    Expandable(Vec<(String, &'a dyn IntoJsonTreeValue)>, ExpandableType),
+    Expandable(Vec<(String, &'a dyn ToJsonTreeValue)>, ExpandableType),
 }
 
 /// The type of a non-recursive JSON value.
@@ -35,14 +35,14 @@ pub enum ExpandableType {
     Object,
 }
 
-pub trait IntoJsonTreeValue {
-    fn into_json_tree_value(&self) -> JsonTreeValue;
+pub trait ToJsonTreeValue {
+    fn to_json_tree_value(&self) -> JsonTreeValue;
     fn is_expandable(&self) -> bool;
 }
 
 #[cfg(feature = "serde_json")]
-impl IntoJsonTreeValue for serde_json::Value {
-    fn into_json_tree_value(&self) -> JsonTreeValue {
+impl ToJsonTreeValue for serde_json::Value {
+    fn to_json_tree_value(&self) -> JsonTreeValue {
         match self {
             serde_json::Value::Null => JsonTreeValue::Base("null".to_string(), BaseValueType::Null),
             serde_json::Value::Bool(b) => JsonTreeValue::Base(b.to_string(), BaseValueType::Bool),
@@ -55,13 +55,13 @@ impl IntoJsonTreeValue for serde_json::Value {
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (idx.to_string(), elem as &dyn IntoJsonTreeValue))
+                    .map(|(idx, elem)| (idx.to_string(), elem as &dyn ToJsonTreeValue))
                     .collect(),
                 ExpandableType::Array,
             ),
             serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
-                    .map(|(key, val)| (key.to_owned(), val as &dyn IntoJsonTreeValue))
+                    .map(|(key, val)| (key.to_owned(), val as &dyn ToJsonTreeValue))
                     .collect(),
                 ExpandableType::Object,
             ),

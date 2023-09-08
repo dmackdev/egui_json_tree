@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use egui::{
-    collapsing_header::CollapsingState,
-    text::LayoutJob,
-    util::cache::{ComputerMut, FrameCache},
-    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
+    collapsing_header::CollapsingState, text::LayoutJob, Color32, FontId, Id, Label, Response,
+    Sense, TextFormat, Ui,
 };
 
 use crate::{
@@ -33,7 +31,7 @@ impl<'a> JsonTreeNode<'a> {
     }
 
     pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
-        let mut path_id_map = get_path_id_map(self.id, self.value);
+        let mut path_id_map = HashMap::new();
 
         let (default_expand, search_term) = match config.default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
@@ -43,7 +41,11 @@ impl<'a> JsonTreeNode<'a> {
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
-                    .map(|search_term| search_term.find_matching_paths_in(self.value)) // TODO: How can I cache this again?
+                    .map(|search_term| {
+                        // If searching, the entire path_id_map must be populated.
+                        populate_path_id_map(self.id, self.value, &mut path_id_map);
+                        search_term.find_matching_paths_in(self.value)
+                    })
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
             }
@@ -503,13 +505,11 @@ fn get_pointer_string(path_segments: &[String]) -> String {
 
 type PathIdMap = HashMap<Vec<String>, Id>;
 
-fn get_path_id_map(base_id: Id, value: &dyn IntoJsonTreeValue) -> PathIdMap {
-    let mut path_id_map = HashMap::new();
-    get_path_id_map_impl(base_id, value, &mut vec![], &mut path_id_map);
-    path_id_map
+fn populate_path_id_map(base_id: Id, value: &dyn IntoJsonTreeValue, path_id_map: &mut PathIdMap) {
+    populate_path_id_map_impl(base_id, value, &mut vec![], path_id_map);
 }
 
-fn get_path_id_map_impl(
+fn populate_path_id_map_impl(
     base_id: Id,
     value: &dyn IntoJsonTreeValue,
     path_segments: &mut Vec<String>,
@@ -520,9 +520,7 @@ fn get_path_id_map_impl(
             let id = generate_id(base_id, path_segments);
             path_id_map.insert(path_segments.clone(), id);
             path_segments.push(key.to_owned());
-            // TODO: This does not need to be called unless we are searching within the tree.
-            // If not searching, each call to show a nested expandable can populate the map.
-            get_path_id_map_impl(base_id, val, path_segments, path_id_map);
+            populate_path_id_map_impl(base_id, val, path_segments, path_id_map);
             path_segments.pop();
         }
     }

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::value::{ExpandableType, IntoJsonTreeValue, JsonTreeValue};
+use crate::value::{ExpandableType, JsonTreeValue, ToJsonTreeValue};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);
@@ -26,7 +26,7 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &dyn IntoJsonTreeValue) -> HashSet<Vec<String>> {
+    pub fn find_matching_paths_in(&self, value: &dyn ToJsonTreeValue) -> HashSet<Vec<String>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
@@ -45,12 +45,12 @@ impl SearchTerm {
 }
 
 fn search_impl(
-    value: &dyn IntoJsonTreeValue,
+    value: &dyn ToJsonTreeValue,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
     matching_paths: &mut HashSet<Vec<String>>,
 ) {
-    match value.into_json_tree_value() {
+    match value.to_json_tree_value() {
         JsonTreeValue::Base(value_str, _) => {
             if search_term.matches(&value_str) {
                 update_matches(path_segments, matching_paths);

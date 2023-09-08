@@ -224,15 +224,21 @@ fn show_expandable(
                                     render_value(ui, style, value_str, value_type, search_term);
                                 response_callback(value_response, pointer_string);
                             }
-                            JsonTreeValue::Expandable(_, expandable_type) => {
+                            JsonTreeValue::Expandable(values, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
 
+                                let delimiter = if values.is_empty() {
+                                    nested_delimiters.collapsed_empty
+                                } else {
+                                    nested_delimiters.collapsed
+                                };
+
                                 let collapsed_expandable_response = render_punc(
                                     ui,
-                                    nested_delimiters.collapsed,
+                                    delimiter,
                                     style.punctuation_color,
                                     None,
                                     &font_id,
@@ -266,13 +272,13 @@ fn show_expandable(
                             &font_id,
                         );
                     } else {
-                        let collapsed_expandable_response = render_punc(
-                            ui,
-                            delimiters.collapsed,
-                            style.punctuation_color,
-                            None,
-                            &font_id,
-                        );
+                        let delimiter = if expandable.entries.is_empty() {
+                            delimiters.collapsed_empty
+                        } else {
+                            delimiters.collapsed
+                        };
+                        let collapsed_expandable_response =
+                            render_punc(ui, delimiter, style.punctuation_color, None, &font_id);
                         response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }

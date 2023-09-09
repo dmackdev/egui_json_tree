@@ -31,6 +31,11 @@ impl<'a> JsonTreeNode<'a> {
     }
 
     pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
+        let persistent_id = ui.id();
+        let tree_id = self.id;
+        let make_persistent_id =
+            |path_segments: &Vec<String>| persistent_id.with(tree_id.with(path_segments));
+
         let mut path_id_map = HashMap::new();
 
         let (default_expand, search_term) = match config.default_expand {
@@ -43,7 +48,7 @@ impl<'a> JsonTreeNode<'a> {
                     .as_ref()
                     .map(|search_term| {
                         // If searching, the entire path_id_map must be populated.
-                        populate_path_id_map(self.id, self.value, &mut path_id_map);
+                        populate_path_id_map(self.value, &mut path_id_map, &make_persistent_id);
                         search_term.find_matching_paths_in(self.value)
                     })
                     .unwrap_or_default();
@@ -69,6 +74,7 @@ impl<'a> JsonTreeNode<'a> {
                 &default_expand,
                 search_term.as_ref(),
                 response_callback,
+                &make_persistent_id,
             );
         });
 
@@ -87,6 +93,7 @@ impl<'a> JsonTreeNode<'a> {
         default_expand: &InnerExpand,
         search_term: Option<&SearchTerm>,
         response_callback: &mut dyn FnMut(Response, &String),
+        make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     ) {
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
@@ -120,6 +127,7 @@ impl<'a> JsonTreeNode<'a> {
                     default_expand,
                     search_term,
                     response_callback,
+                    &make_persistent_id,
                 );
             }
         };
@@ -155,6 +163,7 @@ fn show_expandable(
     default_expand: &InnerExpand,
     search_term: Option<&SearchTerm>,
     response_callback: &mut dyn FnMut(Response, &String),
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
 ) {
     let pointer_string = &get_pointer_string(path_segments);
 
@@ -172,7 +181,7 @@ fn show_expandable(
 
     let id_source = *path_id_map
         .entry(path_segments.to_vec())
-        .or_insert_with(|| ui.make_persistent_id(generate_id(expandable.id, path_segments)));
+        .or_insert_with(|| make_persistent_id(path_segments));
 
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
@@ -295,6 +304,7 @@ fn show_expandable(
                         default_expand,
                         search_term,
                         response_callback,
+                        make_persistent_id,
                     );
                 };
 
@@ -491,10 +501,6 @@ impl Parent {
     }
 }
 
-fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
-    Id::new(base_id).with(path_segments)
-}
-
 fn get_pointer_string(path_segments: &[String]) -> String {
     if path_segments.is_empty() {
         "".to_string()
@@ -505,22 +511,26 @@ fn get_pointer_string(path_segments: &[String]) -> String {
 
 type PathIdMap = HashMap<Vec<String>, Id>;
 
-fn populate_path_id_map(base_id: Id, value: &dyn ToJsonTreeValue, path_id_map: &mut PathIdMap) {
-    populate_path_id_map_impl(base_id, value, &mut vec![], path_id_map);
+fn populate_path_id_map(
+    value: &dyn ToJsonTreeValue,
+    path_id_map: &mut PathIdMap,
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+) {
+    populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
 }
 
 fn populate_path_id_map_impl(
-    base_id: Id,
     value: &dyn ToJsonTreeValue,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
         for (key, val) in entries {
-            let id = generate_id(base_id, path_segments);
+            let id = make_persistent_id(path_segments);
             path_id_map.insert(path_segments.clone(), id);
             path_segments.push(key.to_owned());
-            populate_path_id_map_impl(base_id, val, path_segments, path_id_map);
+            populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
             path_segments.pop();
         }
     }

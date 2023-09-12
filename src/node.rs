@@ -134,6 +134,39 @@ impl<'a> JsonTreeNode<'a> {
     }
 }
 
+#[derive(Default)]
+struct ValueLayoutJobCreator;
+
+impl ValueLayoutJobCreator {
+    fn create(
+        &self,
+        style: &JsonTreeStyle,
+        value_str: &str,
+        value_type: &BaseValueType,
+        search_term: Option<&SearchTerm>,
+        font_id: &FontId,
+    ) -> LayoutJob {
+        let color = style.get_color(value_type);
+        let add_quote_if_string = |job: &mut LayoutJob| {
+            if *value_type == BaseValueType::String {
+                append(job, "\"", color, None, font_id)
+            };
+        };
+        let mut job = LayoutJob::default();
+        add_quote_if_string(&mut job);
+        add_text_with_highlighting(
+            &mut job,
+            value_str,
+            color,
+            search_term,
+            style.highlight_color,
+            font_id,
+        );
+        add_quote_if_string(&mut job);
+        job
+    }
+}
+
 fn render_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
@@ -141,24 +174,45 @@ fn render_value(
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
 ) -> Response {
-    let color = style.get_color(value_type);
-    let font_id = &style.font_id(ui);
-    let add_quote_if_string = |job: &mut LayoutJob| {
-        if *value_type == BaseValueType::String {
-            append(job, "\"", color, None, font_id)
-        };
-    };
-    let mut job = LayoutJob::default();
-    add_quote_if_string(&mut job);
-    add_text_with_highlighting(
-        &mut job,
-        value_str,
-        color,
-        search_term,
-        style.highlight_color,
-        font_id,
-    );
-    add_quote_if_string(&mut job);
+    impl
+        egui::util::cache::ComputerMut<
+            (
+                &JsonTreeStyle,
+                &str,
+                &BaseValueType,
+                Option<&SearchTerm>,
+                &FontId,
+            ),
+            LayoutJob,
+        > for ValueLayoutJobCreator
+    {
+        fn compute(
+            &mut self,
+            (style, value_str, value_type, search_term, font_id): (
+                &JsonTreeStyle,
+                &str,
+                &BaseValueType,
+                Option<&SearchTerm>,
+                &FontId,
+            ),
+        ) -> LayoutJob {
+            self.create(style, value_str, value_type, search_term, font_id)
+        }
+    }
+
+    type ValueLayoutJobCreatorCache =
+        egui::util::cache::FrameCache<LayoutJob, ValueLayoutJobCreator>;
+
+    let job = ui.ctx().memory_mut(|mem| {
+        mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
+            style,
+            value_str,
+            value_type,
+            search_term,
+            &style.font_id(ui),
+        ))
+    });
+
     render_job(ui, job)
 }
 

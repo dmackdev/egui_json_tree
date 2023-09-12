@@ -7,9 +7,9 @@
 /// Representation of JSON values for presentation purposes.
 pub enum JsonTreeValue<'a> {
     /// Representation for a non-recursive JSON value:
-    /// - A `String` representation of the base value, e.g. `"true"` for the boolean value `true`. The representation for a JSON `String` should be quoted.
+    /// - A value that can be converted to a `String` to represent the base value, e.g. `"true"` for the boolean value `true`.
     /// - The type of the base value.
-    Base(String, BaseValueType),
+    Base(&'a dyn ToString, BaseValueType),
     /// Representation for a recursive JSON value:
     /// - A `Vec` of key-value pairs. The order *must always* be the same.
     ///   - For arrays, the key should be the index of each element.
@@ -39,18 +39,20 @@ pub trait ToJsonTreeValue {
     fn is_expandable(&self) -> bool;
 }
 
+const NULL_STR: &str = "null";
+const TRUE_STR: &str = "true";
+const FALSE_STR: &str = "false";
+
 #[cfg(feature = "serde_json")]
 impl ToJsonTreeValue for serde_json::Value {
     fn to_json_tree_value(&self) -> JsonTreeValue {
         match self {
-            serde_json::Value::Null => JsonTreeValue::Base("null".to_string(), BaseValueType::Null),
-            serde_json::Value::Bool(b) => JsonTreeValue::Base(b.to_string(), BaseValueType::Bool),
-            serde_json::Value::Number(n) => {
-                JsonTreeValue::Base(n.to_string(), BaseValueType::Number)
+            serde_json::Value::Null => JsonTreeValue::Base(&NULL_STR, BaseValueType::Null),
+            serde_json::Value::Bool(b) => {
+                JsonTreeValue::Base(if *b { &TRUE_STR } else { &FALSE_STR }, BaseValueType::Bool)
             }
-            serde_json::Value::String(s) => {
-                JsonTreeValue::Base(format!("\"{}\"", s), BaseValueType::String)
-            }
+            serde_json::Value::Number(n) => JsonTreeValue::Base(n, BaseValueType::Number),
+            serde_json::Value::String(s) => JsonTreeValue::Base(s, BaseValueType::String),
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()

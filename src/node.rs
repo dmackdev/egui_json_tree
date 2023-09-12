@@ -107,7 +107,7 @@ impl<'a> JsonTreeNode<'a> {
                     }
 
                     let value_response =
-                        render_value(ui, style, &value_str, &value_type, search_term);
+                        render_value(ui, style, &value_str.to_string(), &value_type, search_term);
                     response_callback(value_response, pointer_string);
                 });
             }
@@ -141,15 +141,24 @@ fn render_value(
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
 ) -> Response {
+    let color = style.get_color(value_type);
+    let font_id = &style.font_id(ui);
+    let add_quote_if_string = |job: &mut LayoutJob| {
+        if *value_type == BaseValueType::String {
+            append(job, "\"", color, None, font_id)
+        };
+    };
     let mut job = LayoutJob::default();
+    add_quote_if_string(&mut job);
     add_text_with_highlighting(
         &mut job,
         value_str,
-        style.get_color(value_type),
+        color,
         search_term,
         style.highlight_color,
-        &style.font_id(ui),
+        font_id,
     );
+    add_quote_if_string(&mut job);
     render_job(ui, job)
 }
 
@@ -219,8 +228,13 @@ fn show_expandable(
 
                         match elem.to_json_tree_value() {
                             JsonTreeValue::Base(value_str, value_type) => {
-                                let value_response =
-                                    render_value(ui, style, &value_str, &value_type, search_term);
+                                let value_response = render_value(
+                                    ui,
+                                    style,
+                                    &value_str.to_string(),
+                                    &value_type,
+                                    search_term,
+                                );
                                 response_callback(value_response, pointer_string);
                             }
                             JsonTreeValue::Expandable(entries, expandable_type) => {

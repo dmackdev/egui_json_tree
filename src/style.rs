@@ -3,7 +3,7 @@ use egui::{Color32, FontId, TextStyle, Ui};
 use crate::value::BaseValueType;
 
 /// Contains coloring parameters for JSON syntax highlighting, and search match highlighting.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct JsonTreeStyle {
     pub object_key_color: Color32,
     pub array_idx_color: Color32,

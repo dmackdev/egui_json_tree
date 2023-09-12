@@ -410,37 +410,82 @@ fn show_expandable(
     }
 }
 
+#[derive(Default)]
+struct KeyLayoutJobCreator;
+
+impl KeyLayoutJobCreator {
+    fn create(
+        &self,
+        style: &JsonTreeStyle,
+        parent: &Parent,
+        search_term: Option<&SearchTerm>,
+        font_id: &FontId,
+    ) -> LayoutJob {
+        let mut job = LayoutJob::default();
+        match parent {
+            Parent {
+                key,
+                expandable_type: ExpandableType::Array,
+            } => add_array_idx(
+                &mut job,
+                key,
+                style.array_idx_color,
+                style.punctuation_color,
+                font_id,
+            ),
+            Parent {
+                key,
+                expandable_type: ExpandableType::Object,
+            } => add_object_key(
+                &mut job,
+                key,
+                style.object_key_color,
+                style.punctuation_color,
+                search_term,
+                style.highlight_color,
+                font_id,
+            ),
+        };
+        job
+    }
+}
+
 fn render_key(
     ui: &mut Ui,
     style: &JsonTreeStyle,
     parent: &Parent,
     search_term: Option<&SearchTerm>,
 ) -> Response {
-    let mut job = LayoutJob::default();
-    match parent {
-        Parent {
-            key,
-            expandable_type: ExpandableType::Array,
-        } => add_array_idx(
-            &mut job,
-            key,
-            style.array_idx_color,
-            style.punctuation_color,
-            &style.font_id(ui),
-        ),
-        Parent {
-            key,
-            expandable_type: ExpandableType::Object,
-        } => add_object_key(
-            &mut job,
-            key,
-            style.object_key_color,
-            style.punctuation_color,
+    impl
+        egui::util::cache::ComputerMut<
+            (&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId),
+            LayoutJob,
+        > for KeyLayoutJobCreator
+    {
+        fn compute(
+            &mut self,
+            (style, parent, search_term, font_id): (
+                &JsonTreeStyle,
+                &Parent,
+                Option<&SearchTerm>,
+                &FontId,
+            ),
+        ) -> LayoutJob {
+            self.create(style, parent, search_term, font_id)
+        }
+    }
+
+    type KeyLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, KeyLayoutJobCreator>;
+
+    let job = ui.ctx().memory_mut(|mem| {
+        mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
+            style,
+            parent,
             search_term,
-            style.highlight_color,
             &style.font_id(ui),
-        ),
-    };
+        ))
+    });
+
     render_job(ui, job)
 }
 
@@ -555,6 +600,7 @@ struct Expandable<'a> {
     parent: Option<Parent>,
 }
 
+#[derive(Hash)]
 struct Parent {
     key: String,
     expandable_type: ExpandableType,

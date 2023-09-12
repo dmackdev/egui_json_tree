@@ -61,7 +61,7 @@ impl Show for CustomExample {
                 .desired_width(f32::INFINITY),
         );
 
-        let value = serde_json::from_str(&self.input);
+        let value: serde_json::Result<Value> = serde_json::from_str(&self.input);
         let pretty_string = value
             .as_ref()
             .ok()

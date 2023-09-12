@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use egui::{
-    collapsing_header::CollapsingState,
-    text::LayoutJob,
-    util::cache::{ComputerMut, FrameCache},
-    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
+    collapsing_header::CollapsingState, text::LayoutJob, Color32, FontId, Id, Label, Response,
+    Sense, TextFormat, Ui,
 };
 
 use crate::{
@@ -13,18 +11,18 @@ use crate::{
     search::SearchTerm,
     style::JsonTreeStyle,
     tree::JsonTreeConfig,
-    value::{BaseValueType, ExpandableType, JsonTreeValue},
+    value::{BaseValueType, ExpandableType, JsonTreeValue, ToJsonTreeValue},
     DefaultExpand,
 };
 
-pub struct JsonTreeNode {
+pub struct JsonTreeNode<'a> {
     id: Id,
-    value: JsonTreeValue,
+    value: &'a dyn ToJsonTreeValue,
     parent: Option<Parent>,
 }
 
-impl JsonTreeNode {
-    pub(crate) fn new(id: Id, value: JsonTreeValue) -> Self {
+impl<'a> JsonTreeNode<'a> {
+    pub(crate) fn new(id: Id, value: &'a dyn ToJsonTreeValue) -> Self {
         Self {
             id,
             value,
@@ -33,14 +31,12 @@ impl JsonTreeNode {
     }
 
     pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
-        let mut path_id_map = ui.ctx().memory_mut(|mem| {
-            let cache = mem.caches.cache::<PathIdMapCache<'_>>();
-            cache.get(&(self.id, &self.value))
-        });
+        let persistent_id = ui.id();
+        let tree_id = self.id;
+        let make_persistent_id =
+            |path_segments: &Vec<String>| persistent_id.with(tree_id.with(path_segments));
 
-        for value in path_id_map.values_mut() {
-            *value = ui.make_persistent_id(&value);
-        }
+        let mut path_id_map = HashMap::new();
 
         let (default_expand, search_term) = match config.default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
@@ -51,10 +47,9 @@ impl JsonTreeNode {
                 let paths = search_term
                     .as_ref()
                     .map(|search_term| {
-                        ui.ctx().memory_mut(|mem| {
-                            let cache = mem.caches.cache::<SearchResultsCache<'_>>();
-                            cache.get(&(search_term, &self.value))
-                        })
+                        // If searching, the entire path_id_map must be populated.
+                        populate_path_id_map(self.value, &mut path_id_map, &make_persistent_id);
+                        search_term.find_matching_paths_in(self.value)
                     })
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
@@ -79,6 +74,7 @@ impl JsonTreeNode {
                 &default_expand,
                 search_term.as_ref(),
                 response_callback,
+                &make_persistent_id,
             );
         });
 
@@ -97,9 +93,10 @@ impl JsonTreeNode {
         default_expand: &InnerExpand,
         search_term: Option<&SearchTerm>,
         response_callback: &mut dyn FnMut(Response, &String),
+        make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     ) {
         let pointer_string = &get_pointer_string(path_segments);
-        match self.value {
+        match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value_str, value_type) => {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
@@ -110,7 +107,7 @@ impl JsonTreeNode {
                     }
 
                     let value_response =
-                        render_value(ui, style, &value_str, &value_type, search_term);
+                        render_value(ui, style, &value_str.to_string(), &value_type, search_term);
                     response_callback(value_response, pointer_string);
                 });
             }
@@ -130,6 +127,7 @@ impl JsonTreeNode {
                     default_expand,
                     search_term,
                     response_callback,
+                    &make_persistent_id,
                 );
             }
         };
@@ -143,15 +141,24 @@ fn render_value(
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
 ) -> Response {
+    let color = style.get_color(value_type);
+    let font_id = &style.font_id(ui);
+    let add_quote_if_string = |job: &mut LayoutJob| {
+        if *value_type == BaseValueType::String {
+            append(job, "\"", color, None, font_id)
+        };
+    };
     let mut job = LayoutJob::default();
+    add_quote_if_string(&mut job);
     add_text_with_highlighting(
         &mut job,
         value_str,
-        style.get_color(value_type),
+        color,
         search_term,
         style.highlight_color,
-        &style.font_id(ui),
+        font_id,
     );
+    add_quote_if_string(&mut job);
     render_job(ui, job)
 }
 
@@ -165,6 +172,7 @@ fn show_expandable(
     default_expand: &InnerExpand,
     search_term: Option<&SearchTerm>,
     response_callback: &mut dyn FnMut(Response, &String),
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
 ) {
     let pointer_string = &get_pointer_string(path_segments);
 
@@ -182,7 +190,7 @@ fn show_expandable(
 
     let id_source = *path_id_map
         .entry(path_segments.to_vec())
-        .or_insert_with(|| ui.make_persistent_id(generate_id(expandable.id, path_segments)));
+        .or_insert_with(|| make_persistent_id(path_segments));
 
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
@@ -218,19 +226,24 @@ fn show_expandable(
                             response_callback(key_response, pointer_string);
                         }
 
-                        match elem {
+                        match elem.to_json_tree_value() {
                             JsonTreeValue::Base(value_str, value_type) => {
-                                let value_response =
-                                    render_value(ui, style, value_str, value_type, search_term);
+                                let value_response = render_value(
+                                    ui,
+                                    style,
+                                    &value_str.to_string(),
+                                    &value_type,
+                                    search_term,
+                                );
                                 response_callback(value_response, pointer_string);
                             }
-                            JsonTreeValue::Expandable(values, expandable_type) => {
+                            JsonTreeValue::Expandable(entries, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
                                     ExpandableType::Array => &ARRAY_DELIMITERS,
                                     ExpandableType::Object => &OBJECT_DELIMITERS,
                                 };
 
-                                let delimiter = if values.is_empty() {
+                                let delimiter = if entries.is_empty() {
                                     nested_delimiters.collapsed_empty
                                 } else {
                                     nested_delimiters.collapsed
@@ -286,7 +299,7 @@ fn show_expandable(
         })
         .body(|ui| {
             for (key, elem) in expandable.entries {
-                let is_expandable = matches!(elem, JsonTreeValue::Expandable(_, _));
+                let is_expandable = elem.is_expandable();
 
                 path_segments.push(key.clone());
 
@@ -305,6 +318,7 @@ fn show_expandable(
                         default_expand,
                         search_term,
                         response_callback,
+                        make_persistent_id,
                     );
                 };
 
@@ -480,9 +494,9 @@ enum InnerExpand {
     Paths(HashSet<Vec<String>>),
 }
 
-struct Expandable {
+struct Expandable<'a> {
     id: Id,
-    entries: Vec<(String, JsonTreeValue)>,
+    entries: Vec<(String, &'a dyn ToJsonTreeValue)>,
     expandable_type: ExpandableType,
     parent: Option<Parent>,
 }
@@ -501,10 +515,6 @@ impl Parent {
     }
 }
 
-fn generate_id(base_id: Id, path_segments: &Vec<String>) -> Id {
-    Id::new(base_id).with(path_segments)
-}
-
 fn get_pointer_string(path_segments: &[String]) -> String {
     if path_segments.is_empty() {
         "".to_string()
@@ -515,46 +525,27 @@ fn get_pointer_string(path_segments: &[String]) -> String {
 
 type PathIdMap = HashMap<Vec<String>, Id>;
 
-fn get_path_id_map(base_id: Id, value: &JsonTreeValue) -> PathIdMap {
-    let mut path_id_map = HashMap::new();
-    get_path_id_map_impl(base_id, value, &mut vec![], &mut path_id_map);
-    path_id_map
+fn populate_path_id_map(
+    value: &dyn ToJsonTreeValue,
+    path_id_map: &mut PathIdMap,
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+) {
+    populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
 }
 
-fn get_path_id_map_impl(
-    base_id: Id,
-    value: &JsonTreeValue,
+fn populate_path_id_map_impl(
+    value: &dyn ToJsonTreeValue,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
+    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
 ) {
-    if let JsonTreeValue::Expandable(entries, _) = value {
+    if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
         for (key, val) in entries {
-            let id = generate_id(base_id, path_segments);
+            let id = make_persistent_id(path_segments);
             path_id_map.insert(path_segments.clone(), id);
             path_segments.push(key.to_owned());
-            get_path_id_map_impl(base_id, val, path_segments, path_id_map);
+            populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
             path_segments.pop();
         }
     }
 }
-
-#[derive(Default)]
-struct PathIdMapComputer;
-impl ComputerMut<&(Id, &JsonTreeValue), PathIdMap> for PathIdMapComputer {
-    fn compute(&mut self, (base_id, value): &(Id, &JsonTreeValue)) -> PathIdMap {
-        get_path_id_map(*base_id, value)
-    }
-}
-type PathIdMapCache<'a> = FrameCache<PathIdMap, PathIdMapComputer>;
-
-#[derive(Default)]
-struct SearchResultsComputer;
-impl ComputerMut<&(&SearchTerm, &JsonTreeValue), HashSet<Vec<String>>> for SearchResultsComputer {
-    fn compute(
-        &mut self,
-        (search_term, value): &(&SearchTerm, &JsonTreeValue),
-    ) -> HashSet<Vec<String>> {
-        search_term.find_matching_paths_in(value)
-    }
-}
-type SearchResultsCache<'a> = FrameCache<HashSet<Vec<String>>, SearchResultsComputer>;

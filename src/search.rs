@@ -52,7 +52,7 @@ fn search_impl(
 ) {
     match value.to_json_tree_value() {
         JsonTreeValue::Base(value_str, _) => {
-            if search_term.matches(&value_str) {
+            if search_term.matches(value_str) {
                 update_matches(path_segments, matching_paths);
             }
         }

@@ -167,6 +167,34 @@ impl ValueLayoutJobCreator {
     }
 }
 
+impl
+    egui::util::cache::ComputerMut<
+        (
+            &JsonTreeStyle,
+            &str,
+            &BaseValueType,
+            Option<&SearchTerm>,
+            &FontId,
+        ),
+        LayoutJob,
+    > for ValueLayoutJobCreator
+{
+    fn compute(
+        &mut self,
+        (style, value_str, value_type, search_term, font_id): (
+            &JsonTreeStyle,
+            &str,
+            &BaseValueType,
+            Option<&SearchTerm>,
+            &FontId,
+        ),
+    ) -> LayoutJob {
+        self.create(style, value_str, value_type, search_term, font_id)
+    }
+}
+
+type ValueLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, ValueLayoutJobCreator>;
+
 fn render_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
@@ -174,35 +202,6 @@ fn render_value(
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
 ) -> Response {
-    impl
-        egui::util::cache::ComputerMut<
-            (
-                &JsonTreeStyle,
-                &str,
-                &BaseValueType,
-                Option<&SearchTerm>,
-                &FontId,
-            ),
-            LayoutJob,
-        > for ValueLayoutJobCreator
-    {
-        fn compute(
-            &mut self,
-            (style, value_str, value_type, search_term, font_id): (
-                &JsonTreeStyle,
-                &str,
-                &BaseValueType,
-                Option<&SearchTerm>,
-                &FontId,
-            ),
-        ) -> LayoutJob {
-            self.create(style, value_str, value_type, search_term, font_id)
-        }
-    }
-
-    type ValueLayoutJobCreatorCache =
-        egui::util::cache::FrameCache<LayoutJob, ValueLayoutJobCreator>;
-
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
             style,
@@ -450,33 +449,33 @@ impl KeyLayoutJobCreator {
     }
 }
 
+impl
+    egui::util::cache::ComputerMut<
+        (&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId),
+        LayoutJob,
+    > for KeyLayoutJobCreator
+{
+    fn compute(
+        &mut self,
+        (style, parent, search_term, font_id): (
+            &JsonTreeStyle,
+            &Parent,
+            Option<&SearchTerm>,
+            &FontId,
+        ),
+    ) -> LayoutJob {
+        self.create(style, parent, search_term, font_id)
+    }
+}
+
+type KeyLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, KeyLayoutJobCreator>;
+
 fn render_key(
     ui: &mut Ui,
     style: &JsonTreeStyle,
     parent: &Parent,
     search_term: Option<&SearchTerm>,
 ) -> Response {
-    impl
-        egui::util::cache::ComputerMut<
-            (&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId),
-            LayoutJob,
-        > for KeyLayoutJobCreator
-    {
-        fn compute(
-            &mut self,
-            (style, parent, search_term, font_id): (
-                &JsonTreeStyle,
-                &Parent,
-                Option<&SearchTerm>,
-                &FontId,
-            ),
-        ) -> LayoutJob {
-            self.create(style, parent, search_term, font_id)
-        }
-    }
-
-    type KeyLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, KeyLayoutJobCreator>;
-
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
             style,

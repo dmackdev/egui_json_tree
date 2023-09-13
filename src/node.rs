@@ -1,8 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use egui::{
-    collapsing_header::CollapsingState, text::LayoutJob, Color32, FontId, Id, Label, Response,
-    Sense, TextFormat, Ui,
+    collapsing_header::CollapsingState,
+    text::LayoutJob,
+    util::cache::{ComputerMut, FrameCache},
+    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
 };
 
 use crate::{
@@ -168,7 +170,7 @@ impl ValueLayoutJobCreator {
 }
 
 impl
-    egui::util::cache::ComputerMut<
+    ComputerMut<
         (
             &JsonTreeStyle,
             &str,
@@ -193,7 +195,7 @@ impl
     }
 }
 
-type ValueLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, ValueLayoutJobCreator>;
+type ValueLayoutJobCreatorCache = FrameCache<LayoutJob, ValueLayoutJobCreator>;
 
 fn render_value(
     ui: &mut Ui,
@@ -446,11 +448,8 @@ impl KeyLayoutJobCreator {
     }
 }
 
-impl
-    egui::util::cache::ComputerMut<
-        (&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId),
-        LayoutJob,
-    > for KeyLayoutJobCreator
+impl ComputerMut<(&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId), LayoutJob>
+    for KeyLayoutJobCreator
 {
     fn compute(
         &mut self,
@@ -465,7 +464,7 @@ impl
     }
 }
 
-type KeyLayoutJobCreatorCache = egui::util::cache::FrameCache<LayoutJob, KeyLayoutJobCreator>;
+type KeyLayoutJobCreatorCache = FrameCache<LayoutJob, KeyLayoutJobCreator>;
 
 fn render_key(
     ui: &mut Ui,

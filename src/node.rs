@@ -378,16 +378,13 @@ fn show_expandable(
                 if is_expandable {
                     add_nested_tree(ui);
                 } else {
-                    let original_indent_has_left_vline = ui.visuals_mut().indent_has_left_vline;
-                    let original_indent = ui.spacing().indent;
+                    ui.scope(|ui| {
+                        ui.visuals_mut().indent_has_left_vline = false;
+                        ui.spacing_mut().indent =
+                            ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-                    ui.visuals_mut().indent_has_left_vline = false;
-                    ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
-
-                    ui.indent(id_source, |ui| add_nested_tree(ui));
-
-                    ui.visuals_mut().indent_has_left_vline = original_indent_has_left_vline;
-                    ui.spacing_mut().indent = original_indent;
+                        ui.indent(id_source, |ui| add_nested_tree(ui));
+                    });
                 }
 
                 path_segments.pop();

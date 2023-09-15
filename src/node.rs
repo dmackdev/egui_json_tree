@@ -45,14 +45,12 @@ impl<'a> JsonTreeNode<'a> {
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
             DefaultExpand::SearchResults(search_str) => {
+                // If searching, the entire path_id_map must be populated.
+                populate_path_id_map(self.value, &mut path_id_map, &make_persistent_id);
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
-                    .map(|search_term| {
-                        // If searching, the entire path_id_map must be populated.
-                        populate_path_id_map(self.value, &mut path_id_map, &make_persistent_id);
-                        search_term.find_matching_paths_in(self.value)
-                    })
+                    .map(|search_term| search_term.find_matching_paths_in(self.value))
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
             }

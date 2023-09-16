@@ -3,6 +3,24 @@ use egui_json_tree::{DefaultExpand, JsonTree};
 use serde_json::json;
 
 #[test]
+fn json_tree_response_callback_for_rendering_string() {
+    let value = json!("Hello World!");
+
+    let mut rendered_pointers = vec![];
+
+    egui::__run_test_ui(|ui| {
+        JsonTree::new("id", &value)
+            .response_callback(|_, pointer| {
+                rendered_pointers.push(pointer.to_string());
+            })
+            .show(ui);
+    });
+
+    let expected_pointers = vec![""];
+    assert_eq!(expected_pointers, rendered_pointers);
+}
+
+#[test]
 fn json_tree_default_expand_none() {
     let obj = json!({
       "foo": {

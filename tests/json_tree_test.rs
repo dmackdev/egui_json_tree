@@ -60,8 +60,7 @@ fn json_tree_default_expand_to_level_one() {
           "fizz": true
         },
         "buzz": [
-          1,
-          2
+          { "qux": 50 }
         ]
       }
     });
@@ -77,6 +76,8 @@ fn json_tree_default_expand_to_level_one() {
             .show(ui);
     });
 
+    // Level 1 would expand the top level object and "foo", so we would
+    // expect to see the keys "bar" and "buzz", but not "fizz" and "qux"
     let expected_pointers = vec!["/foo", "/foo/bar", "/foo/bar", "/foo/buzz", "/foo/buzz"];
     assert_eq!(expected_pointers, rendered_pointers);
 }
@@ -92,8 +93,7 @@ fn json_tree_default_expand_search() {
           "qux": "thud"
         },
         "buzz": [
-          1,
-          2
+          { "grep": 50 }
         ]
       }
     });

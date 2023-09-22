@@ -50,7 +50,9 @@ impl<'a> JsonTreeNode<'a> {
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
-                    .map(|search_term| search_term.find_matching_paths_in(self.value))
+                    .map(|search_term| {
+                        search_term.find_matching_paths_in(self.value, config.abbreviate_root)
+                    })
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
             }
@@ -75,6 +77,7 @@ impl<'a> JsonTreeNode<'a> {
                 search_term.as_ref(),
                 response_callback,
                 &make_persistent_id,
+                config.abbreviate_root,
             );
         });
 
@@ -94,6 +97,7 @@ impl<'a> JsonTreeNode<'a> {
         search_term: Option<&SearchTerm>,
         response_callback: &mut dyn FnMut(Response, &String),
         make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+        abbreviate_root: bool,
     ) {
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
@@ -128,6 +132,7 @@ impl<'a> JsonTreeNode<'a> {
                     search_term,
                     response_callback,
                     &make_persistent_id,
+                    abbreviate_root,
                 );
             }
         };
@@ -226,6 +231,7 @@ fn show_expandable(
     search_term: Option<&SearchTerm>,
     response_callback: &mut dyn FnMut(Response, &String),
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+    abbreviate_root: bool,
 ) {
     let pointer_string = &get_pointer_string(path_segments);
 
@@ -256,6 +262,20 @@ fn show_expandable(
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
+                    if abbreviate_root {
+                        response_callback(
+                            render_punc(
+                                ui,
+                                delimiters.collapsed,
+                                style.punctuation_color,
+                                None,
+                                &font_id,
+                            ),
+                            pointer_string,
+                        );
+                        return;
+                    }
+
                     render_punc(
                         ui,
                         delimiters.opening,
@@ -372,6 +392,7 @@ fn show_expandable(
                         search_term,
                         response_callback,
                         make_persistent_id,
+                        abbreviate_root,
                     );
                 };
 

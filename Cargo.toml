@@ -8,12 +8,17 @@ repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT"
 
 [dependencies]
-egui = { git = "https://github.com/emilk/egui", rev = "481f448" }
+egui.version = "0.22"
 serde_json = { version = "1.0.104", optional = true }
 
 [dev-dependencies]
-eframe = { git = "https://github.com/emilk/egui", rev = "481f448" }
+eframe.version = "0.22"
 
 [features]
 default = ["serde_json"]
 serde_json = ["dep:serde_json"]
+
+[patch.crates-io]
+# Patched until the next egui release:
+eframe = { git = "https://github.com/emilk/egui", rev = "8ee506ec374c950c1e66cbb3dbbe4edc2a566085" }
+egui = { git = "https://github.com/emilk/egui", rev = "8ee506ec374c950c1e66cbb3dbbe4edc2a566085" }

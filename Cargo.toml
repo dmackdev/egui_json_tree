@@ -5,7 +5,7 @@ authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
 edition = "2021"
 description = "An interactive JSON tree visualiser for egui, with search and highlight functionality."
 repository = "https://github.com/dmackdev/egui_json_tree"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 egui.version = "0.22"

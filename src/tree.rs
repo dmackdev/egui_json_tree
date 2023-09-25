@@ -11,6 +11,7 @@ pub struct JsonTreeConfig<'a> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
+    pub(crate) abbreviate_root: bool,
 }
 
 /// An interactive JSON tree visualiser.
@@ -52,6 +53,16 @@ impl<'a> JsonTree<'a> {
         response_callback: impl FnMut(Response, &String) + 'a,
     ) -> Self {
         self.config.response_callback = Some(Box::new(response_callback));
+        self
+    }
+
+    /// Override whether a root array/object should show direct child elements when collapsed.
+    ///
+    /// If called with `true`, a collapsed root object would render as: `{...}`.
+    ///
+    /// Otherwise, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
+    pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
+        self.config.abbreviate_root = abbreviate_root;
         self
     }
 

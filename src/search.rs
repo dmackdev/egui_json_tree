@@ -26,12 +26,16 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(&self, value: &dyn ToJsonTreeValue) -> HashSet<Vec<String>> {
+    pub fn find_matching_paths_in(
+        &self,
+        value: &dyn ToJsonTreeValue,
+        abbreviate_root: bool,
+    ) -> HashSet<Vec<String>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
 
-        if matching_paths.len() == 1 {
+        if !abbreviate_root && matching_paths.len() == 1 {
             // The only match was a top level key or value - no need to expand anything.
             matching_paths.clear();
         }

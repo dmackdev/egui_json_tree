@@ -58,6 +58,13 @@ impl<'a> JsonTreeNode<'a> {
             }
         };
 
+        let node_config = JsonTreeNodeConfig {
+            style: config.style,
+            default_expand,
+            abbreviate_root: config.abbreviate_root,
+            search_term,
+        };
+
         let response_callback = &mut config
             .response_callback
             .unwrap_or_else(|| Box::new(|_, _| {}));
@@ -66,18 +73,15 @@ impl<'a> JsonTreeNode<'a> {
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = config.style.font_id(ui).size;
+            ui.spacing_mut().interact_size.y = node_config.style.font_id(ui).size;
 
             self.show_impl(
                 ui,
                 &mut vec![],
                 &mut path_id_map,
-                &config.style,
-                &default_expand,
-                search_term.as_ref(),
                 response_callback,
                 &make_persistent_id,
-                config.abbreviate_root,
+                &node_config,
             );
         });
 
@@ -86,19 +90,18 @@ impl<'a> JsonTreeNode<'a> {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn show_impl(
         self,
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
-        style: &JsonTreeStyle,
-        default_expand: &InnerExpand,
-        search_term: Option<&SearchTerm>,
         response_callback: &mut dyn FnMut(Response, &String),
         make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
-        abbreviate_root: bool,
+        config: &JsonTreeNodeConfig,
     ) {
+        let JsonTreeNodeConfig {
+            style, search_term, ..
+        } = config;
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value_str, value_type) => {
@@ -106,12 +109,17 @@ impl<'a> JsonTreeNode<'a> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        let key_response = render_key(ui, style, parent, search_term);
+                        let key_response = render_key(ui, style, parent, search_term.as_ref());
                         response_callback(key_response, pointer_string);
                     }
 
-                    let value_response =
-                        render_value(ui, style, &value_str.to_string(), &value_type, search_term);
+                    let value_response = render_value(
+                        ui,
+                        style,
+                        &value_str.to_string(),
+                        &value_type,
+                        search_term.as_ref(),
+                    );
                     response_callback(value_response, pointer_string);
                 });
             }
@@ -127,12 +135,9 @@ impl<'a> JsonTreeNode<'a> {
                     path_segments,
                     path_id_map,
                     expandable,
-                    style,
-                    default_expand,
-                    search_term,
                     response_callback,
                     &make_persistent_id,
-                    abbreviate_root,
+                    config,
                 );
             }
         };
@@ -220,19 +225,21 @@ fn render_value(
     render_job(ui, job)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn show_expandable(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
     expandable: Expandable,
-    style: &JsonTreeStyle,
-    default_expand: &InnerExpand,
-    search_term: Option<&SearchTerm>,
     response_callback: &mut dyn FnMut(Response, &String),
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
-    abbreviate_root: bool,
+    config: &JsonTreeNodeConfig,
 ) {
+    let JsonTreeNodeConfig {
+        default_expand,
+        style,
+        abbreviate_root,
+        search_term,
+    } = config;
     let pointer_string = &get_pointer_string(path_segments);
 
     let delimiters = match expandable.expandable_type {
@@ -262,7 +269,7 @@ fn show_expandable(
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 if path_segments.is_empty() && !is_expanded {
-                    if abbreviate_root {
+                    if *abbreviate_root {
                         response_callback(
                             render_punc(
                                 ui,
@@ -294,7 +301,7 @@ fn show_expandable(
                                 ui,
                                 style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
-                                search_term,
+                                search_term.as_ref(),
                             );
                             response_callback(key_response, pointer_string);
                         }
@@ -306,7 +313,7 @@ fn show_expandable(
                                     style,
                                     &value_str.to_string(),
                                     &value_type,
-                                    search_term,
+                                    search_term.as_ref(),
                                 );
                                 response_callback(value_response, pointer_string);
                             }
@@ -345,7 +352,7 @@ fn show_expandable(
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        let key_response = render_key(ui, style, parent, search_term);
+                        let key_response = render_key(ui, style, parent, search_term.as_ref());
                         response_callback(key_response, pointer_string);
                     }
 
@@ -387,12 +394,9 @@ fn show_expandable(
                         ui,
                         path_segments,
                         path_id_map,
-                        style,
-                        default_expand,
-                        search_term,
                         response_callback,
                         make_persistent_id,
-                        abbreviate_root,
+                        config,
                     );
                 };
 
@@ -597,6 +601,13 @@ fn render_punc(
 
 fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
     ui.add(Label::new(job).sense(Sense::click_and_drag()))
+}
+
+struct JsonTreeNodeConfig {
+    style: JsonTreeStyle,
+    default_expand: InnerExpand,
+    abbreviate_root: bool,
+    search_term: Option<SearchTerm>,
 }
 
 #[derive(Debug, Clone)]

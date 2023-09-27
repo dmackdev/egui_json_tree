@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use egui::{
     collapsing_header::CollapsingState,
+    epaint::text::TextWrapping,
     text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
     Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
@@ -63,6 +64,7 @@ impl<'a> JsonTreeNode<'a> {
             default_expand,
             abbreviate_root: config.abbreviate_root,
             search_term,
+            truncate: config.truncate,
         };
 
         let response_callback = &mut config
@@ -100,7 +102,10 @@ impl<'a> JsonTreeNode<'a> {
         config: &JsonTreeNodeConfig,
     ) {
         let JsonTreeNodeConfig {
-            style, search_term, ..
+            style,
+            search_term,
+            truncate,
+            ..
         } = config;
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
@@ -109,7 +114,8 @@ impl<'a> JsonTreeNode<'a> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        let key_response = render_key(ui, style, parent, search_term.as_ref());
+                        let key_response =
+                            render_key(ui, style, parent, search_term.as_ref(), *truncate);
                         response_callback(key_response, pointer_string);
                     }
 
@@ -119,6 +125,7 @@ impl<'a> JsonTreeNode<'a> {
                         &value_str.to_string(),
                         &value_type,
                         search_term.as_ref(),
+                        *truncate,
                     );
                     response_callback(value_response, pointer_string);
                 });
@@ -155,6 +162,7 @@ impl ValueLayoutJobCreator {
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
+        truncate: bool,
     ) -> LayoutJob {
         let color = style.get_color(value_type);
         let add_quote_if_string = |job: &mut LayoutJob| {
@@ -162,7 +170,7 @@ impl ValueLayoutJobCreator {
                 append(job, "\"", color, None, font_id)
             };
         };
-        let mut job = LayoutJob::default();
+        let mut job = create_layout_job(truncate);
         add_quote_if_string(&mut job);
         add_text_with_highlighting(
             &mut job,
@@ -185,21 +193,23 @@ impl
             &BaseValueType,
             Option<&SearchTerm>,
             &FontId,
+            bool,
         ),
         LayoutJob,
     > for ValueLayoutJobCreator
 {
     fn compute(
         &mut self,
-        (style, value_str, value_type, search_term, font_id): (
+        (style, value_str, value_type, search_term, font_id, truncate): (
             &JsonTreeStyle,
             &str,
             &BaseValueType,
             Option<&SearchTerm>,
             &FontId,
+            bool,
         ),
     ) -> LayoutJob {
-        self.create(style, value_str, value_type, search_term, font_id)
+        self.create(style, value_str, value_type, search_term, font_id, truncate)
     }
 }
 
@@ -211,6 +221,7 @@ fn render_value(
     value_str: &str,
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
+    truncate: bool,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
@@ -219,6 +230,7 @@ fn render_value(
             value_type,
             search_term,
             &style.font_id(ui),
+            truncate,
         ))
     });
 
@@ -239,7 +251,9 @@ fn show_expandable(
         style,
         abbreviate_root,
         search_term,
+        ..
     } = config;
+
     let pointer_string = &get_pointer_string(path_segments);
 
     let delimiters = match expandable.expandable_type {
@@ -277,6 +291,7 @@ fn show_expandable(
                                 style.punctuation_color,
                                 None,
                                 &font_id,
+                                false,
                             ),
                             pointer_string,
                         );
@@ -289,8 +304,9 @@ fn show_expandable(
                         style.punctuation_color,
                         None,
                         &font_id,
+                        false,
                     );
-                    render_punc(ui, " ", style.punctuation_color, None, &font_id);
+                    render_punc(ui, " ", style.punctuation_color, None, &font_id, false);
 
                     let entries_len = expandable.entries.len();
 
@@ -302,6 +318,7 @@ fn show_expandable(
                                 style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term.as_ref(),
+                                false,
                             );
                             response_callback(key_response, pointer_string);
                         }
@@ -314,6 +331,7 @@ fn show_expandable(
                                     &value_str.to_string(),
                                     &value_type,
                                     search_term.as_ref(),
+                                    false,
                                 );
                                 response_callback(value_response, pointer_string);
                             }
@@ -335,12 +353,20 @@ fn show_expandable(
                                     style.punctuation_color,
                                     None,
                                     &font_id,
+                                    false,
                                 );
                                 response_callback(collapsed_expandable_response, pointer_string);
                             }
                         };
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-                        render_punc(ui, spacing_str, style.punctuation_color, None, &font_id);
+                        render_punc(
+                            ui,
+                            spacing_str,
+                            style.punctuation_color,
+                            None,
+                            &font_id,
+                            false,
+                        );
                     }
 
                     render_punc(
@@ -349,10 +375,12 @@ fn show_expandable(
                         style.punctuation_color,
                         None,
                         &font_id,
+                        false,
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        let key_response = render_key(ui, style, parent, search_term.as_ref());
+                        let key_response =
+                            render_key(ui, style, parent, search_term.as_ref(), config.truncate);
                         response_callback(key_response, pointer_string);
                     }
 
@@ -363,6 +391,7 @@ fn show_expandable(
                             style.punctuation_color,
                             None,
                             &font_id,
+                            config.truncate,
                         );
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
@@ -370,8 +399,14 @@ fn show_expandable(
                         } else {
                             delimiters.collapsed
                         };
-                        let collapsed_expandable_response =
-                            render_punc(ui, delimiter, style.punctuation_color, None, &font_id);
+                        let collapsed_expandable_response = render_punc(
+                            ui,
+                            delimiter,
+                            style.punctuation_color,
+                            None,
+                            &font_id,
+                            config.truncate,
+                        );
                         response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }
@@ -426,6 +461,7 @@ fn show_expandable(
                 style.punctuation_color,
                 None,
                 &font_id,
+                config.truncate,
             );
         });
     }
@@ -441,8 +477,9 @@ impl KeyLayoutJobCreator {
         parent: &Parent,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
+        truncate: bool,
     ) -> LayoutJob {
-        let mut job = LayoutJob::default();
+        let mut job = create_layout_job(truncate);
         match parent {
             Parent {
                 key,
@@ -471,19 +508,20 @@ impl KeyLayoutJobCreator {
     }
 }
 
-impl ComputerMut<(&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId), LayoutJob>
+impl ComputerMut<(&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId, bool), LayoutJob>
     for KeyLayoutJobCreator
 {
     fn compute(
         &mut self,
-        (style, parent, search_term, font_id): (
+        (style, parent, search_term, font_id, truncate): (
             &JsonTreeStyle,
             &Parent,
             Option<&SearchTerm>,
             &FontId,
+            bool,
         ),
     ) -> LayoutJob {
-        self.create(style, parent, search_term, font_id)
+        self.create(style, parent, search_term, font_id, truncate)
     }
 }
 
@@ -494,6 +532,7 @@ fn render_key(
     style: &JsonTreeStyle,
     parent: &Parent,
     search_term: Option<&SearchTerm>,
+    truncate: bool,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
@@ -501,6 +540,7 @@ fn render_key(
             parent,
             search_term,
             &style.font_id(ui),
+            truncate,
         ))
     });
 
@@ -593,8 +633,9 @@ fn render_punc(
     color: Color32,
     background_color: Option<Color32>,
     font_id: &FontId,
+    truncate: bool,
 ) -> Response {
-    let mut job = LayoutJob::default();
+    let mut job = create_layout_job(truncate);
     append(&mut job, punc_str, color, background_color, font_id);
     render_job(ui, job)
 }
@@ -608,6 +649,7 @@ struct JsonTreeNodeConfig {
     default_expand: InnerExpand,
     abbreviate_root: bool,
     search_term: Option<SearchTerm>,
+    truncate: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -673,4 +715,18 @@ fn populate_path_id_map_impl(
             path_segments.pop();
         }
     }
+}
+
+fn create_layout_job(truncate: bool) -> LayoutJob {
+    let mut job = LayoutJob::default();
+
+    if truncate {
+        job.wrap = TextWrapping {
+            max_rows: 1,
+            break_anywhere: true,
+            ..Default::default()
+        };
+    }
+
+    job
 }

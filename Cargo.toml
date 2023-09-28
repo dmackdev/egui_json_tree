@@ -8,7 +8,7 @@ repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-egui = "0.23"
+egui = { version = "0.23", default-features = false }
 serde_json = { version = "1.0.104", optional = true }
 
 [dev-dependencies]

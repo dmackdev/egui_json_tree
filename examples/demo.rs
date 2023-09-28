@@ -259,7 +259,7 @@ impl eframe::App for DemoApp {
 
 fn main() {
     let _ = eframe::run_native(
-        "egui-modal example",
+        "egui-json-tree example",
         eframe::NativeOptions::default(),
         Box::new(|_cc| Box::<DemoApp>::default()),
     );

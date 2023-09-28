@@ -38,13 +38,3 @@ See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cas
 ```bash
 cargo run --example=demo
 ```
-
-## Open Docs
-
-```bash
-cargo doc --no-deps --open
-```
-
-## Notes
-
-This crate currently depends on an unpublished version of `egui` from the master branch, in order to expose the ability to reset the expanded state of arrays/objects in a `JsonTree`. On the next `egui` release, this crate will update its `egui` dependency to the latest published version, and this crate will be published to `crates.io`. Until then, specify your `egui` dependency to point to, at the earliest, the commit [8ee506e](https://github.com/emilk/egui/commit/8ee506ec374c950c1e66cbb3dbbe4edc2a566085), or the `master` branch.

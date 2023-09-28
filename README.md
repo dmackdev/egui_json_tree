@@ -1,5 +1,11 @@
 # egui_json_tree
 
+[![Latest version](https://img.shields.io/crates/v/egui_json_tree.svg)](https://crates.io/crates/egui_json_tree)
+[![Documentation](https://docs.rs/egui_json_tree/badge.svg)](https://docs.rs/egui_json_tree)
+[![Build Status](https://github.com/dmackdev/egui_json_tree/workflows/CI/badge.svg)](https://github.com/dmackdev/egui_json_tree/actions?workflow=CI)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dmackdev/egui_json_tree/blob/master/LICENSE-MIT)
+[![Apache](https://img.shields.io/badge/license-Apache-blue.svg)](https://github.com/dmackdev/egui_json_tree/blob/master/LICENSE-APACHE)
+
 An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
 
 <p align="center">

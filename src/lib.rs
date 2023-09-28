@@ -7,15 +7,20 @@
 //! # egui::__run_test_ui(|ui| {
 //! let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
 //!
-//! let response = JsonTree::new("globally-unique-id", &value)
+//! // Simple:
+//! JsonTree::new("simple-tree", &value).show(ui);
+//!
+//! // Customised:
+//! let response = JsonTree::new("customised-tree", &value)
 //!     .style(JsonTreeStyle {
 //!         bool_color: Color32::YELLOW,
 //!         ..Default::default()
 //!     })
 //!     .default_expand(DefaultExpand::All)
-//!     .response_callback(|response, json_pointer_str| {
+//!     .response_callback(|response, json_pointer_string| {
 //!       // Handle interactions within the JsonTree.
 //!     })
+//!     .abbreviate_root(true) // Show {...} when the root object is collapsed.
 //!     .show(ui);
 //!
 //! // Reset the expanded state of all arrays/objects to respect the `default_expand` setting.

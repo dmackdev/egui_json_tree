@@ -12,7 +12,6 @@ pub struct JsonTreeConfig<'a> {
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) abbreviate_root: bool,
-    pub(crate) truncate: bool,
 }
 
 /// An interactive JSON tree visualiser.
@@ -64,14 +63,6 @@ impl<'a> JsonTree<'a> {
     /// Otherwise, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
     pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
         self.config.abbreviate_root = abbreviate_root;
-        self
-    }
-
-    /// Override whether to truncate rendered JSON that exceeds the width of the parent `Ui`.
-    ///
-    /// Does not apply to a collapsed root array/object.
-    pub fn truncate(mut self, truncate: bool) -> Self {
-        self.config.truncate = truncate;
         self
     }
 

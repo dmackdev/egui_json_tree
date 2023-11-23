@@ -408,7 +408,7 @@ fn show_expandable(
                         ui.spacing_mut().indent =
                             ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-                        ui.indent(id_source, |ui| add_nested_tree(ui));
+                        ui.indent(id_source, add_nested_tree);
                     });
                 }
 

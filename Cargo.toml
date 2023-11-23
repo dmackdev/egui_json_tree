@@ -12,11 +12,11 @@ include = ["src/*.rs", "LICENSE-MIT", "LICENSE-APACHE", "Cargo.toml"]
 rust-version = "1.72"
 
 [dependencies]
-egui = { version = "0.23", default-features = false }
+egui = { version = "0.24", default-features = false }
 serde_json = { version = "1.0.104", optional = true }
 
 [dev-dependencies]
-eframe = "0.23"
+eframe = "0.24"
 
 [features]
 default = ["serde_json"]

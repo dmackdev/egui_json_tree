@@ -76,7 +76,7 @@ fn search_impl(
     };
 }
 
-fn update_matches(path_segments: &mut Vec<String>, matching_paths: &mut HashSet<Vec<String>>) {
+fn update_matches(path_segments: &[String], matching_paths: &mut HashSet<Vec<String>>) {
     for i in 0..path_segments.len() {
         matching_paths.insert(path_segments[0..i].to_vec());
     }

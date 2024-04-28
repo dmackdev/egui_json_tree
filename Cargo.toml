@@ -14,6 +14,7 @@ rust-version = "1.72"
 [dependencies]
 egui = { version = "0.27", default-features = false }
 serde_json = { version = "1.0.104", optional = true }
+simd-json = { version = "0.13.8", optional = true }
 
 [dev-dependencies]
 eframe = "0.27"
@@ -21,3 +22,4 @@ eframe = "0.27"
 [features]
 default = ["serde_json"]
 serde_json = ["dep:serde_json"]
+simd_json = ["dep:simd-json"]

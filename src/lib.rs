@@ -28,7 +28,9 @@
 //! # });
 //! ```
 //! [`JsonTree`] can visualise any type that implements [`ToJsonTreeValue`](trait@value::ToJsonTreeValue).
-//! An implementation to support [`serde_json::Value`](serde_json::Value) is provided with this crate.
+//! Implementations to support [`serde_json::Value`](serde_json::Value) (enabled by default by the crate feature `serde_json`)
+//! and `simd_json::owned::Value` (optionally enabled by the crate feature `simd_json`)
+//! are provided with this crate.
 //! If you wish to use a different JSON type, see the [`value`](mod@value) module,
 //! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`](serde_json) dependency.
 mod default_expand;

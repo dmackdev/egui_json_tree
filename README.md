@@ -42,7 +42,7 @@ response.reset_expanded(ui);
 
 See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cases, including the search match highlight/auto expand functionality, and how to copy JSON paths and values to the clipboard.
 
-`JsonTree` can visualise any type that implements `value::ToJsonTreeValue`. An implementation to support `serde_json::Value` is provided with this crate. If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
+`JsonTree` can visualise any type that implements `value::ToJsonTreeValue`. Implementations to support `serde_json::Value` (enabled by default by the crate feature `serde_json`) and `simd_json::owned::Value` (optionally enabled by the crate feature `simd_json`) are provided with this crate. If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
 
 ## Run Examples
 

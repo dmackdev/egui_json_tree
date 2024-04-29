@@ -40,17 +40,13 @@ pub trait ToJsonTreeValue {
 }
 
 const NULL_STR: &str = "null";
-const TRUE_STR: &str = "true";
-const FALSE_STR: &str = "false";
 
 #[cfg(feature = "serde_json")]
 impl ToJsonTreeValue for serde_json::Value {
     fn to_json_tree_value(&self) -> JsonTreeValue {
         match self {
             serde_json::Value::Null => JsonTreeValue::Base(&NULL_STR, BaseValueType::Null),
-            serde_json::Value::Bool(b) => {
-                JsonTreeValue::Base(if *b { &TRUE_STR } else { &FALSE_STR }, BaseValueType::Bool)
-            }
+            serde_json::Value::Bool(b) => JsonTreeValue::Base(b, BaseValueType::Bool),
             serde_json::Value::Number(n) => JsonTreeValue::Base(n, BaseValueType::Number),
             serde_json::Value::String(s) => JsonTreeValue::Base(s, BaseValueType::String),
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(

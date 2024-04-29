@@ -76,3 +76,39 @@ impl ToJsonTreeValue for serde_json::Value {
         )
     }
 }
+
+#[cfg(feature = "simd_json")]
+impl ToJsonTreeValue for simd_json::owned::Value {
+    fn to_json_tree_value(&self) -> JsonTreeValue {
+        match self {
+            simd_json::OwnedValue::Static(s) => match s {
+                simd_json::StaticNode::I64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
+                simd_json::StaticNode::U64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
+                simd_json::StaticNode::F64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
+                simd_json::StaticNode::Bool(v) => JsonTreeValue::Base(v, BaseValueType::Bool),
+                simd_json::StaticNode::Null => JsonTreeValue::Base(&NULL_STR, BaseValueType::Null),
+            },
+            simd_json::OwnedValue::String(s) => JsonTreeValue::Base(s, BaseValueType::String),
+            simd_json::OwnedValue::Array(arr) => JsonTreeValue::Expandable(
+                arr.iter()
+                    .enumerate()
+                    .map(|(idx, elem)| (idx.to_string(), elem as &dyn ToJsonTreeValue))
+                    .collect(),
+                ExpandableType::Array,
+            ),
+            simd_json::OwnedValue::Object(obj) => JsonTreeValue::Expandable(
+                obj.iter()
+                    .map(|(key, val)| (key.to_owned(), val as &dyn ToJsonTreeValue))
+                    .collect(),
+                ExpandableType::Object,
+            ),
+        }
+    }
+
+    fn is_expandable(&self) -> bool {
+        matches!(
+            self,
+            simd_json::owned::Value::Array(_) | simd_json::owned::Value::Object(_)
+        )
+    }
+}

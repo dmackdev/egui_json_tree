@@ -1,11 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use egui::{
-    collapsing_header::CollapsingState,
-    text::LayoutJob,
-    util::cache::{ComputerMut, FrameCache},
-    Color32, FontId, Id, Label, Response, Sense, TextFormat, Ui,
-};
+use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
@@ -14,7 +9,7 @@ use crate::{
     search::SearchTerm,
     style::JsonTreeStyle,
     tree::JsonTreeConfig,
-    value::{BaseValueType, ExpandableType, JsonTreeValue, ToJsonTreeValue},
+    value::{ExpandableType, JsonTreeValue, Parent, ToJsonTreeValue},
     DefaultExpand,
 };
 
@@ -108,11 +103,12 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        let key_response = render_key(ui, style, parent, search_term.as_ref());
+                        let key_response =
+                            render_hooks.render_key(ui, style, parent, search_term.as_ref());
                         render_hooks.response_callback(key_response, pointer_string);
                     }
 
-                    let value_response = render_value(
+                    let value_response = render_hooks.render_value(
                         ui,
                         style,
                         &display_value.to_string(),
@@ -141,87 +137,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             }
         };
     }
-}
-
-#[derive(Default)]
-struct ValueLayoutJobCreator;
-
-impl ValueLayoutJobCreator {
-    fn create(
-        &self,
-        style: &JsonTreeStyle,
-        value_str: &str,
-        value_type: &BaseValueType,
-        search_term: Option<&SearchTerm>,
-        font_id: &FontId,
-    ) -> LayoutJob {
-        let color = style.get_color(value_type);
-        let add_quote_if_string = |job: &mut LayoutJob| {
-            if *value_type == BaseValueType::String {
-                append(job, "\"", color, None, font_id)
-            };
-        };
-        let mut job = LayoutJob::default();
-        add_quote_if_string(&mut job);
-        add_text_with_highlighting(
-            &mut job,
-            value_str,
-            color,
-            search_term,
-            style.highlight_color,
-            font_id,
-        );
-        add_quote_if_string(&mut job);
-        job
-    }
-}
-
-impl
-    ComputerMut<
-        (
-            &JsonTreeStyle,
-            &str,
-            &BaseValueType,
-            Option<&SearchTerm>,
-            &FontId,
-        ),
-        LayoutJob,
-    > for ValueLayoutJobCreator
-{
-    fn compute(
-        &mut self,
-        (style, value_str, value_type, search_term, font_id): (
-            &JsonTreeStyle,
-            &str,
-            &BaseValueType,
-            Option<&SearchTerm>,
-            &FontId,
-        ),
-    ) -> LayoutJob {
-        self.create(style, value_str, value_type, search_term, font_id)
-    }
-}
-
-type ValueLayoutJobCreatorCache = FrameCache<LayoutJob, ValueLayoutJobCreator>;
-
-fn render_value(
-    ui: &mut Ui,
-    style: &JsonTreeStyle,
-    value_str: &str,
-    value_type: &BaseValueType,
-    search_term: Option<&SearchTerm>,
-) -> Response {
-    let job = ui.ctx().memory_mut(|mem| {
-        mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
-            style,
-            value_str,
-            value_type,
-            search_term,
-            &style.font_id(ui),
-        ))
-    });
-
-    render_job(ui, job)
 }
 
 fn show_expandable<T: ToJsonTreeValue>(
@@ -269,34 +184,32 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.response_callback(
-                            render_punc(
-                                ui,
-                                delimiters.collapsed,
-                                style.punctuation_color,
-                                None,
-                                &font_id,
-                            ),
-                            pointer_string,
+                        let response = render_hooks.render_punc(
+                            ui,
+                            delimiters.collapsed,
+                            style.punctuation_color,
+                            None,
+                            &font_id,
                         );
+                        render_hooks.response_callback(response, pointer_string);
                         return;
                     }
 
-                    render_punc(
+                    render_hooks.render_punc(
                         ui,
                         delimiters.opening,
                         style.punctuation_color,
                         None,
                         &font_id,
                     );
-                    render_punc(ui, " ", style.punctuation_color, None, &font_id);
+                    render_hooks.render_punc(ui, " ", style.punctuation_color, None, &font_id);
 
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            let key_response = render_key(
+                            let key_response = render_hooks.render_key(
                                 ui,
                                 style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
@@ -307,7 +220,7 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                         match elem.to_json_tree_value() {
                             JsonTreeValue::Base(_, display_value, value_type) => {
-                                let value_response = render_value(
+                                let value_response = render_hooks.render_value(
                                     ui,
                                     style,
                                     &display_value.to_string(),
@@ -328,7 +241,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                                     nested_delimiters.collapsed
                                 };
 
-                                let collapsed_expandable_response = render_punc(
+                                let collapsed_expandable_response = render_hooks.render_punc(
                                     ui,
                                     delimiter,
                                     style.punctuation_color,
@@ -342,10 +255,16 @@ fn show_expandable<T: ToJsonTreeValue>(
                             }
                         };
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
-                        render_punc(ui, spacing_str, style.punctuation_color, None, &font_id);
+                        render_hooks.render_punc(
+                            ui,
+                            spacing_str,
+                            style.punctuation_color,
+                            None,
+                            &font_id,
+                        );
                     }
 
-                    render_punc(
+                    render_hooks.render_punc(
                         ui,
                         delimiters.closing,
                         style.punctuation_color,
@@ -354,12 +273,13 @@ fn show_expandable<T: ToJsonTreeValue>(
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        let key_response = render_key(ui, style, parent, search_term.as_ref());
+                        let key_response =
+                            render_hooks.render_key(ui, style, parent, search_term.as_ref());
                         render_hooks.response_callback(key_response, pointer_string);
                     }
 
                     if is_expanded {
-                        render_punc(
+                        render_hooks.render_punc(
                             ui,
                             delimiters.opening,
                             style.punctuation_color,
@@ -372,8 +292,13 @@ fn show_expandable<T: ToJsonTreeValue>(
                         } else {
                             delimiters.collapsed
                         };
-                        let collapsed_expandable_response =
-                            render_punc(ui, delimiter, style.punctuation_color, None, &font_id);
+                        let collapsed_expandable_response = render_hooks.render_punc(
+                            ui,
+                            delimiter,
+                            style.punctuation_color,
+                            None,
+                            &font_id,
+                        );
                         render_hooks
                             .response_callback(collapsed_expandable_response, pointer_string);
                     }
@@ -423,7 +348,7 @@ fn show_expandable<T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_punc(
+            render_hooks.render_punc(
                 ui,
                 delimiters.closing,
                 style.punctuation_color,
@@ -432,178 +357,6 @@ fn show_expandable<T: ToJsonTreeValue>(
             );
         });
     }
-}
-
-#[derive(Default)]
-struct KeyLayoutJobCreator;
-
-impl KeyLayoutJobCreator {
-    fn create(
-        &self,
-        style: &JsonTreeStyle,
-        parent: &Parent,
-        search_term: Option<&SearchTerm>,
-        font_id: &FontId,
-    ) -> LayoutJob {
-        let mut job = LayoutJob::default();
-        match parent {
-            Parent {
-                key,
-                expandable_type: ExpandableType::Array,
-            } => add_array_idx(
-                &mut job,
-                key,
-                style.array_idx_color,
-                style.punctuation_color,
-                font_id,
-            ),
-            Parent {
-                key,
-                expandable_type: ExpandableType::Object,
-            } => add_object_key(
-                &mut job,
-                key,
-                style.object_key_color,
-                style.punctuation_color,
-                search_term,
-                style.highlight_color,
-                font_id,
-            ),
-        };
-        job
-    }
-}
-
-impl ComputerMut<(&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId), LayoutJob>
-    for KeyLayoutJobCreator
-{
-    fn compute(
-        &mut self,
-        (style, parent, search_term, font_id): (
-            &JsonTreeStyle,
-            &Parent,
-            Option<&SearchTerm>,
-            &FontId,
-        ),
-    ) -> LayoutJob {
-        self.create(style, parent, search_term, font_id)
-    }
-}
-
-type KeyLayoutJobCreatorCache = FrameCache<LayoutJob, KeyLayoutJobCreator>;
-
-fn render_key(
-    ui: &mut Ui,
-    style: &JsonTreeStyle,
-    parent: &Parent,
-    search_term: Option<&SearchTerm>,
-) -> Response {
-    let job = ui.ctx().memory_mut(|mem| {
-        mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
-            style,
-            parent,
-            search_term,
-            &style.font_id(ui),
-        ))
-    });
-
-    render_job(ui, job)
-}
-
-fn add_object_key(
-    job: &mut LayoutJob,
-    key_str: &str,
-    color: Color32,
-    punctuation_color: Color32,
-    search_term: Option<&SearchTerm>,
-    highlight_color: Color32,
-    font_id: &FontId,
-) {
-    append(job, "\"", color, None, font_id);
-    add_text_with_highlighting(job, key_str, color, search_term, highlight_color, font_id);
-    append(job, "\"", color, None, font_id);
-    append(job, ": ", punctuation_color, None, font_id);
-}
-
-fn add_array_idx(
-    job: &mut LayoutJob,
-    idx_str: &str,
-    color: Color32,
-    punctuation_color: Color32,
-    font_id: &FontId,
-) {
-    append(job, idx_str, color, None, font_id);
-    append(job, ": ", punctuation_color, None, font_id);
-}
-
-fn add_text_with_highlighting(
-    job: &mut LayoutJob,
-    text_str: &str,
-    text_color: Color32,
-    search_term: Option<&SearchTerm>,
-    highlight_color: Color32,
-    font_id: &FontId,
-) {
-    if let Some(search_term) = search_term {
-        let matches = search_term.find_match_indices_in(text_str);
-        if !matches.is_empty() {
-            let mut start = 0;
-            for match_idx in matches {
-                append(job, &text_str[start..match_idx], text_color, None, font_id);
-
-                let highlight_end_idx = match_idx + search_term.len();
-
-                append(
-                    job,
-                    &text_str[match_idx..highlight_end_idx],
-                    text_color,
-                    Some(highlight_color),
-                    font_id,
-                );
-
-                start = highlight_end_idx;
-            }
-            append(job, &text_str[start..], text_color, None, font_id);
-            return;
-        }
-    }
-    append(job, text_str, text_color, None, font_id);
-}
-
-fn append(
-    job: &mut LayoutJob,
-    text_str: &str,
-    color: Color32,
-    background_color: Option<Color32>,
-    font_id: &FontId,
-) {
-    let mut text_format = TextFormat {
-        color,
-        font_id: font_id.clone(),
-        ..Default::default()
-    };
-
-    if let Some(background_color) = background_color {
-        text_format.background = background_color;
-    }
-
-    job.append(text_str, 0.0, text_format);
-}
-
-fn render_punc(
-    ui: &mut Ui,
-    punc_str: &str,
-    color: Color32,
-    background_color: Option<Color32>,
-    font_id: &FontId,
-) -> Response {
-    let mut job = LayoutJob::default();
-    append(&mut job, punc_str, color, background_color, font_id);
-    render_job(ui, job)
-}
-
-fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
-    ui.add(Label::new(job).sense(Sense::click_and_drag()))
 }
 
 struct JsonTreeNodeConfig {
@@ -626,21 +379,6 @@ struct Expandable<'a, T> {
     entries: Vec<(String, &'a T)>,
     expandable_type: ExpandableType,
     parent: Option<Parent>,
-}
-
-#[derive(Hash)]
-struct Parent {
-    key: String,
-    expandable_type: ExpandableType,
-}
-
-impl Parent {
-    fn new(key: String, expandable_type: ExpandableType) -> Self {
-        Self {
-            key,
-            expandable_type,
-        }
-    }
 }
 
 fn get_pointer_string(path_segments: &[String]) -> String {

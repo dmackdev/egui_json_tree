@@ -37,6 +37,21 @@ pub enum ExpandableType {
     Object,
 }
 
+#[derive(Hash)]
+pub(crate) struct Parent {
+    pub(crate) key: String,
+    pub(crate) expandable_type: ExpandableType,
+}
+
+impl Parent {
+    pub(crate) fn new(key: String, expandable_type: ExpandableType) -> Self {
+        Self {
+            key,
+            expandable_type,
+        }
+    }
+}
+
 pub trait ToJsonTreeValue: Display {
     fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
     fn is_expandable(&self) -> bool;

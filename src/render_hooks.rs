@@ -30,8 +30,10 @@ impl<'a> RenderHooks<'a> {
         style: &JsonTreeStyle,
         parent: &Parent,
         search_term: Option<&SearchTerm>,
-    ) -> Response {
-        render_key(ui, style, parent, search_term)
+        pointer_str: &str,
+    ) {
+        let response = render_key(ui, style, parent, search_term);
+        self.response_callback(response, pointer_str);
     }
 
     pub(crate) fn render_value(

@@ -103,9 +103,13 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        let key_response =
-                            render_hooks.render_key(ui, style, parent, search_term.as_ref());
-                        render_hooks.response_callback(key_response, pointer_string);
+                        render_hooks.render_key(
+                            ui,
+                            style,
+                            parent,
+                            search_term.as_ref(),
+                            pointer_string,
+                        );
                     }
 
                     render_hooks.render_value(
@@ -209,13 +213,13 @@ fn show_expandable<T: ToJsonTreeValue>(
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            let key_response = render_hooks.render_key(
+                            render_hooks.render_key(
                                 ui,
                                 style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term.as_ref(),
+                                pointer_string,
                             );
-                            render_hooks.response_callback(key_response, pointer_string);
                         }
 
                         match elem.to_json_tree_value() {
@@ -273,9 +277,13 @@ fn show_expandable<T: ToJsonTreeValue>(
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        let key_response =
-                            render_hooks.render_key(ui, style, parent, search_term.as_ref());
-                        render_hooks.response_callback(key_response, pointer_string);
+                        render_hooks.render_key(
+                            ui,
+                            style,
+                            parent,
+                            search_term.as_ref(),
+                            pointer_string,
+                        );
                     }
 
                     if is_expanded {

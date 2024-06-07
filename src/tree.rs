@@ -1,5 +1,5 @@
 use crate::{
-    node::JsonTreeNode, render_hooks::ResponseCallback, value::ToJsonTreeValue, DefaultExpand,
+    node::JsonTreeNode, render_hooks::RenderHooks, value::ToJsonTreeValue, DefaultExpand,
     JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Response, Ui};
@@ -9,8 +9,8 @@ use std::hash::Hash;
 pub struct JsonTreeConfig<'a> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
-    pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) abbreviate_root: bool,
+    pub(crate) render_hooks: RenderHooks<'a>,
 }
 
 /// An interactive JSON tree visualiser.
@@ -51,7 +51,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         mut self,
         response_callback: impl FnMut(Response, &String) + 'a,
     ) -> Self {
-        self.config.response_callback = Some(Box::new(response_callback));
+        self.config.render_hooks.response_callback = Some(Box::new(response_callback));
         self
     }
 

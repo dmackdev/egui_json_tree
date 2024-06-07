@@ -66,9 +66,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             search_term,
         };
 
-        let mut render_hooks = RenderHooks {
-            response_callback: config.response_callback,
-        };
+        let mut render_hooks = config.render_hooks;
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.

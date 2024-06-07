@@ -1,7 +1,8 @@
 use egui::Response;
 
-pub type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
+type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
 
+#[derive(Default)]
 pub struct RenderHooks<'a> {
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
 }

@@ -1,10 +1,9 @@
 use crate::{
-    node::JsonTreeNode, value::ToJsonTreeValue, DefaultExpand, JsonTreeResponse, JsonTreeStyle,
+    node::JsonTreeNode, render_hooks::ResponseCallback, value::ToJsonTreeValue, DefaultExpand,
+    JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Response, Ui};
 use std::hash::Hash;
-
-type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
 
 #[derive(Default)]
 pub struct JsonTreeConfig<'a> {

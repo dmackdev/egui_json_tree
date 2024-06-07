@@ -36,6 +36,7 @@
 mod default_expand;
 mod delimiters;
 mod node;
+mod render_hooks;
 mod response;
 mod search;
 mod style;

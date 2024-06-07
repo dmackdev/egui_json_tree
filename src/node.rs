@@ -9,6 +9,7 @@ use egui::{
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    render_hooks::RenderHooks,
     response::JsonTreeResponse,
     search::SearchTerm,
     style::JsonTreeStyle,
@@ -65,9 +66,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             search_term,
         };
 
-        let response_callback = &mut config
-            .response_callback
-            .unwrap_or_else(|| Box::new(|_, _| {}));
+        let mut render_hooks = RenderHooks {
+            response_callback: config.response_callback,
+        };
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
@@ -79,9 +80,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 ui,
                 &mut vec![],
                 &mut path_id_map,
-                response_callback,
                 &make_persistent_id,
                 &node_config,
+                &mut render_hooks,
             );
         });
 
@@ -95,9 +96,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         ui: &mut Ui,
         path_segments: &mut Vec<String>,
         path_id_map: &mut PathIdMap,
-        response_callback: &mut dyn FnMut(Response, &String),
         make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
         config: &JsonTreeNodeConfig,
+        render_hooks: &mut RenderHooks,
     ) {
         let JsonTreeNodeConfig {
             style, search_term, ..
@@ -110,7 +111,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
                     if let Some(parent) = &self.parent {
                         let key_response = render_key(ui, style, parent, search_term.as_ref());
-                        response_callback(key_response, pointer_string);
+                        render_hooks.response_callback(key_response, pointer_string);
                     }
 
                     let value_response = render_value(
@@ -120,7 +121,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                         &value_type,
                         search_term.as_ref(),
                     );
-                    response_callback(value_response, pointer_string);
+                    render_hooks.response_callback(value_response, pointer_string);
                 });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -135,9 +136,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     path_segments,
                     path_id_map,
                     expandable,
-                    response_callback,
                     &make_persistent_id,
                     config,
+                    render_hooks,
                 );
             }
         };
@@ -230,9 +231,9 @@ fn show_expandable<T: ToJsonTreeValue>(
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
     expandable: Expandable<T>,
-    response_callback: &mut dyn FnMut(Response, &String),
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     config: &JsonTreeNodeConfig,
+    render_hooks: &mut RenderHooks,
 ) {
     let JsonTreeNodeConfig {
         default_expand,
@@ -270,7 +271,7 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        response_callback(
+                        render_hooks.response_callback(
                             render_punc(
                                 ui,
                                 delimiters.collapsed,
@@ -303,7 +304,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term.as_ref(),
                             );
-                            response_callback(key_response, pointer_string);
+                            render_hooks.response_callback(key_response, pointer_string);
                         }
 
                         match elem.to_json_tree_value() {
@@ -315,7 +316,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                                     &value_type,
                                     search_term.as_ref(),
                                 );
-                                response_callback(value_response, pointer_string);
+                                render_hooks.response_callback(value_response, pointer_string);
                             }
                             JsonTreeValue::Expandable(entries, expandable_type) => {
                                 let nested_delimiters = match expandable_type {
@@ -336,7 +337,10 @@ fn show_expandable<T: ToJsonTreeValue>(
                                     None,
                                     &font_id,
                                 );
-                                response_callback(collapsed_expandable_response, pointer_string);
+                                render_hooks.response_callback(
+                                    collapsed_expandable_response,
+                                    pointer_string,
+                                );
                             }
                         };
                         let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
@@ -353,7 +357,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                 } else {
                     if let Some(parent) = &expandable.parent {
                         let key_response = render_key(ui, style, parent, search_term.as_ref());
-                        response_callback(key_response, pointer_string);
+                        render_hooks.response_callback(key_response, pointer_string);
                     }
 
                     if is_expanded {
@@ -372,7 +376,8 @@ fn show_expandable<T: ToJsonTreeValue>(
                         };
                         let collapsed_expandable_response =
                             render_punc(ui, delimiter, style.punctuation_color, None, &font_id);
-                        response_callback(collapsed_expandable_response, pointer_string);
+                        render_hooks
+                            .response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }
             });
@@ -394,9 +399,9 @@ fn show_expandable<T: ToJsonTreeValue>(
                         ui,
                         path_segments,
                         path_id_map,
-                        response_callback,
                         make_persistent_id,
                         config,
+                        render_hooks,
                     );
                 };
 

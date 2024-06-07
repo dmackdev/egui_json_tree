@@ -17,14 +17,14 @@ use crate::{
     DefaultExpand,
 };
 
-pub struct JsonTreeNode<'a> {
+pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
     id: Id,
-    value: &'a dyn ToJsonTreeValue,
+    value: &'a T,
     parent: Option<Parent>,
 }
 
-impl<'a> JsonTreeNode<'a> {
-    pub(crate) fn new(id: Id, value: &'a dyn ToJsonTreeValue) -> Self {
+impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
+    pub(crate) fn new(id: Id, value: &'a T) -> Self {
         Self {
             id,
             value,
@@ -104,7 +104,7 @@ impl<'a> JsonTreeNode<'a> {
         } = config;
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
-            JsonTreeValue::Base(value_str, value_type) => {
+            JsonTreeValue::Base(_, display_value, value_type) => {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
@@ -116,7 +116,7 @@ impl<'a> JsonTreeNode<'a> {
                     let value_response = render_value(
                         ui,
                         style,
-                        &value_str.to_string(),
+                        &display_value.to_string(),
                         &value_type,
                         search_term.as_ref(),
                     );
@@ -225,11 +225,11 @@ fn render_value(
     render_job(ui, job)
 }
 
-fn show_expandable(
+fn show_expandable<T: ToJsonTreeValue>(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
-    expandable: Expandable,
+    expandable: Expandable<T>,
     response_callback: &mut dyn FnMut(Response, &String),
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     config: &JsonTreeNodeConfig,
@@ -307,11 +307,11 @@ fn show_expandable(
                         }
 
                         match elem.to_json_tree_value() {
-                            JsonTreeValue::Base(value_str, value_type) => {
+                            JsonTreeValue::Base(_, display_value, value_type) => {
                                 let value_response = render_value(
                                     ui,
                                     style,
-                                    &value_str.to_string(),
+                                    &display_value.to_string(),
                                     &value_type,
                                     search_term.as_ref(),
                                 );
@@ -618,9 +618,9 @@ enum InnerExpand {
     Paths(HashSet<Vec<String>>),
 }
 
-struct Expandable<'a> {
+struct Expandable<'a, T> {
     id: Id,
-    entries: Vec<(String, &'a dyn ToJsonTreeValue)>,
+    entries: Vec<(String, &'a T)>,
     expandable_type: ExpandableType,
     parent: Option<Parent>,
 }
@@ -650,16 +650,16 @@ fn get_pointer_string(path_segments: &[String]) -> String {
 
 type PathIdMap = HashMap<Vec<String>, Id>;
 
-fn populate_path_id_map(
-    value: &dyn ToJsonTreeValue,
+fn populate_path_id_map<T: ToJsonTreeValue>(
+    value: &T,
     path_id_map: &mut PathIdMap,
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
 ) {
     populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
 }
 
-fn populate_path_id_map_impl(
-    value: &dyn ToJsonTreeValue,
+fn populate_path_id_map_impl<T: ToJsonTreeValue>(
+    value: &T,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,

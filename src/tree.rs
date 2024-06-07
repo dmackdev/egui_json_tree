@@ -16,16 +16,16 @@ pub struct JsonTreeConfig<'a> {
 
 /// An interactive JSON tree visualiser.
 #[must_use = "You should call .show()"]
-pub struct JsonTree<'a> {
+pub struct JsonTree<'a, T: ToJsonTreeValue> {
     id: Id,
-    value: &'a dyn ToJsonTreeValue,
+    value: &'a T,
     config: JsonTreeConfig<'a>,
 }
 
-impl<'a> JsonTree<'a> {
+impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Creates a new [`JsonTree`].
     /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: &'a impl ToJsonTreeValue) -> Self {
+    pub fn new(id: impl Hash, value: &'a T) -> Self {
         Self {
             id: Id::new(id),
             value,

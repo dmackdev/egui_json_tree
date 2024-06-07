@@ -26,9 +26,9 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(
+    pub fn find_matching_paths_in<T: ToJsonTreeValue>(
         &self,
-        value: &dyn ToJsonTreeValue,
+        value: &T,
         abbreviate_root: bool,
     ) -> HashSet<Vec<String>> {
         let mut matching_paths = HashSet::new();
@@ -48,15 +48,15 @@ impl SearchTerm {
     }
 }
 
-fn search_impl(
-    value: &dyn ToJsonTreeValue,
+fn search_impl<T: ToJsonTreeValue>(
+    value: &T,
     search_term: &SearchTerm,
     path_segments: &mut Vec<String>,
     matching_paths: &mut HashSet<Vec<String>>,
 ) {
     match value.to_json_tree_value() {
-        JsonTreeValue::Base(value_str, _) => {
-            if search_term.matches(value_str) {
+        JsonTreeValue::Base(_, display_value, _) => {
+            if search_term.matches(display_value) {
                 update_matches(path_segments, matching_paths);
             }
         }

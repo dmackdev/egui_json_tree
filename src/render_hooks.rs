@@ -41,8 +41,10 @@ impl<'a> RenderHooks<'a> {
         value_str: &str,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
-    ) -> Response {
-        render_value(ui, style, value_str, value_type, search_term)
+        pointer_str: &str,
+    ) {
+        let response = render_value(ui, style, value_str, value_type, search_term);
+        self.response_callback(response, pointer_str);
     }
 
     pub(crate) fn render_punc(

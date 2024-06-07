@@ -108,14 +108,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                         render_hooks.response_callback(key_response, pointer_string);
                     }
 
-                    let value_response = render_hooks.render_value(
+                    render_hooks.render_value(
                         ui,
                         style,
                         &display_value.to_string(),
                         &value_type,
                         search_term.as_ref(),
+                        pointer_string,
                     );
-                    render_hooks.response_callback(value_response, pointer_string);
                 });
             }
             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -220,14 +220,14 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                         match elem.to_json_tree_value() {
                             JsonTreeValue::Base(_, display_value, value_type) => {
-                                let value_response = render_hooks.render_value(
+                                render_hooks.render_value(
                                     ui,
                                     style,
                                     &display_value.to_string(),
                                     &value_type,
                                     search_term.as_ref(),
+                                    pointer_string,
                                 );
-                                render_hooks.response_callback(value_response, pointer_string);
                             }
                             JsonTreeValue::Expandable(entries, expandable_type) => {
                                 let nested_delimiters = match expandable_type {

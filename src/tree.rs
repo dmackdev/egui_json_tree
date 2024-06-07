@@ -47,10 +47,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Register a callback to handle interactions within a [`JsonTree`].
     /// - `Response`: The `Response` from rendering an array index, object key or value.
     /// - `&String`: A JSON pointer string.
-    pub fn response_callback(
-        mut self,
-        response_callback: impl FnMut(Response, &String) + 'a,
-    ) -> Self {
+    pub fn response_callback(mut self, response_callback: impl FnMut(Response, &str) + 'a) -> Self {
         self.config.render_hooks.response_callback = Some(Box::new(response_callback));
         self
     }

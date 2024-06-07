@@ -10,7 +10,7 @@ use crate::{
     JsonTreeStyle,
 };
 
-type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
+type ResponseCallback<'a> = dyn FnMut(Response, &str) + 'a;
 
 #[derive(Default)]
 pub(crate) struct RenderHooks<'a> {
@@ -18,7 +18,7 @@ pub(crate) struct RenderHooks<'a> {
 }
 
 impl<'a> RenderHooks<'a> {
-    pub(crate) fn response_callback(&mut self, response: Response, pointer_str: &String) {
+    pub(crate) fn response_callback(&mut self, response: Response, pointer_str: &str) {
         if let Some(response_callback) = self.response_callback.as_mut() {
             response_callback(response, pointer_str)
         }

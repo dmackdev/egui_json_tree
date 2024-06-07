@@ -173,7 +173,7 @@ impl Show for CopyToClipboardExample {
                                 .clicked()
                         {
                             println!("{}", pointer);
-                            ui.output_mut(|o| o.copied_text = pointer.clone());
+                            ui.output_mut(|o| o.copied_text = pointer.to_string());
                             ui.close_menu();
                         }
 

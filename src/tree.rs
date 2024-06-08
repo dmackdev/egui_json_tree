@@ -5,11 +5,20 @@ use crate::{
 use egui::{Id, Response, Ui};
 use std::hash::Hash;
 
-#[derive(Default)]
-pub struct JsonTreeConfig<'a> {
+pub struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,
-    pub(crate) render_hooks: RenderHooks<'a>,
+    pub(crate) render_hooks: RenderHooks<'a, T>,
+}
+
+impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
+    fn default() -> Self {
+        Self {
+            default_expand: Default::default(),
+            abbreviate_root: Default::default(),
+            render_hooks: Default::default(),
+        }
+    }
 }
 
 /// An interactive JSON tree visualiser.
@@ -17,7 +26,7 @@ pub struct JsonTreeConfig<'a> {
 pub struct JsonTree<'a, T: ToJsonTreeValue> {
     id: Id,
     value: &'a T,
-    config: JsonTreeConfig<'a>,
+    config: JsonTreeConfig<'a, T>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
@@ -51,6 +60,14 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         response_callback: impl FnMut(Response, &String) + 'a,
     ) -> Self {
         self.config.render_hooks.response_callback = Some(Box::new(response_callback));
+        self
+    }
+
+    pub fn on_render_value(
+        mut self,
+        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Response + 'a,
+    ) -> Self {
+        self.config.render_hooks.render_value_hook = Some(Box::new(render_value_hook));
         self
     }
 

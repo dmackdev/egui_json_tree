@@ -27,7 +27,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         }
     }
 
-    pub(crate) fn show_with_config(self, ui: &mut Ui, config: JsonTreeConfig) -> JsonTreeResponse {
+    pub(crate) fn show_with_config(
+        self,
+        ui: &mut Ui,
+        config: JsonTreeConfig<T>,
+    ) -> JsonTreeResponse {
         let persistent_id = ui.id();
         let tree_id = self.id;
         let make_persistent_id =
@@ -89,12 +93,12 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         path_id_map: &mut PathIdMap,
         make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
         config: &JsonTreeNodeConfig,
-        render_hooks: &mut RenderHooks,
+        render_hooks: &mut RenderHooks<T>,
     ) {
         let JsonTreeNodeConfig { search_term, .. } = config;
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
-            JsonTreeValue::Base(_, display_value, value_type) => {
+            JsonTreeValue::Base(value, display_value, value_type) => {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
@@ -104,6 +108,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
                     render_hooks.render_value(
                         ui,
+                        value,
                         &display_value.to_string(),
                         &value_type,
                         search_term.as_ref(),
@@ -139,7 +144,7 @@ fn show_expandable<T: ToJsonTreeValue>(
     expandable: Expandable<T>,
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     config: &JsonTreeNodeConfig,
-    render_hooks: &mut RenderHooks,
+    render_hooks: &mut RenderHooks<T>,
 ) {
     let JsonTreeNodeConfig {
         default_expand,
@@ -195,9 +200,10 @@ fn show_expandable<T: ToJsonTreeValue>(
                         }
 
                         match elem.to_json_tree_value() {
-                            JsonTreeValue::Base(_, display_value, value_type) => {
+                            JsonTreeValue::Base(value, display_value, value_type) => {
                                 render_hooks.render_value(
                                     ui,
+                                    value,
                                     &display_value.to_string(),
                                     &value_type,
                                     search_term.as_ref(),

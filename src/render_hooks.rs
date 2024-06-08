@@ -7,19 +7,30 @@ use egui::{
 use crate::{
     delimiters::Punc,
     search::SearchTerm,
-    value::{BaseValueType, ExpandableType, Parent},
+    value::{BaseValueType, ExpandableType, Parent, ToJsonTreeValue},
     JsonTreeStyle,
 };
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
+type RenderValueHook<'a, T> = dyn FnMut(&mut Ui, &T, &str) -> Response + 'a;
 
-#[derive(Default)]
-pub(crate) struct RenderHooks<'a> {
+pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
+    pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
 }
 
-impl<'a> RenderHooks<'a> {
+impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
+    fn default() -> Self {
+        Self {
+            style: Default::default(),
+            response_callback: Default::default(),
+            render_value_hook: Default::default(),
+        }
+    }
+}
+
+impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
     pub(crate) fn render_key(
         &mut self,
         ui: &mut Ui,
@@ -34,12 +45,17 @@ impl<'a> RenderHooks<'a> {
     pub(crate) fn render_value(
         &mut self,
         ui: &mut Ui,
+        value: &T,
         value_str: &str,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
         pointer_str: &String,
     ) {
-        let response = render_value(ui, &self.style, value_str, value_type, search_term);
+        let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
+            render_value_hook(ui, value, pointer_str)
+        } else {
+            render_value(ui, &self.style, value_str, value_type, search_term)
+        };
         self.response_callback(response, pointer_str);
     }
 

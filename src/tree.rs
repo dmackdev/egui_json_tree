@@ -63,6 +63,18 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         self
     }
 
+    pub fn on_render_value_if(
+        self,
+        condition: bool,
+        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a,
+    ) -> Self {
+        if condition {
+            self.on_render_value(render_value_hook)
+        } else {
+            self
+        }
+    }
+
     pub fn on_render_value(
         mut self,
         render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a,

@@ -192,7 +192,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                             ui,
                             &delimiters.collapsed,
                             style.punctuation_color,
-                            None,
                             &font_id,
                             pointer_string,
                         );
@@ -203,7 +202,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                         ui,
                         &delimiters.opening,
                         style.punctuation_color,
-                        None,
                         &font_id,
                         pointer_string,
                     );
@@ -211,7 +209,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                         ui,
                         &EMPTY_SPACE,
                         style.punctuation_color,
-                        None,
                         &font_id,
                         pointer_string,
                     );
@@ -257,7 +254,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                                     ui,
                                     delimiter,
                                     style.punctuation_color,
-                                    None,
                                     &font_id,
                                     pointer_string,
                                 );
@@ -272,7 +268,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                             ui,
                             &spacing,
                             style.punctuation_color,
-                            None,
                             &font_id,
                             pointer_string,
                         );
@@ -282,7 +277,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                         ui,
                         &delimiters.closing,
                         style.punctuation_color,
-                        None,
                         &font_id,
                         pointer_string,
                     );
@@ -302,7 +296,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                             ui,
                             &delimiters.opening,
                             style.punctuation_color,
-                            None,
                             &font_id,
                             pointer_string,
                         );
@@ -316,7 +309,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                             ui,
                             delimiter,
                             style.punctuation_color,
-                            None,
                             &font_id,
                             pointer_string,
                         );
@@ -371,7 +363,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                 ui,
                 &delimiters.closing,
                 style.punctuation_color,
-                None,
                 &font_id,
                 pointer_string,
             );

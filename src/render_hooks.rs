@@ -49,11 +49,10 @@ impl<'a> RenderHooks<'a> {
         ui: &mut Ui,
         punc: &Punc,
         color: Color32,
-        background_color: Option<Color32>,
         font_id: &FontId,
         pointer_str: &str,
     ) {
-        let response = render_punc(ui, punc.as_ref(), color, background_color, font_id);
+        let response = render_punc(ui, punc.as_ref(), color, font_id);
         if matches!(punc, Punc::CollapsedDelimiter(_)) {
             self.response_callback(response, pointer_str);
         }
@@ -303,15 +302,9 @@ fn append(
     job.append(text_str, 0.0, text_format);
 }
 
-fn render_punc(
-    ui: &mut Ui,
-    punc_str: &str,
-    color: Color32,
-    background_color: Option<Color32>,
-    font_id: &FontId,
-) -> Response {
+fn render_punc(ui: &mut Ui, punc_str: &str, color: Color32, font_id: &FontId) -> Response {
     let mut job = LayoutJob::default();
-    append(&mut job, punc_str, color, background_color, font_id);
+    append(&mut job, punc_str, color, None, font_id);
     render_job(ui, job)
 }
 

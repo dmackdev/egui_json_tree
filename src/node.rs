@@ -109,7 +109,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     render_hooks.render_value(
                         ui,
                         value,
-                        &display_value.to_string(),
+                        display_value,
                         &value_type,
                         search_term.as_ref(),
                         pointer_string,
@@ -204,7 +204,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                                 render_hooks.render_value(
                                     ui,
                                     value,
-                                    &display_value.to_string(),
+                                    display_value,
                                     &value_type,
                                     search_term.as_ref(),
                                     pointer_string,

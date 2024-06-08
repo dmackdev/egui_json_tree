@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use egui::{
     text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
@@ -46,7 +48,7 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         &mut self,
         ui: &mut Ui,
         value: &T,
-        value_str: &str,
+        display_value: &dyn Display,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
         pointer_str: &String,
@@ -57,7 +59,7 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
             Some(render_value(
                 ui,
                 &self.style,
-                value_str,
+                &display_value.to_string(),
                 value_type,
                 search_term,
             ))

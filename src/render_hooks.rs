@@ -11,7 +11,7 @@ use crate::{
     JsonTreeStyle,
 };
 
-type ResponseCallback<'a> = dyn FnMut(Response, &str) + 'a;
+type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
 
 #[derive(Default)]
 pub(crate) struct RenderHooks<'a> {
@@ -25,7 +25,7 @@ impl<'a> RenderHooks<'a> {
         ui: &mut Ui,
         parent: &Parent,
         search_term: Option<&SearchTerm>,
-        pointer_str: &str,
+        pointer_str: &String,
     ) {
         let response = render_key(ui, &self.style, parent, search_term);
         self.response_callback(response, pointer_str);
@@ -37,20 +37,20 @@ impl<'a> RenderHooks<'a> {
         value_str: &str,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
-        pointer_str: &str,
+        pointer_str: &String,
     ) {
         let response = render_value(ui, &self.style, value_str, value_type, search_term);
         self.response_callback(response, pointer_str);
     }
 
-    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer_str: &str) {
+    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer_str: &String) {
         let response = render_punc(ui, &self.style, punc.as_ref());
         if matches!(punc, Punc::CollapsedDelimiter(_)) {
             self.response_callback(response, pointer_str);
         }
     }
 
-    fn response_callback(&mut self, response: Response, pointer_str: &str) {
+    fn response_callback(&mut self, response: Response, pointer_str: &String) {
         if let Some(response_callback) = self.response_callback.as_mut() {
             response_callback(response, pointer_str)
         }

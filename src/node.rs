@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
-    delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
     render_hooks::RenderHooks,
     response::JsonTreeResponse,
     search::SearchTerm,
@@ -188,25 +188,33 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        let response = render_hooks.render_punc(
+                        render_hooks.render_punc(
                             ui,
-                            delimiters.collapsed,
+                            &delimiters.collapsed,
                             style.punctuation_color,
                             None,
                             &font_id,
+                            pointer_string,
                         );
-                        render_hooks.response_callback(response, pointer_string);
                         return;
                     }
 
                     render_hooks.render_punc(
                         ui,
-                        delimiters.opening,
+                        &delimiters.opening,
                         style.punctuation_color,
                         None,
                         &font_id,
+                        pointer_string,
                     );
-                    render_hooks.render_punc(ui, " ", style.punctuation_color, None, &font_id);
+                    render_hooks.render_punc(
+                        ui,
+                        &EMPTY_SPACE,
+                        style.punctuation_color,
+                        None,
+                        &font_id,
+                        pointer_string,
+                    );
 
                     let entries_len = expandable.entries.len();
 
@@ -240,40 +248,43 @@ fn show_expandable<T: ToJsonTreeValue>(
                                 };
 
                                 let delimiter = if entries.is_empty() {
-                                    nested_delimiters.collapsed_empty
+                                    &nested_delimiters.collapsed_empty
                                 } else {
-                                    nested_delimiters.collapsed
+                                    &nested_delimiters.collapsed
                                 };
 
-                                let collapsed_expandable_response = render_hooks.render_punc(
+                                render_hooks.render_punc(
                                     ui,
                                     delimiter,
                                     style.punctuation_color,
                                     None,
                                     &font_id,
-                                );
-                                render_hooks.response_callback(
-                                    collapsed_expandable_response,
                                     pointer_string,
                                 );
                             }
                         };
-                        let spacing_str = if idx == entries_len - 1 { " " } else { ", " };
+                        let spacing = if idx == entries_len - 1 {
+                            EMPTY_SPACE
+                        } else {
+                            COMMA_SPACE
+                        };
                         render_hooks.render_punc(
                             ui,
-                            spacing_str,
+                            &spacing,
                             style.punctuation_color,
                             None,
                             &font_id,
+                            pointer_string,
                         );
                     }
 
                     render_hooks.render_punc(
                         ui,
-                        delimiters.closing,
+                        &delimiters.closing,
                         style.punctuation_color,
                         None,
                         &font_id,
+                        pointer_string,
                     );
                 } else {
                     if let Some(parent) = &expandable.parent {
@@ -289,26 +300,26 @@ fn show_expandable<T: ToJsonTreeValue>(
                     if is_expanded {
                         render_hooks.render_punc(
                             ui,
-                            delimiters.opening,
+                            &delimiters.opening,
                             style.punctuation_color,
                             None,
                             &font_id,
+                            pointer_string,
                         );
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
-                            delimiters.collapsed_empty
+                            &delimiters.collapsed_empty
                         } else {
-                            delimiters.collapsed
+                            &delimiters.collapsed
                         };
-                        let collapsed_expandable_response = render_hooks.render_punc(
+                        render_hooks.render_punc(
                             ui,
                             delimiter,
                             style.punctuation_color,
                             None,
                             &font_id,
+                            pointer_string,
                         );
-                        render_hooks
-                            .response_callback(collapsed_expandable_response, pointer_string);
                     }
                 }
             });
@@ -358,10 +369,11 @@ fn show_expandable<T: ToJsonTreeValue>(
             ui.add_space(indent);
             render_hooks.render_punc(
                 ui,
-                delimiters.closing,
+                &delimiters.closing,
                 style.punctuation_color,
                 None,
                 &font_id,
+                pointer_string,
             );
         });
     }

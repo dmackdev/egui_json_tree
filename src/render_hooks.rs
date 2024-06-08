@@ -5,6 +5,7 @@ use egui::{
 };
 
 use crate::{
+    delimiters::Punc,
     search::SearchTerm,
     value::{BaseValueType, ExpandableType, Parent},
     JsonTreeStyle,
@@ -18,12 +19,6 @@ pub(crate) struct RenderHooks<'a> {
 }
 
 impl<'a> RenderHooks<'a> {
-    pub(crate) fn response_callback(&mut self, response: Response, pointer_str: &str) {
-        if let Some(response_callback) = self.response_callback.as_mut() {
-            response_callback(response, pointer_str)
-        }
-    }
-
     pub(crate) fn render_key(
         &mut self,
         ui: &mut Ui,
@@ -52,12 +47,22 @@ impl<'a> RenderHooks<'a> {
     pub(crate) fn render_punc(
         &mut self,
         ui: &mut Ui,
-        punc_str: &str,
+        punc: &Punc,
         color: Color32,
         background_color: Option<Color32>,
         font_id: &FontId,
-    ) -> Response {
-        render_punc(ui, punc_str, color, background_color, font_id)
+        pointer_str: &str,
+    ) {
+        let response = render_punc(ui, punc.as_ref(), color, background_color, font_id);
+        if matches!(punc, Punc::CollapsedDelimiter(_)) {
+            self.response_callback(response, pointer_str);
+        }
+    }
+
+    fn response_callback(&mut self, response: Response, pointer_str: &str) {
+        if let Some(response_callback) = self.response_callback.as_mut() {
+            response_callback(response, pointer_str)
+        }
     }
 }
 

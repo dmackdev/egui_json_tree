@@ -7,7 +7,6 @@ use std::hash::Hash;
 
 #[derive(Default)]
 pub struct JsonTreeConfig<'a> {
-    pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,
     pub(crate) render_hooks: RenderHooks<'a>,
@@ -34,7 +33,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     /// Override colors for JSON syntax highlighting, and search match highlighting.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
-        self.config.style = style;
+        self.config.render_hooks.style = style;
         self
     }
 

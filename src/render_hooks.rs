@@ -15,6 +15,7 @@ type ResponseCallback<'a> = dyn FnMut(Response, &str) + 'a;
 
 #[derive(Default)]
 pub(crate) struct RenderHooks<'a> {
+    pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
 }
 
@@ -22,37 +23,28 @@ impl<'a> RenderHooks<'a> {
     pub(crate) fn render_key(
         &mut self,
         ui: &mut Ui,
-        style: &JsonTreeStyle,
         parent: &Parent,
         search_term: Option<&SearchTerm>,
         pointer_str: &str,
     ) {
-        let response = render_key(ui, style, parent, search_term);
+        let response = render_key(ui, &self.style, parent, search_term);
         self.response_callback(response, pointer_str);
     }
 
     pub(crate) fn render_value(
         &mut self,
         ui: &mut Ui,
-        style: &JsonTreeStyle,
         value_str: &str,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
         pointer_str: &str,
     ) {
-        let response = render_value(ui, style, value_str, value_type, search_term);
+        let response = render_value(ui, &self.style, value_str, value_type, search_term);
         self.response_callback(response, pointer_str);
     }
 
-    pub(crate) fn render_punc(
-        &mut self,
-        ui: &mut Ui,
-        punc: &Punc,
-        color: Color32,
-        font_id: &FontId,
-        pointer_str: &str,
-    ) {
-        let response = render_punc(ui, punc.as_ref(), color, font_id);
+    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer_str: &str) {
+        let response = render_punc(ui, &self.style, punc.as_ref());
         if matches!(punc, Punc::CollapsedDelimiter(_)) {
             self.response_callback(response, pointer_str);
         }
@@ -302,9 +294,15 @@ fn append(
     job.append(text_str, 0.0, text_format);
 }
 
-fn render_punc(ui: &mut Ui, punc_str: &str, color: Color32, font_id: &FontId) -> Response {
+fn render_punc(ui: &mut Ui, style: &JsonTreeStyle, punc_str: &str) -> Response {
     let mut job = LayoutJob::default();
-    append(&mut job, punc_str, color, None, font_id);
+    append(
+        &mut job,
+        punc_str,
+        style.punctuation_color,
+        None,
+        &style.font_id(ui),
+    );
     render_job(ui, job)
 }
 

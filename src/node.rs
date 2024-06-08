@@ -7,7 +7,6 @@ use crate::{
     render_hooks::RenderHooks,
     response::JsonTreeResponse,
     search::SearchTerm,
-    style::JsonTreeStyle,
     tree::JsonTreeConfig,
     value::{ExpandableType, JsonTreeValue, Parent, ToJsonTreeValue},
     DefaultExpand,
@@ -55,7 +54,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         };
 
         let node_config = JsonTreeNodeConfig {
-            style: config.style,
             default_expand,
             abbreviate_root: config.abbreviate_root,
             search_term,
@@ -67,7 +65,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = node_config.style.font_id(ui).size;
+            ui.spacing_mut().interact_size.y = render_hooks.style.font_id(ui).size;
 
             self.show_impl(
                 ui,
@@ -93,9 +91,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         config: &JsonTreeNodeConfig,
         render_hooks: &mut RenderHooks,
     ) {
-        let JsonTreeNodeConfig {
-            style, search_term, ..
-        } = config;
+        let JsonTreeNodeConfig { search_term, .. } = config;
         let pointer_string = &get_pointer_string(path_segments);
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(_, display_value, value_type) => {
@@ -103,18 +99,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(
-                            ui,
-                            style,
-                            parent,
-                            search_term.as_ref(),
-                            pointer_string,
-                        );
+                        render_hooks.render_key(ui, parent, search_term.as_ref(), pointer_string);
                     }
 
                     render_hooks.render_value(
                         ui,
-                        style,
                         &display_value.to_string(),
                         &value_type,
                         search_term.as_ref(),
@@ -154,7 +143,6 @@ fn show_expandable<T: ToJsonTreeValue>(
 ) {
     let JsonTreeNodeConfig {
         default_expand,
-        style,
         abbreviate_root,
         search_term,
     } = config;
@@ -179,8 +167,6 @@ fn show_expandable<T: ToJsonTreeValue>(
     let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
-    let font_id = style.font_id(ui);
-
     state
         .show_header(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -188,30 +174,12 @@ fn show_expandable<T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.render_punc(
-                            ui,
-                            &delimiters.collapsed,
-                            style.punctuation_color,
-                            &font_id,
-                            pointer_string,
-                        );
+                        render_hooks.render_punc(ui, &delimiters.collapsed, pointer_string);
                         return;
                     }
 
-                    render_hooks.render_punc(
-                        ui,
-                        &delimiters.opening,
-                        style.punctuation_color,
-                        &font_id,
-                        pointer_string,
-                    );
-                    render_hooks.render_punc(
-                        ui,
-                        &EMPTY_SPACE,
-                        style.punctuation_color,
-                        &font_id,
-                        pointer_string,
-                    );
+                    render_hooks.render_punc(ui, &delimiters.opening, pointer_string);
+                    render_hooks.render_punc(ui, &EMPTY_SPACE, pointer_string);
 
                     let entries_len = expandable.entries.len();
 
@@ -220,7 +188,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
                             render_hooks.render_key(
                                 ui,
-                                style,
                                 &Parent::new(key.to_owned(), expandable.expandable_type),
                                 search_term.as_ref(),
                                 pointer_string,
@@ -231,7 +198,6 @@ fn show_expandable<T: ToJsonTreeValue>(
                             JsonTreeValue::Base(_, display_value, value_type) => {
                                 render_hooks.render_value(
                                     ui,
-                                    style,
                                     &display_value.to_string(),
                                     &value_type,
                                     search_term.as_ref(),
@@ -250,13 +216,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                                     &nested_delimiters.collapsed
                                 };
 
-                                render_hooks.render_punc(
-                                    ui,
-                                    delimiter,
-                                    style.punctuation_color,
-                                    &font_id,
-                                    pointer_string,
-                                );
+                                render_hooks.render_punc(ui, delimiter, pointer_string);
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
@@ -264,54 +224,24 @@ fn show_expandable<T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        render_hooks.render_punc(
-                            ui,
-                            &spacing,
-                            style.punctuation_color,
-                            &font_id,
-                            pointer_string,
-                        );
+                        render_hooks.render_punc(ui, &spacing, pointer_string);
                     }
 
-                    render_hooks.render_punc(
-                        ui,
-                        &delimiters.closing,
-                        style.punctuation_color,
-                        &font_id,
-                        pointer_string,
-                    );
+                    render_hooks.render_punc(ui, &delimiters.closing, pointer_string);
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(
-                            ui,
-                            style,
-                            parent,
-                            search_term.as_ref(),
-                            pointer_string,
-                        );
+                        render_hooks.render_key(ui, parent, search_term.as_ref(), pointer_string);
                     }
 
                     if is_expanded {
-                        render_hooks.render_punc(
-                            ui,
-                            &delimiters.opening,
-                            style.punctuation_color,
-                            &font_id,
-                            pointer_string,
-                        );
+                        render_hooks.render_punc(ui, &delimiters.opening, pointer_string);
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
                             &delimiters.collapsed_empty
                         } else {
                             &delimiters.collapsed
                         };
-                        render_hooks.render_punc(
-                            ui,
-                            delimiter,
-                            style.punctuation_color,
-                            &font_id,
-                            pointer_string,
-                        );
+                        render_hooks.render_punc(ui, delimiter, pointer_string);
                     }
                 }
             });
@@ -359,19 +289,12 @@ fn show_expandable<T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_hooks.render_punc(
-                ui,
-                &delimiters.closing,
-                style.punctuation_color,
-                &font_id,
-                pointer_string,
-            );
+            render_hooks.render_punc(ui, &delimiters.closing, pointer_string);
         });
     }
 }
 
 struct JsonTreeNodeConfig {
-    style: JsonTreeStyle,
     default_expand: InnerExpand,
     abbreviate_root: bool,
     search_term: Option<SearchTerm>,

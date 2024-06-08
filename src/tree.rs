@@ -65,7 +65,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     pub fn on_render_value(
         mut self,
-        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Response + 'a,
+        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a,
     ) -> Self {
         self.config.render_hooks.render_value_hook = Some(Box::new(render_value_hook));
         self

@@ -12,7 +12,7 @@ use crate::{
 };
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
-type RenderValueHook<'a, T> = dyn FnMut(&mut Ui, &T, &str) -> Response + 'a;
+type RenderValueHook<'a, T> = dyn FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a;
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
@@ -54,9 +54,18 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
             render_value_hook(ui, value, pointer_str)
         } else {
-            render_value(ui, &self.style, value_str, value_type, search_term)
+            Some(render_value(
+                ui,
+                &self.style,
+                value_str,
+                value_type,
+                search_term,
+            ))
         };
-        self.response_callback(response, pointer_str);
+
+        if let Some(response) = response {
+            self.response_callback(response, pointer_str);
+        }
     }
 
     pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer_str: &String) {

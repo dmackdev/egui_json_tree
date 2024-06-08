@@ -18,7 +18,22 @@ pub enum JsonTreeValue<'a, T: ?Sized> {
     ///   - For arrays, the key should be the index of each element.
     ///   - For objects, the key should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
-    Expandable(Vec<(String, &'a T)>, ExpandableType),
+    Expandable(Vec<(NestedProperty<'a>, &'a T)>, ExpandableType),
+}
+
+#[derive(Debug, Clone, Copy, Hash)]
+pub enum NestedProperty<'a> {
+    Key(&'a str),
+    Index(usize),
+}
+
+impl<'a> ToString for NestedProperty<'a> {
+    fn to_string(&self) -> String {
+        match self {
+            NestedProperty::Key(key) => key.to_string(),
+            NestedProperty::Index(idx) => idx.to_string(),
+        }
+    }
 }
 
 /// The type of a non-recursive JSON value.
@@ -38,13 +53,13 @@ pub enum ExpandableType {
 }
 
 #[derive(Hash)]
-pub(crate) struct Parent {
-    pub(crate) key: String,
+pub(crate) struct Parent<'a> {
+    pub(crate) key: NestedProperty<'a>,
     pub(crate) expandable_type: ExpandableType,
 }
 
-impl Parent {
-    pub(crate) fn new(key: String, expandable_type: ExpandableType) -> Self {
+impl<'a> Parent<'a> {
+    pub(crate) fn new(key: NestedProperty<'a>, expandable_type: ExpandableType) -> Self {
         Self {
             key,
             expandable_type,
@@ -68,12 +83,14 @@ impl ToJsonTreeValue for serde_json::Value {
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (idx.to_string(), elem))
+                    .map(|(idx, elem)| (NestedProperty::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
-                obj.iter().map(|(key, val)| (key.to_owned(), val)).collect(),
+                obj.iter()
+                    .map(|(key, val)| (NestedProperty::Key(key), val))
+                    .collect(),
                 ExpandableType::Object,
             ),
         }
@@ -108,12 +125,14 @@ impl ToJsonTreeValue for simd_json::owned::Value {
             simd_json::OwnedValue::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (idx.to_string(), elem))
+                    .map(|(idx, elem)| (NestedProperty::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             simd_json::OwnedValue::Object(obj) => JsonTreeValue::Expandable(
-                obj.iter().map(|(key, val)| (key.to_owned(), val)).collect(),
+                obj.iter()
+                    .map(|(key, val)| (NestedProperty::Key(key), val))
+                    .collect(),
                 ExpandableType::Object,
             ),
         }

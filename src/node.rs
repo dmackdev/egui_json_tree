@@ -8,14 +8,14 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
-    value::{ExpandableType, JsonTreeValue, Parent, ToJsonTreeValue},
+    value::{ExpandableType, JsonTreeValue, NestedProperty, Parent, ToJsonTreeValue},
     DefaultExpand,
 };
 
 pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
     id: Id,
     value: &'a T,
-    parent: Option<Parent>,
+    parent: Option<Parent<'a>>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
@@ -193,7 +193,7 @@ fn show_expandable<T: ToJsonTreeValue>(
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
                             render_hooks.render_key(
                                 ui,
-                                &Parent::new(key.to_owned(), expandable.expandable_type),
+                                &Parent::new(*key, expandable.expandable_type),
                                 search_term.as_ref(),
                                 pointer_string,
                             );
@@ -256,9 +256,9 @@ fn show_expandable<T: ToJsonTreeValue>(
             for (key, elem) in expandable.entries {
                 let is_expandable = elem.is_expandable();
 
-                path_segments.push(key.clone());
+                path_segments.push(key.to_string());
 
-                let add_nested_tree = |ui: &mut Ui| {
+                let mut add_nested_tree = |ui: &mut Ui| {
                     let nested_tree = JsonTreeNode {
                         id: expandable.id,
                         value: elem,
@@ -316,9 +316,9 @@ enum InnerExpand {
 
 struct Expandable<'a, T> {
     id: Id,
-    entries: Vec<(String, &'a T)>,
+    entries: Vec<(NestedProperty<'a>, &'a T)>,
     expandable_type: ExpandableType,
-    parent: Option<Parent>,
+    parent: Option<Parent<'a>>,
 }
 
 fn get_pointer_string(path_segments: &[String]) -> String {
@@ -349,7 +349,7 @@ fn populate_path_id_map_impl<T: ToJsonTreeValue>(
         for (key, val) in entries {
             let id = make_persistent_id(path_segments);
             path_id_map.insert(path_segments.clone(), id);
-            path_segments.push(key.to_owned());
+            path_segments.push(key.to_string());
             populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
             path_segments.pop();
         }

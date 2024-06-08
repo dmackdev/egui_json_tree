@@ -183,7 +183,7 @@ impl KeyLayoutJobCreator {
                 expandable_type: ExpandableType::Array,
             } => add_array_idx(
                 &mut job,
-                key,
+                &key.to_string(),
                 style.array_idx_color,
                 style.punctuation_color,
                 font_id,
@@ -193,7 +193,7 @@ impl KeyLayoutJobCreator {
                 expandable_type: ExpandableType::Object,
             } => add_object_key(
                 &mut job,
-                key,
+                &key.to_string(),
                 style.object_key_color,
                 style.punctuation_color,
                 search_term,
@@ -205,7 +205,7 @@ impl KeyLayoutJobCreator {
     }
 }
 
-impl ComputerMut<(&JsonTreeStyle, &Parent, Option<&SearchTerm>, &FontId), LayoutJob>
+impl<'a> ComputerMut<(&JsonTreeStyle, &Parent<'a>, Option<&SearchTerm>, &FontId), LayoutJob>
     for KeyLayoutJobCreator
 {
     fn compute(

@@ -20,6 +20,7 @@ pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
+    pointer: String,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
@@ -28,6 +29,7 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
             style: Default::default(),
             response_callback: Default::default(),
             render_value_hook: Default::default(),
+            pointer: String::new(),
         }
     }
 }
@@ -38,10 +40,9 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         ui: &mut Ui,
         parent: &Parent,
         search_term: Option<&SearchTerm>,
-        pointer_str: &String,
     ) {
         let response = render_key(ui, &self.style, parent, search_term);
-        self.response_callback(response, pointer_str);
+        self.response_callback(response);
     }
 
     pub(crate) fn render_value(
@@ -51,10 +52,9 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         display_value: &dyn Display,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
-        pointer_str: &String,
     ) {
         let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
-            render_value_hook(ui, value, pointer_str)
+            render_value_hook(ui, value, &self.pointer)
         } else {
             Some(render_value(
                 ui,
@@ -66,20 +66,28 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         };
 
         if let Some(response) = response {
-            self.response_callback(response, pointer_str);
+            self.response_callback(response);
         }
     }
 
-    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer_str: &String) {
+    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc) {
         let response = render_punc(ui, &self.style, punc.as_ref());
         if matches!(punc, Punc::CollapsedDelimiter(_)) {
-            self.response_callback(response, pointer_str);
+            self.response_callback(response);
         }
     }
 
-    fn response_callback(&mut self, response: Response, pointer_str: &String) {
+    pub(crate) fn update_pointer(&mut self, path_segments: &[String]) {
+        self.pointer = if path_segments.is_empty() {
+            "".to_string()
+        } else {
+            format!("/{}", path_segments.join("/"))
+        }
+    }
+
+    fn response_callback(&mut self, response: Response) {
         if let Some(response_callback) = self.response_callback.as_mut() {
-            response_callback(response, pointer_str)
+            response_callback(response, &self.pointer)
         }
     }
 }

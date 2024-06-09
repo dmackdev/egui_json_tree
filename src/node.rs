@@ -95,24 +95,25 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         config: &JsonTreeNodeConfig,
         render_hooks: &mut RenderHooks<'a, T>,
     ) {
+        render_hooks.update_pointer(path_segments);
+
         let JsonTreeNodeConfig { search_term, .. } = config;
-        let pointer_string = &get_pointer_string(path_segments);
+
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, parent, search_term.as_ref(), pointer_string);
+                        render_hooks.render_key(ui, parent, search_term.as_ref());
                     }
 
                     render_hooks.render_value(
                         ui,
-                            value,
-                            display_value,
+                        value,
+                        display_value,
                         &value_type,
                         search_term.as_ref(),
-                        pointer_string,
                     );
                 });
             }
@@ -146,12 +147,13 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
     config: &JsonTreeNodeConfig,
     render_hooks: &mut RenderHooks<'a, T>,
 ) {
+    render_hooks.update_pointer(path_segments);
+
     let JsonTreeNodeConfig {
         default_expand,
         abbreviate_root,
         search_term,
     } = config;
-    let pointer_string = &get_pointer_string(path_segments);
 
     let delimiters = match expandable.expandable_type {
         ExpandableType::Array => &ARRAY_DELIMITERS,
@@ -179,12 +181,12 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.render_punc(ui, &delimiters.collapsed, pointer_string);
+                        render_hooks.render_punc(ui, &delimiters.collapsed);
                         return;
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.opening, pointer_string);
-                    render_hooks.render_punc(ui, &EMPTY_SPACE, pointer_string);
+                    render_hooks.render_punc(ui, &delimiters.opening);
+                    render_hooks.render_punc(ui, &EMPTY_SPACE);
 
                     let entries_len = expandable.entries.len();
 
@@ -195,7 +197,6 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                                 ui,
                                 &Parent::new(*key, expandable.expandable_type),
                                 search_term.as_ref(),
-                                pointer_string,
                             );
                         }
 
@@ -203,11 +204,10 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                             JsonTreeValue::Base(value, display_value, value_type) => {
                                 render_hooks.render_value(
                                     ui,
-                                        value,
-                                        display_value,
+                                    value,
+                                    display_value,
                                     &value_type,
                                     search_term.as_ref(),
-                                    pointer_string,
                                 );
                             }
                             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -222,7 +222,7 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                                     &nested_delimiters.collapsed
                                 };
 
-                                render_hooks.render_punc(ui, delimiter, pointer_string);
+                                render_hooks.render_punc(ui, delimiter);
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
@@ -230,24 +230,24 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        render_hooks.render_punc(ui, &spacing, pointer_string);
+                        render_hooks.render_punc(ui, &spacing);
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.closing, pointer_string);
+                    render_hooks.render_punc(ui, &delimiters.closing);
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, parent, search_term.as_ref(), pointer_string);
+                        render_hooks.render_key(ui, parent, search_term.as_ref());
                     }
 
                     if is_expanded {
-                        render_hooks.render_punc(ui, &delimiters.opening, pointer_string);
+                        render_hooks.render_punc(ui, &delimiters.opening);
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
                             &delimiters.collapsed_empty
                         } else {
                             &delimiters.collapsed
                         };
-                        render_hooks.render_punc(ui, delimiter, pointer_string);
+                        render_hooks.render_punc(ui, delimiter);
                     }
                 }
             });
@@ -295,7 +295,7 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_hooks.render_punc(ui, &delimiters.closing, pointer_string);
+            render_hooks.render_punc(ui, &delimiters.closing);
         });
     }
 }
@@ -319,14 +319,6 @@ struct Expandable<'a, T> {
     entries: Vec<(NestedProperty<'a>, &'a T)>,
     expandable_type: ExpandableType,
     parent: Option<Parent<'a>>,
-}
-
-fn get_pointer_string(path_segments: &[String]) -> String {
-    if path_segments.is_empty() {
-        "".to_string()
-    } else {
-        format!("/{}", path_segments.join("/"))
-    }
 }
 
 type PathIdMap = HashMap<Vec<String>, Id>;

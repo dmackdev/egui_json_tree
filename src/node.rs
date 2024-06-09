@@ -30,7 +30,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     pub(crate) fn show_with_config(
         self,
         ui: &mut Ui,
-        config: JsonTreeConfig<T>,
+        config: JsonTreeConfig<'a, T>,
     ) -> JsonTreeResponse {
         let persistent_id = ui.id();
         let tree_id = self.id;
@@ -93,7 +93,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         path_id_map: &mut PathIdMap,
         make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
         config: &JsonTreeNodeConfig,
-        render_hooks: &mut RenderHooks<T>,
+        render_hooks: &mut RenderHooks<'a, T>,
     ) {
         let JsonTreeNodeConfig { search_term, .. } = config;
         let pointer_string = &get_pointer_string(path_segments);
@@ -108,8 +108,8 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
                     render_hooks.render_value(
                         ui,
-                        value,
-                        display_value,
+                            value,
+                            display_value,
                         &value_type,
                         search_term.as_ref(),
                         pointer_string,
@@ -137,14 +137,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     }
 }
 
-fn show_expandable<T: ToJsonTreeValue>(
+fn show_expandable<'a, T: ToJsonTreeValue>(
     ui: &mut Ui,
     path_segments: &mut Vec<String>,
     path_id_map: &mut PathIdMap,
-    expandable: Expandable<T>,
+    expandable: Expandable<'a, T>,
     make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
     config: &JsonTreeNodeConfig,
-    render_hooks: &mut RenderHooks<T>,
+    render_hooks: &mut RenderHooks<'a, T>,
 ) {
     let JsonTreeNodeConfig {
         default_expand,
@@ -203,8 +203,8 @@ fn show_expandable<T: ToJsonTreeValue>(
                             JsonTreeValue::Base(value, display_value, value_type) => {
                                 render_hooks.render_value(
                                     ui,
-                                    value,
-                                    display_value,
+                                        value,
+                                        display_value,
                                     &value_type,
                                     search_term.as_ref(),
                                     pointer_string,

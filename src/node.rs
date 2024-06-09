@@ -86,17 +86,15 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         }
     }
 
-    fn show_impl(
+    fn show_impl<'b>(
         self,
         ui: &mut Ui,
-        path_segments: &mut Vec<String>,
-        path_id_map: &mut PathIdMap,
-        make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
-        config: &JsonTreeNodeConfig,
-        render_hooks: &mut RenderHooks<'a, T>,
+        path_segments: &'b mut Vec<String>,
+        path_id_map: &'b mut PathIdMap,
+        make_persistent_id: &'b dyn Fn(&Vec<String>) -> Id,
+        config: &'b JsonTreeNodeConfig,
+        render_hooks: &'b mut RenderHooks<'a, T>,
     ) {
-        render_hooks.update_pointer(path_segments);
-
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
                 ui.horizontal_wrapped(|ui| {
@@ -137,17 +135,15 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     }
 }
 
-fn show_expandable<'a, T: ToJsonTreeValue>(
+fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     ui: &mut Ui,
-    path_segments: &mut Vec<String>,
-    path_id_map: &mut PathIdMap,
+    path_segments: &'b mut Vec<String>,
+    path_id_map: &'b mut PathIdMap,
     expandable: Expandable<'a, T>,
-    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
-    config: &JsonTreeNodeConfig,
-    render_hooks: &mut RenderHooks<'a, T>,
+    make_persistent_id: &'b dyn Fn(&Vec<String>) -> Id,
+    config: &'b JsonTreeNodeConfig,
+    render_hooks: &'b mut RenderHooks<'a, T>,
 ) {
-    render_hooks.update_pointer(path_segments);
-
     let JsonTreeNodeConfig {
         default_expand,
         abbreviate_root,

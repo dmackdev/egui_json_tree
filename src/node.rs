@@ -101,7 +101,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, parent);
+                        render_hooks.render_key(ui, parent, path_segments);
                     }
 
                     render_hooks.render_value(
@@ -110,6 +110,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                             value,
                             display_value,
                             value_type,
+                            path_segments,
                         },
                     );
                 });
@@ -175,20 +176,23 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.render_punc(ui, &delimiters.collapsed);
+                        render_hooks.render_punc(ui, &delimiters.collapsed, path_segments);
                         return;
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.opening);
-                    render_hooks.render_punc(ui, &EMPTY_SPACE);
+                    render_hooks.render_punc(ui, &delimiters.opening, path_segments);
+                    render_hooks.render_punc(ui, &EMPTY_SPACE, path_segments);
 
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            render_hooks
-                                .render_key(ui, &Parent::new(*key, expandable.expandable_type));
+                            render_hooks.render_key(
+                                ui,
+                                &Parent::new(*key, expandable.expandable_type),
+                                path_segments,
+                            );
                         }
 
                         match elem.to_json_tree_value() {
@@ -199,6 +203,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                         value,
                                         display_value,
                                         value_type,
+                                        path_segments,
                                     },
                                 );
                             }
@@ -214,7 +219,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     &nested_delimiters.collapsed
                                 };
 
-                                render_hooks.render_punc(ui, delimiter);
+                                render_hooks.render_punc(ui, delimiter, path_segments);
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
@@ -222,24 +227,24 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        render_hooks.render_punc(ui, &spacing);
+                        render_hooks.render_punc(ui, &spacing, path_segments);
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.closing);
+                    render_hooks.render_punc(ui, &delimiters.closing, path_segments);
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, parent);
+                        render_hooks.render_key(ui, parent, path_segments);
                     }
 
                     if is_expanded {
-                        render_hooks.render_punc(ui, &delimiters.opening);
+                        render_hooks.render_punc(ui, &delimiters.opening, path_segments);
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
                             &delimiters.collapsed_empty
                         } else {
                             &delimiters.collapsed
                         };
-                        render_hooks.render_punc(ui, delimiter);
+                        render_hooks.render_punc(ui, delimiter, path_segments);
                     }
                 }
             });
@@ -287,7 +292,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_hooks.render_punc(ui, &delimiters.closing);
+            render_hooks.render_punc(ui, &delimiters.closing, path_segments);
         });
     }
 }

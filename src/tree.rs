@@ -68,8 +68,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     pub fn on_render_value_if(
         self,
         condition: bool,
-        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response>
-            + 'a,
+        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a,
     ) -> Self {
         if condition {
             self.on_render_value(render_value_hook)
@@ -80,8 +79,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     pub fn on_render_value(
         mut self,
-        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response>
-            + 'a,
+        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a,
     ) -> Self {
         self.config.render_hooks.render_value_hook = Some(Box::new(render_value_hook));
         self

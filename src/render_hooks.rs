@@ -15,12 +15,14 @@ use crate::{
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
 type RenderValueHook<'a, T> =
-    dyn FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response> + 'a;
+    dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a;
 
-pub struct RenderValueContext<'a, T: ToJsonTreeValue> {
+pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
     pub display_value: &'a dyn Display,
     pub value_type: BaseValueType,
+    // TODO: Use pointer newtype
+    pub path_segments: &'b [String],
 }
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
@@ -28,7 +30,6 @@ pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
     pub(crate) search_term: Option<SearchTerm>,
-    pointer: String,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
@@ -38,20 +39,20 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
             response_callback: Default::default(),
             render_value_hook: Default::default(),
             search_term: None,
-            pointer: String::new(),
         }
     }
 }
 
 impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
-    pub(crate) fn render_key(&mut self, ui: &mut Ui, parent: &Parent) {
+    // TODO: Create RenderKeyContext and use that
+    pub(crate) fn render_key(&mut self, ui: &mut Ui, parent: &Parent, path_segments: &[String]) {
         let response = render_key(ui, &self.style, parent, self.search_term.as_ref());
-        self.response_callback(response);
+        self.response_callback(response, path_segments);
     }
 
-    pub(crate) fn render_value(&mut self, ui: &mut Ui, context: RenderValueContext<'a, T>) {
+    pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
         let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
-            render_value_hook(ui, &context, &self.pointer)
+            render_value_hook(ui, &context)
         } else {
             Some(render_value(
                 ui,
@@ -63,29 +64,30 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         };
 
         if let Some(response) = response {
-            self.response_callback(response);
+            self.response_callback(response, context.path_segments);
         }
     }
 
-    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc) {
+    // TODO: Create RenderPuncContext and use that
+    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, path_segments: &[String]) {
         let response = render_punc(ui, &self.style, punc.as_ref());
         if matches!(punc, Punc::CollapsedDelimiter(_)) {
-            self.response_callback(response);
+            self.response_callback(response, path_segments);
         }
     }
 
-    pub(crate) fn update_pointer(&mut self, path_segments: &[String]) {
-        self.pointer = if path_segments.is_empty() {
-            "".to_string()
-        } else {
-            format!("/{}", path_segments.join("/"))
-        }
-    }
-
-    fn response_callback(&mut self, response: Response) {
+    fn response_callback(&mut self, response: Response, path_segments: &[String]) {
         if let Some(response_callback) = self.response_callback.as_mut() {
-            response_callback(response, &self.pointer)
+            response_callback(response, &get_pointer(path_segments))
         }
+    }
+}
+
+fn get_pointer(path_segments: &[String]) -> String {
+    if path_segments.is_empty() {
+        "".to_string()
+    } else {
+        format!("/{}", path_segments.join("/"))
     }
 }
 

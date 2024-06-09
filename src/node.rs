@@ -4,7 +4,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
-    render_hooks::RenderHooks,
+    render_hooks::{RenderHooks, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
@@ -60,10 +60,10 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         let node_config = JsonTreeNodeConfig {
             default_expand,
             abbreviate_root: config.abbreviate_root,
-            search_term,
         };
 
         let mut render_hooks = config.render_hooks;
+        render_hooks.search_term = search_term;
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
@@ -97,23 +97,22 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     ) {
         render_hooks.update_pointer(path_segments);
 
-        let JsonTreeNodeConfig { search_term, .. } = config;
-
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, parent, search_term.as_ref());
+                        render_hooks.render_key(ui, parent);
                     }
 
                     render_hooks.render_value(
                         ui,
-                        value,
-                        display_value,
-                        &value_type,
-                        search_term.as_ref(),
+                        RenderValueContext {
+                            value,
+                            display_value,
+                            value_type,
+                        },
                     );
                 });
             }
@@ -152,7 +151,6 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
     let JsonTreeNodeConfig {
         default_expand,
         abbreviate_root,
-        search_term,
     } = config;
 
     let delimiters = match expandable.expandable_type {
@@ -193,21 +191,19 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            render_hooks.render_key(
-                                ui,
-                                &Parent::new(*key, expandable.expandable_type),
-                                search_term.as_ref(),
-                            );
+                            render_hooks
+                                .render_key(ui, &Parent::new(*key, expandable.expandable_type));
                         }
 
                         match elem.to_json_tree_value() {
                             JsonTreeValue::Base(value, display_value, value_type) => {
                                 render_hooks.render_value(
                                     ui,
-                                    value,
-                                    display_value,
-                                    &value_type,
-                                    search_term.as_ref(),
+                                    RenderValueContext {
+                                        value,
+                                        display_value,
+                                        value_type,
+                                    },
                                 );
                             }
                             JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -236,7 +232,7 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
                     render_hooks.render_punc(ui, &delimiters.closing);
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, parent, search_term.as_ref());
+                        render_hooks.render_key(ui, parent);
                     }
 
                     if is_expanded {
@@ -303,7 +299,6 @@ fn show_expandable<'a, T: ToJsonTreeValue>(
 struct JsonTreeNodeConfig {
     default_expand: InnerExpand,
     abbreviate_root: bool,
-    search_term: Option<SearchTerm>,
 }
 
 #[derive(Debug, Clone)]

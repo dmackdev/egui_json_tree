@@ -1,6 +1,8 @@
 use crate::{
-    node::JsonTreeNode, render_hooks::RenderHooks, value::ToJsonTreeValue, DefaultExpand,
-    JsonTreeResponse, JsonTreeStyle,
+    node::JsonTreeNode,
+    render_hooks::{RenderHooks, RenderValueContext},
+    value::ToJsonTreeValue,
+    DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Response, Ui};
 use std::hash::Hash;
@@ -66,7 +68,8 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     pub fn on_render_value_if(
         self,
         condition: bool,
-        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a,
+        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response>
+            + 'a,
     ) -> Self {
         if condition {
             self.on_render_value(render_value_hook)
@@ -77,7 +80,8 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     pub fn on_render_value(
         mut self,
-        render_value_hook: impl FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a,
+        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response>
+            + 'a,
     ) -> Self {
         self.config.render_hooks.render_value_hook = Some(Box::new(render_value_hook));
         self

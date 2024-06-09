@@ -14,12 +14,20 @@ use crate::{
 };
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
-type RenderValueHook<'a, T> = dyn FnMut(&mut Ui, &T, &str) -> Option<Response> + 'a;
+type RenderValueHook<'a, T> =
+    dyn FnMut(&mut Ui, &RenderValueContext<'a, T>, &str) -> Option<Response> + 'a;
+
+pub struct RenderValueContext<'a, T: ToJsonTreeValue> {
+    pub value: &'a T,
+    pub display_value: &'a dyn Display,
+    pub value_type: BaseValueType,
+}
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
+    pub(crate) search_term: Option<SearchTerm>,
     pointer: String,
 }
 
@@ -29,39 +37,28 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
             style: Default::default(),
             response_callback: Default::default(),
             render_value_hook: Default::default(),
+            search_term: None,
             pointer: String::new(),
         }
     }
 }
 
 impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
-    pub(crate) fn render_key(
-        &mut self,
-        ui: &mut Ui,
-        parent: &Parent,
-        search_term: Option<&SearchTerm>,
-    ) {
-        let response = render_key(ui, &self.style, parent, search_term);
+    pub(crate) fn render_key(&mut self, ui: &mut Ui, parent: &Parent) {
+        let response = render_key(ui, &self.style, parent, self.search_term.as_ref());
         self.response_callback(response);
     }
 
-    pub(crate) fn render_value(
-        &mut self,
-        ui: &mut Ui,
-        value: &T,
-        display_value: &dyn Display,
-        value_type: &BaseValueType,
-        search_term: Option<&SearchTerm>,
-    ) {
+    pub(crate) fn render_value(&mut self, ui: &mut Ui, context: RenderValueContext<'a, T>) {
         let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
-            render_value_hook(ui, value, &self.pointer)
+            render_value_hook(ui, &context, &self.pointer)
         } else {
             Some(render_value(
                 ui,
                 &self.style,
-                &display_value.to_string(),
-                value_type,
-                search_term,
+                &context.display_value.to_string(),
+                &context.value_type,
+                self.search_term.as_ref(),
             ))
         };
 

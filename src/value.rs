@@ -36,6 +36,15 @@ impl<'a> ToString for NestedProperty<'a> {
     }
 }
 
+impl<'a> NestedProperty<'a> {
+    pub fn to_pointer_segment_string(&self) -> String {
+        match self {
+            NestedProperty::Key(key) => format!("/{}", key.replace('~', "~0").replace('/', "~1")),
+            NestedProperty::Index(idx) => format!("/{}", idx),
+        }
+    }
+}
+
 /// The type of a non-recursive JSON value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BaseValueType {

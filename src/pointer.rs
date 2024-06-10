@@ -10,7 +10,7 @@ impl<'a, 'b> ToString for JsonPointer<'a, 'b> {
         } else {
             self.0
                 .iter()
-                .map(|seg| format!("/{}", seg.to_string().replace('~', "~0").replace('/', "~1")))
+                .map(NestedProperty::to_pointer_segment_string)
                 .collect()
         }
     }

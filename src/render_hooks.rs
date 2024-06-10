@@ -19,6 +19,7 @@ type RenderKeyHook<'a> = dyn FnMut(&mut Ui, &RenderKeyContext<'a, '_>) -> Option
 type RenderValueHook<'a, T> =
     dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a;
 type PostRenderValueHook<'a, T> = dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a;
+type ResponseHook<'a> = dyn FnMut(ResponseContext<'a, '_>) + 'a;
 
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
@@ -37,12 +38,18 @@ pub(crate) struct RenderPuncContext<'a, 'b> {
     pub(crate) pointer: JsonPointer<'a, 'b>,
 }
 
+pub struct ResponseContext<'a, 'b> {
+    pub response: Response,
+    pub pointer: JsonPointer<'a, 'b>,
+}
+
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_key_hook: Option<Box<RenderKeyHook<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
     pub(crate) post_render_value_hook: Option<Box<PostRenderValueHook<'a, T>>>,
+    pub(crate) response_hook: Option<Box<ResponseHook<'a>>>,
     pub(crate) search_term: Option<SearchTerm>,
 }
 
@@ -54,6 +61,7 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
             render_key_hook: Default::default(),
             render_value_hook: Default::default(),
             post_render_value_hook: Default::default(),
+            response_hook: Default::default(),
             search_term: None,
         }
     }
@@ -119,7 +127,16 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         }
     }
 
-    fn response_hook(&mut self, response: Option<Response>, pointer: JsonPointer) {
+    fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {
+        if let (Some(response_hook), Some(response)) =
+            (self.response_hook.as_mut(), response.as_ref())
+        {
+            response_hook(ResponseContext {
+                response: response.clone(),
+                pointer,
+            })
+        }
+        // Deprecated.
         if let (Some(response_callback), Some(response)) =
             (self.response_callback.as_mut(), response)
         {

@@ -1,6 +1,6 @@
 use crate::{
     node::JsonTreeNode,
-    render_hooks::{RenderHooks, RenderKeyContext, RenderValueContext},
+    render_hooks::{RenderHooks, RenderKeyContext, RenderValueContext, ResponseContext},
     value::ToJsonTreeValue,
     DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
@@ -122,6 +122,23 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         post_render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
     ) -> Self {
         self.config.render_hooks.post_render_value_hook = Some(Box::new(post_render_value_hook));
+        self
+    }
+
+    pub fn on_response_if(
+        self,
+        condition: bool,
+        response_hook: impl FnMut(ResponseContext<'a, '_>) + 'a,
+    ) -> Self {
+        if condition {
+            self.on_response(response_hook)
+        } else {
+            self
+        }
+    }
+
+    pub fn on_response(mut self, response_hook: impl FnMut(ResponseContext<'a, '_>) + 'a) -> Self {
+        self.config.render_hooks.response_hook = Some(Box::new(response_hook));
         self
     }
 

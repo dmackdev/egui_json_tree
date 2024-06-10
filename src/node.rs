@@ -4,6 +4,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
+    pointer::JsonPointer,
     render_hooks::{RenderHooks, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
@@ -35,7 +36,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         let persistent_id = ui.id();
         let tree_id = self.id;
         let make_persistent_id =
-            |path_segments: &Vec<String>| persistent_id.with(tree_id.with(path_segments));
+            |path_segments: &Vec<NestedProperty>| persistent_id.with(tree_id.with(path_segments));
 
         let mut path_id_map = HashMap::new();
 
@@ -89,10 +90,10 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     fn show_impl<'b>(
         self,
         ui: &mut Ui,
-        path_segments: &'b mut Vec<String>,
-        path_id_map: &'b mut PathIdMap,
-        make_persistent_id: &'b dyn Fn(&Vec<String>) -> Id,
-        config: &'b JsonTreeNodeConfig,
+        path_segments: &'b mut Vec<NestedProperty<'a>>,
+        path_id_map: &'b mut PathIdMap<'a>,
+        make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
+        config: &'b JsonTreeNodeConfig<'a>,
         render_hooks: &'b mut RenderHooks<'a, T>,
     ) {
         match self.value.to_json_tree_value() {
@@ -101,7 +102,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, parent, path_segments);
+                        render_hooks.render_key(ui, &parent.key, JsonPointer(path_segments));
                     }
 
                     render_hooks.render_value(
@@ -110,7 +111,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                             value,
                             display_value,
                             value_type,
-                            path_segments,
+                            pointer: JsonPointer(path_segments),
                         },
                     );
                 });
@@ -138,11 +139,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
 fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     ui: &mut Ui,
-    path_segments: &'b mut Vec<String>,
-    path_id_map: &'b mut PathIdMap,
+    path_segments: &'b mut Vec<NestedProperty<'a>>,
+    path_id_map: &'b mut PathIdMap<'a>,
     expandable: Expandable<'a, T>,
-    make_persistent_id: &'b dyn Fn(&Vec<String>) -> Id,
-    config: &'b JsonTreeNodeConfig,
+    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
+    config: &'b JsonTreeNodeConfig<'a>,
     render_hooks: &'b mut RenderHooks<'a, T>,
 ) {
     let JsonTreeNodeConfig {
@@ -176,23 +177,23 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.render_punc(ui, &delimiters.collapsed, path_segments);
+                        render_hooks.render_punc(
+                            ui,
+                            &delimiters.collapsed,
+                            JsonPointer(path_segments),
+                        );
                         return;
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.opening, path_segments);
-                    render_hooks.render_punc(ui, &EMPTY_SPACE, path_segments);
+                    render_hooks.render_punc(ui, &delimiters.opening, JsonPointer(path_segments));
+                    render_hooks.render_punc(ui, &EMPTY_SPACE, JsonPointer(path_segments));
 
                     let entries_len = expandable.entries.len();
 
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            render_hooks.render_key(
-                                ui,
-                                &Parent::new(*key, expandable.expandable_type),
-                                path_segments,
-                            );
+                            render_hooks.render_key(ui, key, JsonPointer(path_segments));
                         }
 
                         match elem.to_json_tree_value() {
@@ -203,7 +204,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                         value,
                                         display_value,
                                         value_type,
-                                        path_segments,
+                                        pointer: JsonPointer(path_segments),
                                     },
                                 );
                             }
@@ -219,7 +220,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     &nested_delimiters.collapsed
                                 };
 
-                                render_hooks.render_punc(ui, delimiter, path_segments);
+                                render_hooks.render_punc(ui, delimiter, JsonPointer(path_segments));
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
@@ -227,24 +228,28 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        render_hooks.render_punc(ui, &spacing, path_segments);
+                        render_hooks.render_punc(ui, &spacing, JsonPointer(path_segments));
                     }
 
-                    render_hooks.render_punc(ui, &delimiters.closing, path_segments);
+                    render_hooks.render_punc(ui, &delimiters.closing, JsonPointer(path_segments));
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, parent, path_segments);
+                        render_hooks.render_key(ui, &parent.key, JsonPointer(path_segments));
                     }
 
                     if is_expanded {
-                        render_hooks.render_punc(ui, &delimiters.opening, path_segments);
+                        render_hooks.render_punc(
+                            ui,
+                            &delimiters.opening,
+                            JsonPointer(path_segments),
+                        );
                     } else {
                         let delimiter = if expandable.entries.is_empty() {
                             &delimiters.collapsed_empty
                         } else {
                             &delimiters.collapsed
                         };
-                        render_hooks.render_punc(ui, delimiter, path_segments);
+                        render_hooks.render_punc(ui, delimiter, JsonPointer(path_segments));
                     }
                 }
             });
@@ -253,7 +258,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
             for (key, elem) in expandable.entries {
                 let is_expandable = elem.is_expandable();
 
-                path_segments.push(key.to_string());
+                path_segments.push(key);
 
                 let mut add_nested_tree = |ui: &mut Ui| {
                     let nested_tree = JsonTreeNode {
@@ -292,22 +297,22 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_hooks.render_punc(ui, &delimiters.closing, path_segments);
+            render_hooks.render_punc(ui, &delimiters.closing, JsonPointer(path_segments));
         });
     }
 }
 
-struct JsonTreeNodeConfig {
-    default_expand: InnerExpand,
+struct JsonTreeNodeConfig<'a> {
+    default_expand: InnerExpand<'a>,
     abbreviate_root: bool,
 }
 
 #[derive(Debug, Clone)]
-enum InnerExpand {
+enum InnerExpand<'a> {
     All,
     None,
     ToLevel(u8),
-    Paths(HashSet<Vec<String>>),
+    Paths(HashSet<Vec<NestedProperty<'a>>>),
 }
 
 struct Expandable<'a, T> {
@@ -317,27 +322,27 @@ struct Expandable<'a, T> {
     parent: Option<Parent<'a>>,
 }
 
-type PathIdMap = HashMap<Vec<String>, Id>;
+type PathIdMap<'a> = HashMap<Vec<NestedProperty<'a>>, Id>;
 
-fn populate_path_id_map<T: ToJsonTreeValue>(
-    value: &T,
-    path_id_map: &mut PathIdMap,
-    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+fn populate_path_id_map<'a, 'b, T: ToJsonTreeValue>(
+    value: &'a T,
+    path_id_map: &'b mut PathIdMap<'a>,
+    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty<'a>>) -> Id,
 ) {
     populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
 }
 
-fn populate_path_id_map_impl<T: ToJsonTreeValue>(
-    value: &T,
-    path_segments: &mut Vec<String>,
-    path_id_map: &mut PathIdMap,
-    make_persistent_id: &dyn Fn(&Vec<String>) -> Id,
+fn populate_path_id_map_impl<'a, 'b, T: ToJsonTreeValue>(
+    value: &'a T,
+    path_segments: &'b mut Vec<NestedProperty<'a>>,
+    path_id_map: &'b mut PathIdMap<'a>,
+    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty<'a>>) -> Id,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
         for (key, val) in entries {
             let id = make_persistent_id(path_segments);
             path_id_map.insert(path_segments.clone(), id);
-            path_segments.push(key.to_string());
+            path_segments.push(key);
             populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
             path_segments.pop();
         }

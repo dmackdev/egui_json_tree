@@ -8,27 +8,29 @@ use egui::{
 
 use crate::{
     delimiters::Punc,
+    pointer::JsonPointer,
     search::SearchTerm,
-    value::{BaseValueType, ExpandableType, Parent, ToJsonTreeValue},
+    value::{BaseValueType, NestedProperty, ToJsonTreeValue},
     JsonTreeStyle,
 };
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
 type RenderValueHook<'a, T> =
     dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a;
+type PostRenderValueHook<'a, T> = dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a;
 
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
     pub display_value: &'a dyn Display,
     pub value_type: BaseValueType,
-    // TODO: Use pointer newtype
-    pub path_segments: &'b [String],
+    pub pointer: JsonPointer<'a, 'b>,
 }
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
+    pub(crate) post_render_value_hook: Option<Box<PostRenderValueHook<'a, T>>>,
     pub(crate) search_term: Option<SearchTerm>,
 }
 
@@ -38,6 +40,7 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
             style: Default::default(),
             response_callback: Default::default(),
             render_value_hook: Default::default(),
+            post_render_value_hook: Default::default(),
             search_term: None,
         }
     }
@@ -45,14 +48,32 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
 
 impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
     // TODO: Create RenderKeyContext and use that
-    pub(crate) fn render_key(&mut self, ui: &mut Ui, parent: &Parent, path_segments: &[String]) {
-        let response = render_key(ui, &self.style, parent, self.search_term.as_ref());
-        self.response_callback(response, path_segments);
+    pub(crate) fn render_key(&mut self, ui: &mut Ui, key: &NestedProperty, pointer: JsonPointer) {
+        let response = render_key(ui, &self.style, key, self.search_term.as_ref());
+        self.response_hook(Some(response), pointer);
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
-        let response = if let Some(render_value_hook) = self.render_value_hook.as_mut() {
-            render_value_hook(ui, &context)
+        let response = self.render_value_hook(ui, &context);
+        self.post_render_value_hook(ui, &context);
+        self.response_hook(response, context.pointer);
+    }
+
+    // TODO: Create RenderPuncContext and use that
+    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer: JsonPointer) {
+        let response = render_punc(ui, &self.style, punc.as_ref());
+        if matches!(punc, Punc::CollapsedDelimiter(_)) {
+            self.response_hook(Some(response), pointer);
+        }
+    }
+
+    fn render_value_hook<'b>(
+        &mut self,
+        ui: &mut Ui,
+        context: &RenderValueContext<'a, 'b, T>,
+    ) -> Option<Response> {
+        if let Some(render_value_hook) = self.render_value_hook.as_mut() {
+            render_value_hook(ui, context)
         } else {
             Some(render_value(
                 ui,
@@ -61,33 +82,21 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
                 &context.value_type,
                 self.search_term.as_ref(),
             ))
-        };
-
-        if let Some(response) = response {
-            self.response_callback(response, context.path_segments);
         }
     }
 
-    // TODO: Create RenderPuncContext and use that
-    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, path_segments: &[String]) {
-        let response = render_punc(ui, &self.style, punc.as_ref());
-        if matches!(punc, Punc::CollapsedDelimiter(_)) {
-            self.response_callback(response, path_segments);
+    fn post_render_value_hook<'b>(&mut self, ui: &mut Ui, context: &RenderValueContext<'a, 'b, T>) {
+        if let Some(post_render_value_hook) = self.post_render_value_hook.as_mut() {
+            post_render_value_hook(ui, context);
         }
     }
 
-    fn response_callback(&mut self, response: Response, path_segments: &[String]) {
-        if let Some(response_callback) = self.response_callback.as_mut() {
-            response_callback(response, &get_pointer(path_segments))
+    fn response_hook(&mut self, response: Option<Response>, pointer: JsonPointer) {
+        if let (Some(response_callback), Some(response)) =
+            (self.response_callback.as_mut(), response)
+        {
+            response_callback(response, &pointer.to_string())
         }
-    }
-}
-
-fn get_pointer(path_segments: &[String]) -> String {
-    if path_segments.is_empty() {
-        "".to_string()
-    } else {
-        format!("/{}", path_segments.join("/"))
     }
 }
 
@@ -179,26 +188,20 @@ impl KeyLayoutJobCreator {
     fn create(
         &self,
         style: &JsonTreeStyle,
-        parent: &Parent,
+        key: &NestedProperty,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
     ) -> LayoutJob {
         let mut job = LayoutJob::default();
-        match parent {
-            Parent {
-                key,
-                expandable_type: ExpandableType::Array,
-            } => add_array_idx(
+        match key {
+            NestedProperty::Index(_) => add_array_idx(
                 &mut job,
                 &key.to_string(),
                 style.array_idx_color,
                 style.punctuation_color,
                 font_id,
             ),
-            Parent {
-                key,
-                expandable_type: ExpandableType::Object,
-            } => add_object_key(
+            NestedProperty::Key(_) => add_object_key(
                 &mut job,
                 &key.to_string(),
                 style.object_key_color,
@@ -212,14 +215,22 @@ impl KeyLayoutJobCreator {
     }
 }
 
-impl<'a> ComputerMut<(&JsonTreeStyle, &Parent<'a>, Option<&SearchTerm>, &FontId), LayoutJob>
-    for KeyLayoutJobCreator
+impl<'a>
+    ComputerMut<
+        (
+            &JsonTreeStyle,
+            &NestedProperty<'a>,
+            Option<&SearchTerm>,
+            &FontId,
+        ),
+        LayoutJob,
+    > for KeyLayoutJobCreator
 {
     fn compute(
         &mut self,
         (style, parent, search_term, font_id): (
             &JsonTreeStyle,
-            &Parent,
+            &NestedProperty,
             Option<&SearchTerm>,
             &FontId,
         ),
@@ -233,13 +244,13 @@ type KeyLayoutJobCreatorCache = FrameCache<LayoutJob, KeyLayoutJobCreator>;
 fn render_key(
     ui: &mut Ui,
     style: &JsonTreeStyle,
-    parent: &Parent,
+    key: &NestedProperty,
     search_term: Option<&SearchTerm>,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
             style,
-            parent,
+            key,
             search_term,
             &style.font_id(ui),
         ))

@@ -21,7 +21,7 @@ pub enum JsonTreeValue<'a, T: ?Sized> {
     Expandable(Vec<(NestedProperty<'a>, &'a T)>, ExpandableType),
 }
 
-#[derive(Debug, Clone, Copy, Hash)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum NestedProperty<'a> {
     Key(&'a str),
     Index(usize),

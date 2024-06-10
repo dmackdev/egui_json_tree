@@ -42,6 +42,7 @@ mod search;
 mod style;
 mod tree;
 
+pub mod pointer;
 pub use response::JsonTreeResponse;
 pub use style::JsonTreeStyle;
 pub mod value;

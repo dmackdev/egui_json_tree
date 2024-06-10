@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::value::{ExpandableType, JsonTreeValue, ToJsonTreeValue};
+use crate::value::{ExpandableType, JsonTreeValue, NestedProperty, ToJsonTreeValue};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);
@@ -26,11 +26,11 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in<T: ToJsonTreeValue>(
+    pub fn find_matching_paths_in<'a, T: ToJsonTreeValue>(
         &self,
-        value: &T,
+        value: &'a T,
         abbreviate_root: bool,
-    ) -> HashSet<Vec<String>> {
+    ) -> HashSet<Vec<NestedProperty<'a>>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
@@ -48,11 +48,11 @@ impl SearchTerm {
     }
 }
 
-fn search_impl<T: ToJsonTreeValue>(
-    value: &T,
+fn search_impl<'a, T: ToJsonTreeValue>(
+    value: &'a T,
     search_term: &SearchTerm,
-    path_segments: &mut Vec<String>,
-    matching_paths: &mut HashSet<Vec<String>>,
+    path_segments: &mut Vec<NestedProperty<'a>>,
+    matching_paths: &mut HashSet<Vec<NestedProperty<'a>>>,
 ) {
     match value.to_json_tree_value() {
         JsonTreeValue::Base(_, display_value, _) => {
@@ -62,7 +62,7 @@ fn search_impl<T: ToJsonTreeValue>(
         }
         JsonTreeValue::Expandable(entries, expandable_type) => {
             for (key, val) in entries.iter() {
-                path_segments.push(key.to_string());
+                path_segments.push(*key);
 
                 // Ignore matches for indices in an array.
                 if expandable_type == ExpandableType::Object && search_term.matches(key) {
@@ -76,7 +76,10 @@ fn search_impl<T: ToJsonTreeValue>(
     };
 }
 
-fn update_matches(path_segments: &[String], matching_paths: &mut HashSet<Vec<String>>) {
+fn update_matches<'a>(
+    path_segments: &[NestedProperty<'a>],
+    matching_paths: &mut HashSet<Vec<NestedProperty<'a>>>,
+) {
     for i in 0..path_segments.len() {
         matching_paths.insert(path_segments[0..i].to_vec());
     }

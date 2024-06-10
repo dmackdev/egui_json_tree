@@ -85,6 +85,17 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         self
     }
 
+    pub fn on_post_render_value_if(
+        mut self,
+        condition: bool,
+        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
+    ) -> Self {
+        if condition {
+            self.config.render_hooks.post_render_value_hook = Some(Box::new(render_value_hook));
+        }
+        self
+    }
+
     /// Override whether a root array/object should show direct child elements when collapsed.
     ///
     /// If called with `true`, a collapsed root object would render as: `{...}`.

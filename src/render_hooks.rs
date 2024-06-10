@@ -15,6 +15,7 @@ use crate::{
 };
 
 type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
+type RenderKeyHook<'a> = dyn FnMut(&mut Ui, &RenderKeyContext<'a, '_>) -> Option<Response> + 'a;
 type RenderValueHook<'a, T> =
     dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a;
 type PostRenderValueHook<'a, T> = dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a;
@@ -39,6 +40,7 @@ pub(crate) struct RenderPuncContext<'a, 'b> {
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
+    pub(crate) render_key_hook: Option<Box<RenderKeyHook<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
     pub(crate) post_render_value_hook: Option<Box<PostRenderValueHook<'a, T>>>,
     pub(crate) search_term: Option<SearchTerm>,
@@ -49,6 +51,7 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
         Self {
             style: Default::default(),
             response_callback: Default::default(),
+            render_key_hook: Default::default(),
             render_value_hook: Default::default(),
             post_render_value_hook: Default::default(),
             search_term: None,
@@ -58,8 +61,8 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
 
 impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
     pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
-        let response = render_key(ui, &self.style, &context.key, self.search_term.as_ref());
-        self.response_hook(Some(response), context.pointer);
+        let response = self.render_key_hook(ui, &context);
+        self.response_hook(response, context.pointer);
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
@@ -72,6 +75,23 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         let response = render_punc(ui, &self.style, context.punc.as_ref());
         if matches!(context.punc, Punc::CollapsedDelimiter(_)) {
             self.response_hook(Some(response), context.pointer);
+        }
+    }
+
+    fn render_key_hook<'b>(
+        &mut self,
+        ui: &mut Ui,
+        context: &RenderKeyContext<'a, 'b>,
+    ) -> Option<Response> {
+        if let Some(render_key_hook) = self.render_key_hook.as_mut() {
+            render_key_hook(ui, context)
+        } else {
+            Some(render_key(
+                ui,
+                &self.style,
+                &context.key,
+                self.search_term.as_ref(),
+            ))
         }
     }
 

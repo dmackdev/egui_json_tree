@@ -9,14 +9,14 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
-    value::{ExpandableType, JsonTreeValue, NestedProperty, Parent, ToJsonTreeValue},
+    value::{ExpandableType, JsonTreeValue, NestedProperty, ToJsonTreeValue},
     DefaultExpand,
 };
 
 pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
     id: Id,
     value: &'a T,
-    parent: Option<Parent<'a>>,
+    parent: Option<NestedProperty<'a>>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
@@ -102,7 +102,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, &parent.key, JsonPointer(path_segments));
+                        render_hooks.render_key(ui, parent, JsonPointer(path_segments));
                     }
 
                     render_hooks.render_value(
@@ -234,7 +234,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     render_hooks.render_punc(ui, &delimiters.closing, JsonPointer(path_segments));
                 } else {
                     if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, &parent.key, JsonPointer(path_segments));
+                        render_hooks.render_key(ui, parent, JsonPointer(path_segments));
                     }
 
                     if is_expanded {
@@ -264,7 +264,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     let nested_tree = JsonTreeNode {
                         id: expandable.id,
                         value: elem,
-                        parent: Some(Parent::new(key, expandable.expandable_type)),
+                        parent: Some(key),
                     };
 
                     nested_tree.show_impl(
@@ -319,7 +319,7 @@ struct Expandable<'a, T> {
     id: Id,
     entries: Vec<(NestedProperty<'a>, &'a T)>,
     expandable_type: ExpandableType,
-    parent: Option<Parent<'a>>,
+    parent: Option<NestedProperty<'a>>,
 }
 
 type PathIdMap<'a> = HashMap<Vec<NestedProperty<'a>>, Id>;

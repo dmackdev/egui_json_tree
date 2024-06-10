@@ -1,5 +1,5 @@
 use egui::{CentralPanel, Context, FontDefinitions, Style};
-use egui_json_tree::{DefaultExpand, JsonTree};
+use egui_json_tree::{render_hooks::ResponseContext, DefaultExpand, JsonTree};
 use serde_json::json;
 
 #[test]
@@ -10,7 +10,7 @@ fn json_tree_response_callback_for_rendering_string() {
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
-            .response_callback(|_, pointer| {
+            .on_response(|ResponseContext { pointer, .. }| {
                 rendered_pointers.push(pointer.to_string());
             })
             .show(ui);
@@ -34,7 +34,7 @@ fn json_tree_default_expand_none() {
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &obj)
-            .response_callback(|_, pointer| {
+            .on_response(|ResponseContext { pointer, .. }| {
                 rendered_pointers.push(pointer.to_string());
             })
             .default_expand(DefaultExpand::None)
@@ -59,7 +59,7 @@ fn json_tree_default_expand_all() {
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &obj)
-            .response_callback(|_, pointer| {
+            .on_response(|ResponseContext { pointer, .. }| {
                 rendered_pointers.push(pointer.to_string());
             })
             .default_expand(DefaultExpand::All)
@@ -87,7 +87,7 @@ fn json_tree_default_expand_to_level_one() {
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &obj)
-            .response_callback(|_, pointer| {
+            .on_response(|ResponseContext { pointer, .. }| {
                 rendered_pointers.push(pointer.to_string());
             })
             .default_expand(DefaultExpand::ToLevel(1))
@@ -120,7 +120,7 @@ fn json_tree_default_expand_search() {
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &obj)
-            .response_callback(|_, pointer| {
+            .on_response(|ResponseContext { pointer, .. }| {
                 rendered_pointers.push(pointer.to_string());
             })
             .default_expand(DefaultExpand::SearchResults("t"))
@@ -173,7 +173,7 @@ fn json_tree_reset_expanded() {
 
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &obj)
-                .response_callback(|_, pointer| {
+                .on_response(|ResponseContext { pointer, .. }| {
                     rendered_pointers.push(pointer.to_string());
                 })
                 .default_expand(DefaultExpand::All)
@@ -192,7 +192,7 @@ fn json_tree_reset_expanded() {
 
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &obj)
-                .response_callback(|_, pointer| {
+                .on_response(|ResponseContext { pointer, .. }| {
                     rendered_pointers.push(pointer.to_string());
                 })
                 .default_expand(DefaultExpand::None)
@@ -211,7 +211,7 @@ fn json_tree_reset_expanded() {
 
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &obj)
-                .response_callback(|_, pointer| {
+                .on_response(|ResponseContext { pointer, .. }| {
                     rendered_pointers.push(pointer.to_string());
                 })
                 .default_expand(DefaultExpand::None)

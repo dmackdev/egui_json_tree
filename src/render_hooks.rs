@@ -31,6 +31,11 @@ pub struct RenderKeyContext<'a, 'b> {
     pub pointer: JsonPointer<'a, 'b>,
 }
 
+pub(crate) struct RenderPuncContext<'a, 'b> {
+    pub(crate) punc: Punc<'static>,
+    pub(crate) pointer: JsonPointer<'a, 'b>,
+}
+
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
@@ -63,11 +68,10 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         self.response_hook(response, context.pointer);
     }
 
-    // TODO: Create RenderPuncContext and use that
-    pub(crate) fn render_punc(&mut self, ui: &mut Ui, punc: &Punc, pointer: JsonPointer) {
-        let response = render_punc(ui, &self.style, punc.as_ref());
-        if matches!(punc, Punc::CollapsedDelimiter(_)) {
-            self.response_hook(Some(response), pointer);
+    pub(crate) fn render_punc<'b>(&mut self, ui: &mut Ui, context: RenderPuncContext<'a, 'b>) {
+        let response = render_punc(ui, &self.style, context.punc.as_ref());
+        if matches!(context.punc, Punc::CollapsedDelimiter(_)) {
+            self.response_hook(Some(response), context.pointer);
         }
     }
 

@@ -22,6 +22,7 @@ pub(crate) const OBJECT_DELIMITERS: Delimiters = Delimiters {
 pub(crate) const EMPTY_SPACE: Punc = Punc::Spacing(" ");
 pub(crate) const COMMA_SPACE: Punc = Punc::Spacing(", ");
 
+#[derive(Clone, Copy)]
 pub(crate) enum Punc<'a> {
     Spacing(&'a str),
     CollapsedDelimiter(&'a str),

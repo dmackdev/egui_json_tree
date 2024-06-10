@@ -36,7 +36,6 @@
 mod default_expand;
 mod delimiters;
 mod node;
-mod render_hooks;
 mod response;
 mod search;
 mod style;
@@ -48,3 +47,4 @@ pub use style::JsonTreeStyle;
 pub mod value;
 pub use default_expand::DefaultExpand;
 pub use tree::JsonTree;
+pub mod render_hooks;

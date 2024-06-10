@@ -26,6 +26,11 @@ pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
 }
 
+pub struct RenderKeyContext<'a, 'b> {
+    pub key: NestedProperty<'a>,
+    pub pointer: JsonPointer<'a, 'b>,
+}
+
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
@@ -47,10 +52,9 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
 }
 
 impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
-    // TODO: Create RenderKeyContext and use that
-    pub(crate) fn render_key(&mut self, ui: &mut Ui, key: &NestedProperty, pointer: JsonPointer) {
-        let response = render_key(ui, &self.style, key, self.search_term.as_ref());
-        self.response_hook(Some(response), pointer);
+    pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
+        let response = render_key(ui, &self.style, &context.key, self.search_term.as_ref());
+        self.response_hook(Some(response), context.pointer);
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {

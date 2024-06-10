@@ -5,7 +5,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
     pointer::JsonPointer,
-    render_hooks::{RenderHooks, RenderValueContext},
+    render_hooks::{RenderHooks, RenderKeyContext, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
@@ -101,8 +101,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    if let Some(parent) = &self.parent {
-                        render_hooks.render_key(ui, parent, JsonPointer(path_segments));
+                    if let Some(key) = self.parent {
+                        render_hooks.render_key(
+                            ui,
+                            RenderKeyContext {
+                                key,
+                                pointer: JsonPointer(path_segments),
+                            },
+                        );
                     }
 
                     render_hooks.render_value(
@@ -193,7 +199,13 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            render_hooks.render_key(ui, key, JsonPointer(path_segments));
+                            render_hooks.render_key(
+                                ui,
+                                RenderKeyContext {
+                                    key: *key,
+                                    pointer: JsonPointer(path_segments),
+                                },
+                            );
                         }
 
                         match elem.to_json_tree_value() {
@@ -233,8 +245,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                     render_hooks.render_punc(ui, &delimiters.closing, JsonPointer(path_segments));
                 } else {
-                    if let Some(parent) = &expandable.parent {
-                        render_hooks.render_key(ui, parent, JsonPointer(path_segments));
+                    if let Some(key) = expandable.parent {
+                        render_hooks.render_key(
+                            ui,
+                            RenderKeyContext {
+                                key,
+                                pointer: JsonPointer(path_segments),
+                            },
+                        );
                     }
 
                     if is_expanded {

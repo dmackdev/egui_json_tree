@@ -86,13 +86,22 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     }
 
     pub fn on_post_render_value_if(
-        mut self,
+        self,
         condition: bool,
-        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
+        post_render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
     ) -> Self {
         if condition {
-            self.config.render_hooks.post_render_value_hook = Some(Box::new(render_value_hook));
+            self.on_post_render_value(post_render_value_hook)
+        } else {
+            self
         }
+    }
+
+    pub fn on_post_render_value(
+        mut self,
+        post_render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
+    ) -> Self {
+        self.config.render_hooks.post_render_value_hook = Some(Box::new(post_render_value_hook));
         self
     }
 

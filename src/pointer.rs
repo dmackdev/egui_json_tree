@@ -5,14 +5,10 @@ pub struct JsonPointer<'a, 'b>(pub(crate) &'b [NestedProperty<'a>]);
 
 impl<'a, 'b> ToString for JsonPointer<'a, 'b> {
     fn to_string(&self) -> String {
-        if self.0.is_empty() {
-            "".to_string()
-        } else {
-            self.0
-                .iter()
-                .map(NestedProperty::to_pointer_segment_string)
-                .collect()
-        }
+        self.0
+            .iter()
+            .map(NestedProperty::to_pointer_segment_string)
+            .collect()
     }
 }
 

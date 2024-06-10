@@ -18,7 +18,7 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
     }
 
     pub fn parent(&self) -> Option<JsonPointer> {
-        self.0.split_last().map(|(_, tail)| JsonPointer(tail))
+        self.0.split_last().map(|(_, init)| JsonPointer(init))
     }
 }
 

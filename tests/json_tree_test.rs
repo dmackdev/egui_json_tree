@@ -1,5 +1,5 @@
 use egui::{CentralPanel, Context, FontDefinitions, Style};
-use egui_json_tree::{render_hooks::ResponseContext, DefaultExpand, JsonTree};
+use egui_json_tree::{render::ResponseContext, DefaultExpand, JsonTree};
 use serde_json::json;
 
 #[test]

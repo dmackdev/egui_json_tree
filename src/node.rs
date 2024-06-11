@@ -5,7 +5,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
     pointer::JsonPointer,
-    render_hooks::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
+    render::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,

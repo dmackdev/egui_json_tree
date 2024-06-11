@@ -47,4 +47,4 @@ pub use style::JsonTreeStyle;
 pub mod value;
 pub use default_expand::DefaultExpand;
 pub use tree::JsonTree;
-pub mod render_hooks;
+pub mod render;

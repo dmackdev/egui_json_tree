@@ -8,7 +8,7 @@ use egui::{
 
 use crate::{
     delimiters::Punc,
-    pointer::{JsonPointer, JsonPointerSegment},
+    pointer::{JsonPointer, JsonPointerSegment, ToJsonPointerString},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
     JsonTreeStyle,
@@ -142,7 +142,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         if let (Some(response_callback), Some(response)) =
             (self.hooks.response_callback.as_mut(), response)
         {
-            response_callback(response, &pointer.to_string())
+            response_callback(response, &pointer.to_json_pointer_string())
         }
     }
 }

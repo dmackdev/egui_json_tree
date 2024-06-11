@@ -1,11 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
-impl<'a, 'b> ToString for JsonPointer<'a, 'b> {
-    fn to_string(&self) -> String {
+impl<'a, 'b> ToJsonPointerString for JsonPointer<'a, 'b> {
+    fn to_json_pointer_string(&self) -> String {
         self.0
             .iter()
-            .map(JsonPointerSegment::to_pointer_segment_string)
+            .map(ToJsonPointerString::to_json_pointer_string)
             .collect()
     }
 }
@@ -35,8 +35,8 @@ impl<'a> ToString for JsonPointerSegment<'a> {
     }
 }
 
-impl<'a> JsonPointerSegment<'a> {
-    pub fn to_pointer_segment_string(&self) -> String {
+impl<'a> ToJsonPointerString for JsonPointerSegment<'a> {
+    fn to_json_pointer_string(&self) -> String {
         match self {
             JsonPointerSegment::Key(key) => {
                 format!("/{}", key.replace('~', "~0").replace('/', "~1"))
@@ -44,6 +44,10 @@ impl<'a> JsonPointerSegment<'a> {
             JsonPointerSegment::Index(idx) => format!("/{}", idx),
         }
     }
+}
+
+pub trait ToJsonPointerString {
+    fn to_json_pointer_string(&self) -> String;
 }
 
 #[cfg(test)]
@@ -54,7 +58,7 @@ mod tests {
     fn pointer_empty_path_segments() {
         let path = [];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "".to_string());
         assert!(pointer.parent().is_none());
     }
 
@@ -62,8 +66,11 @@ mod tests {
     fn pointer_one_path_segment() {
         let path = [JsonPointerSegment::Key("foo")];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "/foo".to_string());
-        assert_eq!(pointer.parent().unwrap().to_string(), "".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo".to_string());
+        assert_eq!(
+            pointer.parent().unwrap().to_json_pointer_string(),
+            "".to_string()
+        );
     }
 
     #[test]
@@ -75,9 +82,9 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "/foo/0/bar/1".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo/0/bar/1".to_string());
         assert_eq!(
-            pointer.parent().unwrap().to_string(),
+            pointer.parent().unwrap().to_json_pointer_string(),
             "/foo/0/bar".to_string()
         );
     }
@@ -89,8 +96,11 @@ mod tests {
             JsonPointerSegment::Key("m~n"),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "/a~1b/m~0n".to_string());
-        assert_eq!(pointer.parent().unwrap().to_string(), "/a~1b".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/a~1b/m~0n".to_string());
+        assert_eq!(
+            pointer.parent().unwrap().to_json_pointer_string(),
+            "/a~1b".to_string()
+        );
     }
 
     #[test]
@@ -102,8 +112,11 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "/foo/0//1".to_string());
-        assert_eq!(pointer.parent().unwrap().to_string(), "/foo/0/".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo/0//1".to_string());
+        assert_eq!(
+            pointer.parent().unwrap().to_json_pointer_string(),
+            "/foo/0/".to_string()
+        );
     }
 
     #[test]
@@ -115,7 +128,10 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_string(), "/ /0/  /1".to_string());
-        assert_eq!(pointer.parent().unwrap().to_string(), "/ /0/  ".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/ /0/  /1".to_string());
+        assert_eq!(
+            pointer.parent().unwrap().to_json_pointer_string(),
+            "/ /0/  ".to_string()
+        );
     }
 }

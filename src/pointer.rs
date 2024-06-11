@@ -1,5 +1,3 @@
-use crate::value::NestedProperty;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [NestedProperty<'a>]);
 
@@ -19,6 +17,30 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
 
     pub fn parent(&self) -> Option<JsonPointer> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum NestedProperty<'a> {
+    Key(&'a str),
+    Index(usize),
+}
+
+impl<'a> ToString for NestedProperty<'a> {
+    fn to_string(&self) -> String {
+        match self {
+            NestedProperty::Key(key) => key.to_string(),
+            NestedProperty::Index(idx) => idx.to_string(),
+        }
+    }
+}
+
+impl<'a> NestedProperty<'a> {
+    pub fn to_pointer_segment_string(&self) -> String {
+        match self {
+            NestedProperty::Key(key) => format!("/{}", key.replace('~', "~0").replace('/', "~1")),
+            NestedProperty::Index(idx) => format!("/{}", idx),
+        }
     }
 }
 

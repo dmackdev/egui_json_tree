@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use crate::value::{ExpandableType, JsonTreeValue, NestedProperty, ToJsonTreeValue};
+use crate::{
+    pointer::NestedProperty,
+    value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
+};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);

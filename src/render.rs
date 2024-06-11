@@ -8,9 +8,9 @@ use egui::{
 
 use crate::{
     delimiters::Punc,
-    pointer::JsonPointer,
+    pointer::{JsonPointer, NestedProperty},
     search::SearchTerm,
-    value::{BaseValueType, NestedProperty, ToJsonTreeValue},
+    value::{BaseValueType, ToJsonTreeValue},
     JsonTreeStyle,
 };
 

@@ -4,12 +4,12 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
-    pointer::JsonPointer,
+    pointer::{JsonPointer, NestedProperty},
     render::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
-    value::{ExpandableType, JsonTreeValue, NestedProperty, ToJsonTreeValue},
+    value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
     DefaultExpand,
 };
 

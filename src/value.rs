@@ -6,6 +6,8 @@
 //! See the [`impl ToJsonTreeValue for serde_json::Value `](../../src/egui_json_tree/value.rs.html#43-77) implementation for reference.
 
 use std::fmt::Display;
+
+use crate::pointer::NestedProperty;
 /// Representation of JSON values for presentation purposes.
 pub enum JsonTreeValue<'a, T: ?Sized> {
     /// Representation for a non-recursive JSON value:
@@ -19,30 +21,6 @@ pub enum JsonTreeValue<'a, T: ?Sized> {
     ///   - For objects, the key should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
     Expandable(Vec<(NestedProperty<'a>, &'a T)>, ExpandableType),
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum NestedProperty<'a> {
-    Key(&'a str),
-    Index(usize),
-}
-
-impl<'a> ToString for NestedProperty<'a> {
-    fn to_string(&self) -> String {
-        match self {
-            NestedProperty::Key(key) => key.to_string(),
-            NestedProperty::Index(idx) => idx.to_string(),
-        }
-    }
-}
-
-impl<'a> NestedProperty<'a> {
-    pub fn to_pointer_segment_string(&self) -> String {
-        match self {
-            NestedProperty::Key(key) => format!("/{}", key.replace('~', "~0").replace('/', "~1")),
-            NestedProperty::Index(idx) => format!("/{}", idx),
-        }
-    }
 }
 
 /// The type of a non-recursive JSON value.

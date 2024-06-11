@@ -5,7 +5,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
     pointer::JsonPointer,
-    render_hooks::{RenderHooks, RenderKeyContext, RenderPuncContext, RenderValueContext},
+    render_hooks::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
     tree::JsonTreeConfig,
@@ -58,19 +58,22 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             }
         };
 
+        let mut renderer = JsonTreeRenderer {
+            style: config.style,
+            hooks: config.render_hooks,
+            search_term,
+        };
+
         let node_config = JsonTreeNodeConfig {
             default_expand,
             abbreviate_root: config.abbreviate_root,
         };
 
-        let mut render_hooks = config.render_hooks;
-        render_hooks.search_term = search_term;
-
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = render_hooks.style.font_id(ui).size;
+            ui.spacing_mut().interact_size.y = renderer.style.font_id(ui).size;
 
             self.show_impl(
                 ui,
@@ -78,7 +81,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 &mut path_id_map,
                 &make_persistent_id,
                 &node_config,
-                &mut render_hooks,
+                &mut renderer,
             );
         });
 
@@ -94,7 +97,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         path_id_map: &'b mut PathIdMap<'a>,
         make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
         config: &'b JsonTreeNodeConfig<'a>,
-        render_hooks: &'b mut RenderHooks<'a, T>,
+        renderer: &'b mut JsonTreeRenderer<'a, T>,
     ) {
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
@@ -102,7 +105,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(key) = self.parent {
-                        render_hooks.render_key(
+                        renderer.render_key(
                             ui,
                             RenderKeyContext {
                                 key,
@@ -111,7 +114,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                         );
                     }
 
-                    render_hooks.render_value(
+                    renderer.render_value(
                         ui,
                         RenderValueContext {
                             value,
@@ -136,7 +139,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                     expandable,
                     &make_persistent_id,
                     config,
-                    render_hooks,
+                    renderer,
                 );
             }
         };
@@ -150,7 +153,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     expandable: Expandable<'a, T>,
     make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
     config: &'b JsonTreeNodeConfig<'a>,
-    render_hooks: &'b mut RenderHooks<'a, T>,
+    renderer: &'b mut JsonTreeRenderer<'a, T>,
 ) {
     let JsonTreeNodeConfig {
         default_expand,
@@ -183,7 +186,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        render_hooks.render_punc(
+                        renderer.render_punc(
                             ui,
                             RenderPuncContext {
                                 punc: delimiters.collapsed,
@@ -193,14 +196,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         return;
                     }
 
-                    render_hooks.render_punc(
+                    renderer.render_punc(
                         ui,
                         RenderPuncContext {
                             punc: delimiters.opening,
                             pointer: JsonPointer(path_segments),
                         },
                     );
-                    render_hooks.render_punc(
+                    renderer.render_punc(
                         ui,
                         RenderPuncContext {
                             punc: EMPTY_SPACE,
@@ -213,7 +216,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            render_hooks.render_key(
+                            renderer.render_key(
                                 ui,
                                 RenderKeyContext {
                                     key: *key,
@@ -224,7 +227,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                         match elem.to_json_tree_value() {
                             JsonTreeValue::Base(value, display_value, value_type) => {
-                                render_hooks.render_value(
+                                renderer.render_value(
                                     ui,
                                     RenderValueContext {
                                         value,
@@ -246,7 +249,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     nested_delimiters.collapsed
                                 };
 
-                                render_hooks.render_punc(
+                                renderer.render_punc(
                                     ui,
                                     RenderPuncContext {
                                         punc: delimiter,
@@ -260,7 +263,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        render_hooks.render_punc(
+                        renderer.render_punc(
                             ui,
                             RenderPuncContext {
                                 punc: spacing,
@@ -269,7 +272,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         );
                     }
 
-                    render_hooks.render_punc(
+                    renderer.render_punc(
                         ui,
                         RenderPuncContext {
                             punc: delimiters.closing,
@@ -278,7 +281,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     );
                 } else {
                     if let Some(key) = expandable.parent {
-                        render_hooks.render_key(
+                        renderer.render_key(
                             ui,
                             RenderKeyContext {
                                 key,
@@ -288,7 +291,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     }
 
                     if is_expanded {
-                        render_hooks.render_punc(
+                        renderer.render_punc(
                             ui,
                             RenderPuncContext {
                                 punc: delimiters.opening,
@@ -301,7 +304,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             delimiters.collapsed
                         };
-                        render_hooks.render_punc(
+                        renderer.render_punc(
                             ui,
                             RenderPuncContext {
                                 punc: delimiter,
@@ -331,7 +334,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         path_id_map,
                         make_persistent_id,
                         config,
-                        render_hooks,
+                        renderer,
                     );
                 };
 
@@ -355,7 +358,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            render_hooks.render_punc(
+            renderer.render_punc(
                 ui,
                 RenderPuncContext {
                     punc: delimiters.closing,

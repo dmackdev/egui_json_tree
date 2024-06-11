@@ -44,30 +44,32 @@ pub struct ResponseContext<'a, 'b> {
 }
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
-    pub(crate) style: JsonTreeStyle,
     pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
     pub(crate) render_key_hook: Option<Box<RenderKeyHook<'a>>>,
     pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
     pub(crate) post_render_value_hook: Option<Box<PostRenderValueHook<'a, T>>>,
     pub(crate) response_hook: Option<Box<ResponseHook<'a>>>,
-    pub(crate) search_term: Option<SearchTerm>,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
     fn default() -> Self {
         Self {
-            style: Default::default(),
-            response_callback: Default::default(),
-            render_key_hook: Default::default(),
-            render_value_hook: Default::default(),
-            post_render_value_hook: Default::default(),
-            response_hook: Default::default(),
-            search_term: None,
+            response_callback: None,
+            render_key_hook: None,
+            render_value_hook: None,
+            post_render_value_hook: None,
+            response_hook: None,
         }
     }
 }
 
-impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
+pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
+    pub(crate) style: JsonTreeStyle,
+    pub(crate) hooks: RenderHooks<'a, T>,
+    pub(crate) search_term: Option<SearchTerm>,
+}
+
+impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
         let response = self.render_key_hook(ui, &context);
         self.response_hook(response, context.pointer);
@@ -91,7 +93,7 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         ui: &mut Ui,
         context: &RenderKeyContext<'a, 'b>,
     ) -> Option<Response> {
-        if let Some(render_key_hook) = self.render_key_hook.as_mut() {
+        if let Some(render_key_hook) = self.hooks.render_key_hook.as_mut() {
             render_key_hook(ui, context)
         } else {
             Some(render_key(
@@ -108,7 +110,7 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         ui: &mut Ui,
         context: &RenderValueContext<'a, 'b, T>,
     ) -> Option<Response> {
-        if let Some(render_value_hook) = self.render_value_hook.as_mut() {
+        if let Some(render_value_hook) = self.hooks.render_value_hook.as_mut() {
             render_value_hook(ui, context)
         } else {
             Some(render_value(
@@ -122,14 +124,14 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
     }
 
     fn post_render_value_hook<'b>(&mut self, ui: &mut Ui, context: &RenderValueContext<'a, 'b, T>) {
-        if let Some(post_render_value_hook) = self.post_render_value_hook.as_mut() {
+        if let Some(post_render_value_hook) = self.hooks.post_render_value_hook.as_mut() {
             post_render_value_hook(ui, context);
         }
     }
 
     fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {
         if let (Some(response_hook), Some(response)) =
-            (self.response_hook.as_mut(), response.as_ref())
+            (self.hooks.response_hook.as_mut(), response.as_ref())
         {
             response_hook(ResponseContext {
                 response: response.clone(),
@@ -138,7 +140,7 @@ impl<'a, T: ToJsonTreeValue> RenderHooks<'a, T> {
         }
         // Deprecated.
         if let (Some(response_callback), Some(response)) =
-            (self.response_callback.as_mut(), response)
+            (self.hooks.response_callback.as_mut(), response)
         {
             response_callback(response, &pointer.to_string())
         }

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    pointer::NestedProperty,
+    pointer::JsonPointerSegment,
     value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
 };
 
@@ -33,7 +33,7 @@ impl SearchTerm {
         &self,
         value: &'a T,
         abbreviate_root: bool,
-    ) -> HashSet<Vec<NestedProperty<'a>>> {
+    ) -> HashSet<Vec<JsonPointerSegment<'a>>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
@@ -54,8 +54,8 @@ impl SearchTerm {
 fn search_impl<'a, T: ToJsonTreeValue>(
     value: &'a T,
     search_term: &SearchTerm,
-    path_segments: &mut Vec<NestedProperty<'a>>,
-    matching_paths: &mut HashSet<Vec<NestedProperty<'a>>>,
+    path_segments: &mut Vec<JsonPointerSegment<'a>>,
+    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
 ) {
     match value.to_json_tree_value() {
         JsonTreeValue::Base(_, display_value, _) => {
@@ -80,8 +80,8 @@ fn search_impl<'a, T: ToJsonTreeValue>(
 }
 
 fn update_matches<'a>(
-    path_segments: &[NestedProperty<'a>],
-    matching_paths: &mut HashSet<Vec<NestedProperty<'a>>>,
+    path_segments: &[JsonPointerSegment<'a>],
+    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
 ) {
     for i in 0..path_segments.len() {
         matching_paths.insert(path_segments[0..i].to_vec());

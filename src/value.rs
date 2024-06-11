@@ -7,7 +7,7 @@
 
 use std::fmt::Display;
 
-use crate::pointer::NestedProperty;
+use crate::pointer::JsonPointerSegment;
 /// Representation of JSON values for presentation purposes.
 pub enum JsonTreeValue<'a, T: ?Sized> {
     /// Representation for a non-recursive JSON value:
@@ -20,7 +20,7 @@ pub enum JsonTreeValue<'a, T: ?Sized> {
     ///   - For arrays, the key should be the index of each element.
     ///   - For objects, the key should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
-    Expandable(Vec<(NestedProperty<'a>, &'a T)>, ExpandableType),
+    Expandable(Vec<(JsonPointerSegment<'a>, &'a T)>, ExpandableType),
 }
 
 /// The type of a non-recursive JSON value.
@@ -55,13 +55,13 @@ impl ToJsonTreeValue for serde_json::Value {
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (NestedProperty::Index(idx), elem))
+                    .map(|(idx, elem)| (JsonPointerSegment::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
-                    .map(|(key, val)| (NestedProperty::Key(key), val))
+                    .map(|(key, val)| (JsonPointerSegment::Key(key), val))
                     .collect(),
                 ExpandableType::Object,
             ),
@@ -97,13 +97,13 @@ impl ToJsonTreeValue for simd_json::owned::Value {
             simd_json::OwnedValue::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (NestedProperty::Index(idx), elem))
+                    .map(|(idx, elem)| (JsonPointerSegment::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             simd_json::OwnedValue::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
-                    .map(|(key, val)| (NestedProperty::Key(key), val))
+                    .map(|(key, val)| (JsonPointerSegment::Key(key), val))
                     .collect(),
                 ExpandableType::Object,
             ),

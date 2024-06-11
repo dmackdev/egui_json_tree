@@ -8,7 +8,7 @@ use egui::{
 
 use crate::{
     delimiters::Punc,
-    pointer::{JsonPointer, NestedProperty},
+    pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
     JsonTreeStyle,
@@ -29,7 +29,7 @@ pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
 }
 
 pub struct RenderKeyContext<'a, 'b> {
-    pub key: NestedProperty<'a>,
+    pub key: JsonPointerSegment<'a>,
     pub pointer: JsonPointer<'a, 'b>,
 }
 
@@ -235,20 +235,20 @@ impl KeyLayoutJobCreator {
     fn create(
         &self,
         style: &JsonTreeStyle,
-        key: &NestedProperty,
+        key: &JsonPointerSegment,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
     ) -> LayoutJob {
         let mut job = LayoutJob::default();
         match key {
-            NestedProperty::Index(_) => add_array_idx(
+            JsonPointerSegment::Index(_) => add_array_idx(
                 &mut job,
                 &key.to_string(),
                 style.array_idx_color,
                 style.punctuation_color,
                 font_id,
             ),
-            NestedProperty::Key(_) => add_object_key(
+            JsonPointerSegment::Key(_) => add_object_key(
                 &mut job,
                 &key.to_string(),
                 style.object_key_color,
@@ -266,7 +266,7 @@ impl<'a>
     ComputerMut<
         (
             &JsonTreeStyle,
-            &NestedProperty<'a>,
+            &JsonPointerSegment<'a>,
             Option<&SearchTerm>,
             &FontId,
         ),
@@ -277,7 +277,7 @@ impl<'a>
         &mut self,
         (style, parent, search_term, font_id): (
             &JsonTreeStyle,
-            &NestedProperty,
+            &JsonPointerSegment,
             Option<&SearchTerm>,
             &FontId,
         ),
@@ -291,7 +291,7 @@ type KeyLayoutJobCreatorCache = FrameCache<LayoutJob, KeyLayoutJobCreator>;
 fn render_key(
     ui: &mut Ui,
     style: &JsonTreeStyle,
-    key: &NestedProperty,
+    key: &JsonPointerSegment,
     search_term: Option<&SearchTerm>,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {

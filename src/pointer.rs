@@ -1,17 +1,17 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct JsonPointer<'a, 'b>(pub(crate) &'b [NestedProperty<'a>]);
+pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
 impl<'a, 'b> ToString for JsonPointer<'a, 'b> {
     fn to_string(&self) -> String {
         self.0
             .iter()
-            .map(NestedProperty::to_pointer_segment_string)
+            .map(JsonPointerSegment::to_pointer_segment_string)
             .collect()
     }
 }
 
 impl<'a, 'b> JsonPointer<'a, 'b> {
-    pub fn last(&self) -> Option<&NestedProperty<'a>> {
+    pub fn last(&self) -> Option<&JsonPointerSegment<'a>> {
         self.0.last()
     }
 
@@ -21,25 +21,27 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum NestedProperty<'a> {
+pub enum JsonPointerSegment<'a> {
     Key(&'a str),
     Index(usize),
 }
 
-impl<'a> ToString for NestedProperty<'a> {
+impl<'a> ToString for JsonPointerSegment<'a> {
     fn to_string(&self) -> String {
         match self {
-            NestedProperty::Key(key) => key.to_string(),
-            NestedProperty::Index(idx) => idx.to_string(),
+            JsonPointerSegment::Key(key) => key.to_string(),
+            JsonPointerSegment::Index(idx) => idx.to_string(),
         }
     }
 }
 
-impl<'a> NestedProperty<'a> {
+impl<'a> JsonPointerSegment<'a> {
     pub fn to_pointer_segment_string(&self) -> String {
         match self {
-            NestedProperty::Key(key) => format!("/{}", key.replace('~', "~0").replace('/', "~1")),
-            NestedProperty::Index(idx) => format!("/{}", idx),
+            JsonPointerSegment::Key(key) => {
+                format!("/{}", key.replace('~', "~0").replace('/', "~1"))
+            }
+            JsonPointerSegment::Index(idx) => format!("/{}", idx),
         }
     }
 }
@@ -58,7 +60,7 @@ mod tests {
 
     #[test]
     fn pointer_one_path_segment() {
-        let path = [NestedProperty::Key("foo")];
+        let path = [JsonPointerSegment::Key("foo")];
         let pointer = JsonPointer(&path);
         assert_eq!(pointer.to_string(), "/foo".to_string());
         assert_eq!(pointer.parent().unwrap().to_string(), "".to_string());
@@ -67,10 +69,10 @@ mod tests {
     #[test]
     fn pointer_multiple_path_segments() {
         let path = [
-            NestedProperty::Key("foo"),
-            NestedProperty::Index(0),
-            NestedProperty::Key("bar"),
-            NestedProperty::Index(1),
+            JsonPointerSegment::Key("foo"),
+            JsonPointerSegment::Index(0),
+            JsonPointerSegment::Key("bar"),
+            JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
         assert_eq!(pointer.to_string(), "/foo/0/bar/1".to_string());
@@ -82,7 +84,10 @@ mod tests {
 
     #[test]
     fn pointer_delimits_special_chars() {
-        let path = [NestedProperty::Key("a/b"), NestedProperty::Key("m~n")];
+        let path = [
+            JsonPointerSegment::Key("a/b"),
+            JsonPointerSegment::Key("m~n"),
+        ];
         let pointer = JsonPointer(&path);
         assert_eq!(pointer.to_string(), "/a~1b/m~0n".to_string());
         assert_eq!(pointer.parent().unwrap().to_string(), "/a~1b".to_string());
@@ -91,10 +96,10 @@ mod tests {
     #[test]
     fn pointer_handles_nested_empty_string_path_segment() {
         let path = [
-            NestedProperty::Key("foo"),
-            NestedProperty::Index(0),
-            NestedProperty::Key(""),
-            NestedProperty::Index(1),
+            JsonPointerSegment::Key("foo"),
+            JsonPointerSegment::Index(0),
+            JsonPointerSegment::Key(""),
+            JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
         assert_eq!(pointer.to_string(), "/foo/0//1".to_string());
@@ -104,10 +109,10 @@ mod tests {
     #[test]
     fn pointer_handles_nested_whitespace_path_segment() {
         let path = [
-            NestedProperty::Key(" "),
-            NestedProperty::Index(0),
-            NestedProperty::Key("  "),
-            NestedProperty::Index(1),
+            JsonPointerSegment::Key(" "),
+            JsonPointerSegment::Index(0),
+            JsonPointerSegment::Key("  "),
+            JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
         assert_eq!(pointer.to_string(), "/ /0/  /1".to_string());

@@ -4,7 +4,7 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
     delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
-    pointer::{JsonPointer, NestedProperty},
+    pointer::{JsonPointer, JsonPointerSegment},
     render::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
     response::JsonTreeResponse,
     search::SearchTerm,
@@ -16,7 +16,7 @@ use crate::{
 pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
     id: Id,
     value: &'a T,
-    parent: Option<NestedProperty<'a>>,
+    parent: Option<JsonPointerSegment<'a>>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
@@ -35,8 +35,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     ) -> JsonTreeResponse {
         let persistent_id = ui.id();
         let tree_id = self.id;
-        let make_persistent_id =
-            |path_segments: &Vec<NestedProperty>| persistent_id.with(tree_id.with(path_segments));
+        let make_persistent_id = |path_segments: &Vec<JsonPointerSegment>| {
+            persistent_id.with(tree_id.with(path_segments))
+        };
 
         let mut path_id_map = HashMap::new();
 
@@ -93,9 +94,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
     fn show_impl<'b>(
         self,
         ui: &mut Ui,
-        path_segments: &'b mut Vec<NestedProperty<'a>>,
+        path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
         path_id_map: &'b mut PathIdMap<'a>,
-        make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
+        make_persistent_id: &'b dyn Fn(&Vec<JsonPointerSegment>) -> Id,
         config: &'b JsonTreeNodeConfig<'a>,
         renderer: &'b mut JsonTreeRenderer<'a, T>,
     ) {
@@ -148,10 +149,10 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
 fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     ui: &mut Ui,
-    path_segments: &'b mut Vec<NestedProperty<'a>>,
+    path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
     path_id_map: &'b mut PathIdMap<'a>,
     expandable: Expandable<'a, T>,
-    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty>) -> Id,
+    make_persistent_id: &'b dyn Fn(&Vec<JsonPointerSegment>) -> Id,
     config: &'b JsonTreeNodeConfig<'a>,
     renderer: &'b mut JsonTreeRenderer<'a, T>,
 ) {
@@ -379,31 +380,31 @@ enum InnerExpand<'a> {
     All,
     None,
     ToLevel(u8),
-    Paths(HashSet<Vec<NestedProperty<'a>>>),
+    Paths(HashSet<Vec<JsonPointerSegment<'a>>>),
 }
 
 struct Expandable<'a, T> {
     id: Id,
-    entries: Vec<(NestedProperty<'a>, &'a T)>,
+    entries: Vec<(JsonPointerSegment<'a>, &'a T)>,
     expandable_type: ExpandableType,
-    parent: Option<NestedProperty<'a>>,
+    parent: Option<JsonPointerSegment<'a>>,
 }
 
-type PathIdMap<'a> = HashMap<Vec<NestedProperty<'a>>, Id>;
+type PathIdMap<'a> = HashMap<Vec<JsonPointerSegment<'a>>, Id>;
 
 fn populate_path_id_map<'a, 'b, T: ToJsonTreeValue>(
     value: &'a T,
     path_id_map: &'b mut PathIdMap<'a>,
-    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty<'a>>) -> Id,
+    make_persistent_id: &'b dyn Fn(&Vec<JsonPointerSegment<'a>>) -> Id,
 ) {
     populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
 }
 
 fn populate_path_id_map_impl<'a, 'b, T: ToJsonTreeValue>(
     value: &'a T,
-    path_segments: &'b mut Vec<NestedProperty<'a>>,
+    path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
     path_id_map: &'b mut PathIdMap<'a>,
-    make_persistent_id: &'b dyn Fn(&Vec<NestedProperty<'a>>) -> Id,
+    make_persistent_id: &'b dyn Fn(&Vec<JsonPointerSegment<'a>>) -> Id,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
         for (key, val) in entries {

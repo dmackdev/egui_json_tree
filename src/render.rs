@@ -17,9 +17,35 @@ use crate::{
 type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a;
 type ResponseHook<'a> = dyn FnMut(ResponseContext<'a, '_>) + 'a;
 
+pub trait DefaultRender {
+    fn render_default(&self, ui: &mut Ui) -> Response;
+}
+
 pub enum RenderContext<'a, 'b, 'c, T: ToJsonTreeValue> {
     Key(&'c RenderKeyContext<'a, 'b>),
     Value(&'c RenderValueContext<'a, 'b, T>),
+}
+
+impl<'a, 'b, 'c, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, 'c, T> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        match self {
+            RenderContext::Key(context) => context.render_default(ui),
+            RenderContext::Value(context) => context.render_default(ui),
+        }
+    }
+}
+
+pub struct RenderKeyContext<'a, 'b> {
+    pub key: JsonPointerSegment<'a>,
+    pub pointer: JsonPointer<'a, 'b>,
+    pub style: &'b JsonTreeStyle,
+    pub(crate) search_term: Option<&'b SearchTerm>,
+}
+
+impl<'a, 'b> DefaultRender for RenderKeyContext<'a, 'b> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        render_key(ui, self.style, &self.key, self.search_term)
+    }
 }
 
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
@@ -28,14 +54,19 @@ pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value_type: BaseValueType,
     pub pointer: JsonPointer<'a, 'b>,
     pub style: &'b JsonTreeStyle,
-    pub search_term: Option<&'b SearchTerm>,
+    pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
-pub struct RenderKeyContext<'a, 'b> {
-    pub key: JsonPointerSegment<'a>,
-    pub pointer: JsonPointer<'a, 'b>,
-    pub style: &'b JsonTreeStyle,
-    pub search_term: Option<&'b SearchTerm>,
+impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        render_value(
+            ui,
+            self.style,
+            &self.display_value.to_string(),
+            &self.value_type,
+            self.search_term,
+        )
+    }
 }
 
 pub(crate) struct RenderPuncContext<'a, 'b> {
@@ -94,12 +125,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
             render_hook(ui, RenderContext::Key(context));
             None
         } else {
-            Some(render_key(
-                ui,
-                context.style,
-                &context.key,
-                context.search_term,
-            ))
+            Some(context.render_default(ui))
         }
     }
 
@@ -112,13 +138,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
             render_hook(ui, RenderContext::Value(context));
             None
         } else {
-            Some(render_value(
-                ui,
-                context.style,
-                &context.display_value.to_string(),
-                &context.value_type,
-                context.search_term,
-            ))
+            Some(context.render_default(ui))
         }
     }
 

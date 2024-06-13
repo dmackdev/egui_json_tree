@@ -27,16 +27,21 @@ pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub display_value: &'a dyn Display,
     pub value_type: BaseValueType,
     pub pointer: JsonPointer<'a, 'b>,
+    pub style: &'b JsonTreeStyle,
+    pub search_term: Option<&'b SearchTerm>,
 }
 
 pub struct RenderKeyContext<'a, 'b> {
     pub key: JsonPointerSegment<'a>,
     pub pointer: JsonPointer<'a, 'b>,
+    pub style: &'b JsonTreeStyle,
+    pub search_term: Option<&'b SearchTerm>,
 }
 
 pub(crate) struct RenderPuncContext<'a, 'b> {
     pub(crate) punc: Punc<'static>,
     pub(crate) pointer: JsonPointer<'a, 'b>,
+    pub(crate) style: &'b JsonTreeStyle,
 }
 
 pub struct ResponseContext<'a, 'b> {
@@ -59,9 +64,7 @@ impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
 }
 
 pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
-    pub(crate) style: JsonTreeStyle,
     pub(crate) hooks: RenderHooks<'a, T>,
-    pub(crate) search_term: Option<SearchTerm>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
@@ -76,7 +79,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     }
 
     pub(crate) fn render_punc<'b>(&mut self, ui: &mut Ui, context: RenderPuncContext<'a, 'b>) {
-        let response = render_punc(ui, &self.style, context.punc.as_ref());
+        let response = render_punc(ui, context.style, context.punc.as_ref());
         if matches!(context.punc, Punc::CollapsedDelimiter(_)) {
             self.response_hook(Some(response), context.pointer);
         }
@@ -93,9 +96,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         } else {
             Some(render_key(
                 ui,
-                &self.style,
+                context.style,
                 &context.key,
-                self.search_term.as_ref(),
+                context.search_term,
             ))
         }
     }
@@ -111,10 +114,10 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         } else {
             Some(render_value(
                 ui,
-                &self.style,
+                context.style,
                 &context.display_value.to_string(),
                 &context.value_type,
-                self.search_term.as_ref(),
+                context.search_term,
             ))
         }
     }

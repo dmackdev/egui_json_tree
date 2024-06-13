@@ -10,7 +10,7 @@ use crate::{
     search::SearchTerm,
     tree::JsonTreeConfig,
     value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
-    DefaultExpand,
+    DefaultExpand, JsonTreeStyle,
 };
 
 pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
@@ -60,21 +60,21 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         };
 
         let mut renderer = JsonTreeRenderer {
-            style: config.style,
             hooks: config.render_hooks,
-            search_term,
         };
 
         let node_config = JsonTreeNodeConfig {
             default_expand,
             abbreviate_root: config.abbreviate_root,
+            style: config.style,
+            search_term,
         };
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = renderer.style.font_id(ui).size;
+            ui.spacing_mut().interact_size.y = node_config.style.font_id(ui).size;
 
             self.show_impl(
                 ui,
@@ -111,6 +111,8 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                             RenderKeyContext {
                                 key,
                                 pointer: JsonPointer(path_segments),
+                                style: &config.style,
+                                search_term: config.search_term.as_ref(),
                             },
                         );
                     }
@@ -122,6 +124,8 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                             display_value,
                             value_type,
                             pointer: JsonPointer(path_segments),
+                            style: &config.style,
+                            search_term: config.search_term.as_ref(),
                         },
                     );
                 });
@@ -159,6 +163,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     let JsonTreeNodeConfig {
         default_expand,
         abbreviate_root,
+        style,
+        search_term,
     } = config;
 
     let delimiters = match expandable.expandable_type {
@@ -192,6 +198,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             RenderPuncContext {
                                 punc: delimiters.collapsed,
                                 pointer: JsonPointer(path_segments),
+                                style,
                             },
                         );
                         return;
@@ -202,6 +209,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         RenderPuncContext {
                             punc: delimiters.opening,
                             pointer: JsonPointer(path_segments),
+                            style,
                         },
                     );
                     renderer.render_punc(
@@ -209,6 +217,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         RenderPuncContext {
                             punc: EMPTY_SPACE,
                             pointer: JsonPointer(path_segments),
+                            style,
                         },
                     );
 
@@ -222,6 +231,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 RenderKeyContext {
                                     key: *key,
                                     pointer: JsonPointer(path_segments),
+                                    style,
+                                    search_term: search_term.as_ref(),
                                 },
                             );
                         }
@@ -235,6 +246,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                         display_value,
                                         value_type,
                                         pointer: JsonPointer(path_segments),
+                                        style,
+                                        search_term: search_term.as_ref(),
                                     },
                                 );
                             }
@@ -255,6 +268,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     RenderPuncContext {
                                         punc: delimiter,
                                         pointer: JsonPointer(path_segments),
+                                        style,
                                     },
                                 );
                             }
@@ -269,6 +283,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             RenderPuncContext {
                                 punc: spacing,
                                 pointer: JsonPointer(path_segments),
+                                style,
                             },
                         );
                     }
@@ -278,6 +293,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         RenderPuncContext {
                             punc: delimiters.closing,
                             pointer: JsonPointer(path_segments),
+                            style,
                         },
                     );
                 } else {
@@ -287,6 +303,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             RenderKeyContext {
                                 key,
                                 pointer: JsonPointer(path_segments),
+                                style,
+                                search_term: config.search_term.as_ref(),
                             },
                         );
                     }
@@ -297,6 +315,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             RenderPuncContext {
                                 punc: delimiters.opening,
                                 pointer: JsonPointer(path_segments),
+                                style,
                             },
                         );
                     } else {
@@ -310,6 +329,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             RenderPuncContext {
                                 punc: delimiter,
                                 pointer: JsonPointer(path_segments),
+                                style,
                             },
                         );
                     }
@@ -364,6 +384,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 RenderPuncContext {
                     punc: delimiters.closing,
                     pointer: JsonPointer(path_segments),
+                    style,
                 },
             );
         });
@@ -373,6 +394,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 struct JsonTreeNodeConfig<'a> {
     default_expand: InnerExpand<'a>,
     abbreviate_root: bool,
+    style: JsonTreeStyle,
+    search_term: Option<SearchTerm>,
 }
 
 #[derive(Debug, Clone)]

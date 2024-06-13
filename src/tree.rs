@@ -1,10 +1,10 @@
 use crate::{
     node::JsonTreeNode,
-    render::{RenderHooks, RenderKeyContext, RenderValueContext, ResponseContext},
+    render::{RenderContext, RenderHooks, ResponseContext},
     value::ToJsonTreeValue,
     DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
-use egui::{Id, Response, Ui};
+use egui::{Id, Ui};
 use std::hash::Hash;
 
 pub struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
@@ -56,74 +56,23 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         self
     }
 
-    /// Register a callback to handle interactions within a [`JsonTree`].
-    /// - `Response`: The `Response` from rendering an array index, object key or value.
-    /// - `&String`: A JSON pointer string.
-    pub fn response_callback(
-        mut self,
-        response_callback: impl FnMut(Response, &String) + 'a,
-    ) -> Self {
-        self.config.render_hooks.response_callback = Some(Box::new(response_callback));
-        self
-    }
-
-    pub fn on_render_key_if(
+    pub fn on_render_if(
         self,
         condition: bool,
-        render_key_hook: impl FnMut(&mut Ui, &RenderKeyContext<'a, '_>) -> Option<Response> + 'a,
+        render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a,
     ) -> Self {
         if condition {
-            self.on_render_key(render_key_hook)
+            self.on_render(render_hook)
         } else {
             self
         }
     }
 
-    pub fn on_render_key(
+    pub fn on_render(
         mut self,
-        render_key_hook: impl FnMut(&mut Ui, &RenderKeyContext<'a, '_>) -> Option<Response> + 'a,
+        render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a,
     ) -> Self {
-        self.config.render_hooks.render_key_hook = Some(Box::new(render_key_hook));
-        self
-    }
-
-    pub fn on_render_value_if(
-        self,
-        condition: bool,
-        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a,
-    ) -> Self {
-        if condition {
-            self.on_render_value(render_value_hook)
-        } else {
-            self
-        }
-    }
-
-    pub fn on_render_value(
-        mut self,
-        render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a,
-    ) -> Self {
-        self.config.render_hooks.render_value_hook = Some(Box::new(render_value_hook));
-        self
-    }
-
-    pub fn on_post_render_value_if(
-        self,
-        condition: bool,
-        post_render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
-    ) -> Self {
-        if condition {
-            self.on_post_render_value(post_render_value_hook)
-        } else {
-            self
-        }
-    }
-
-    pub fn on_post_render_value(
-        mut self,
-        post_render_value_hook: impl FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a,
-    ) -> Self {
-        self.config.render_hooks.post_render_value_hook = Some(Box::new(post_render_value_hook));
+        self.config.render_hooks.render_hook = Some(Box::new(render_hook));
         self
     }
 

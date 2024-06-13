@@ -8,18 +8,19 @@ use egui::{
 
 use crate::{
     delimiters::Punc,
-    pointer::{JsonPointer, JsonPointerSegment, ToJsonPointerString},
+    pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
     JsonTreeStyle,
 };
 
-type ResponseCallback<'a> = dyn FnMut(Response, &String) + 'a;
-type RenderKeyHook<'a> = dyn FnMut(&mut Ui, &RenderKeyContext<'a, '_>) -> Option<Response> + 'a;
-type RenderValueHook<'a, T> =
-    dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) -> Option<Response> + 'a;
-type PostRenderValueHook<'a, T> = dyn FnMut(&mut Ui, &RenderValueContext<'a, '_, T>) + 'a;
+type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a;
 type ResponseHook<'a> = dyn FnMut(ResponseContext<'a, '_>) + 'a;
+
+pub enum RenderContext<'a, 'b, 'c, T: ToJsonTreeValue> {
+    Key(&'c RenderKeyContext<'a, 'b>),
+    Value(&'c RenderValueContext<'a, 'b, T>),
+}
 
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
@@ -44,20 +45,14 @@ pub struct ResponseContext<'a, 'b> {
 }
 
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
-    pub(crate) response_callback: Option<Box<ResponseCallback<'a>>>,
-    pub(crate) render_key_hook: Option<Box<RenderKeyHook<'a>>>,
-    pub(crate) render_value_hook: Option<Box<RenderValueHook<'a, T>>>,
-    pub(crate) post_render_value_hook: Option<Box<PostRenderValueHook<'a, T>>>,
+    pub(crate) render_hook: Option<Box<RenderHook<'a, T>>>,
     pub(crate) response_hook: Option<Box<ResponseHook<'a>>>,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
     fn default() -> Self {
         Self {
-            response_callback: None,
-            render_key_hook: None,
-            render_value_hook: None,
-            post_render_value_hook: None,
+            render_hook: None,
             response_hook: None,
         }
     }
@@ -77,7 +72,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
         let response = self.render_value_hook(ui, &context);
-        self.post_render_value_hook(ui, &context);
         self.response_hook(response, context.pointer);
     }
 
@@ -93,8 +87,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         ui: &mut Ui,
         context: &RenderKeyContext<'a, 'b>,
     ) -> Option<Response> {
-        if let Some(render_key_hook) = self.hooks.render_key_hook.as_mut() {
-            render_key_hook(ui, context)
+        if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+            render_hook(ui, RenderContext::Key(context));
+            None
         } else {
             Some(render_key(
                 ui,
@@ -110,8 +105,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         ui: &mut Ui,
         context: &RenderValueContext<'a, 'b, T>,
     ) -> Option<Response> {
-        if let Some(render_value_hook) = self.hooks.render_value_hook.as_mut() {
-            render_value_hook(ui, context)
+        if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+            render_hook(ui, RenderContext::Value(context));
+            None
         } else {
             Some(render_value(
                 ui,
@@ -123,12 +119,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         }
     }
 
-    fn post_render_value_hook<'b>(&mut self, ui: &mut Ui, context: &RenderValueContext<'a, 'b, T>) {
-        if let Some(post_render_value_hook) = self.hooks.post_render_value_hook.as_mut() {
-            post_render_value_hook(ui, context);
-        }
-    }
-
     fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {
         if let (Some(response_hook), Some(response)) =
             (self.hooks.response_hook.as_mut(), response.as_ref())
@@ -137,12 +127,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
                 response: response.clone(),
                 pointer,
             })
-        }
-        // Deprecated.
-        if let (Some(response_callback), Some(response)) =
-            (self.hooks.response_callback.as_mut(), response)
-        {
-            response_callback(response, &pointer.to_json_pointer_string())
         }
     }
 }

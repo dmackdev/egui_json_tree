@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
-    delimiters::{ARRAY_DELIMITERS, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
+    delimiters::{ARRAY_DELIMITERS, COLON_SPACE, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{JsonTreeRenderer, RenderKeyContext, RenderPuncContext, RenderValueContext},
     response::JsonTreeResponse,
@@ -113,6 +113,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                                 pointer: JsonPointer(path_segments),
                                 style: &config.style,
                                 search_term: config.search_term.as_ref(),
+                            },
+                        );
+                        renderer.render_punc(
+                            ui,
+                            RenderPuncContext {
+                                punc: COLON_SPACE,
+                                pointer: JsonPointer(path_segments),
+                                style: &config.style,
                             },
                         );
                     }
@@ -235,6 +243,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     search_term: search_term.as_ref(),
                                 },
                             );
+                            renderer.render_punc(
+                                ui,
+                                RenderPuncContext {
+                                    punc: COLON_SPACE,
+                                    pointer: JsonPointer(path_segments),
+                                    style,
+                                },
+                            );
                         }
 
                         match elem.to_json_tree_value() {
@@ -305,6 +321,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 pointer: JsonPointer(path_segments),
                                 style,
                                 search_term: config.search_term.as_ref(),
+                            },
+                        );
+                        renderer.render_punc(
+                            ui,
+                            RenderPuncContext {
+                                punc: COLON_SPACE,
+                                pointer: JsonPointer(path_segments),
+                                style,
                             },
                         );
                     }

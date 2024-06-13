@@ -248,18 +248,13 @@ impl KeyLayoutJobCreator {
     ) -> LayoutJob {
         let mut job = LayoutJob::default();
         match key {
-            JsonPointerSegment::Index(_) => add_array_idx(
-                &mut job,
-                &key.to_string(),
-                style.array_idx_color,
-                style.punctuation_color,
-                font_id,
-            ),
+            JsonPointerSegment::Index(_) => {
+                add_array_idx(&mut job, &key.to_string(), style.array_idx_color, font_id)
+            }
             JsonPointerSegment::Key(_) => add_object_key(
                 &mut job,
                 &key.to_string(),
                 style.object_key_color,
-                style.punctuation_color,
                 search_term,
                 style.highlight_color,
                 font_id,
@@ -317,7 +312,6 @@ fn add_object_key(
     job: &mut LayoutJob,
     key_str: &str,
     color: Color32,
-    punctuation_color: Color32,
     search_term: Option<&SearchTerm>,
     highlight_color: Color32,
     font_id: &FontId,
@@ -325,18 +319,10 @@ fn add_object_key(
     append(job, "\"", color, None, font_id);
     add_text_with_highlighting(job, key_str, color, search_term, highlight_color, font_id);
     append(job, "\"", color, None, font_id);
-    append(job, ": ", punctuation_color, None, font_id);
 }
 
-fn add_array_idx(
-    job: &mut LayoutJob,
-    idx_str: &str,
-    color: Color32,
-    punctuation_color: Color32,
-    font_id: &FontId,
-) {
+fn add_array_idx(job: &mut LayoutJob, idx_str: &str, color: Color32, font_id: &FontId) {
     append(job, idx_str, color, None, font_id);
-    append(job, ": ", punctuation_color, None, font_id);
 }
 
 fn add_text_with_highlighting(

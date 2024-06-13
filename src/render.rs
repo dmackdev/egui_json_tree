@@ -145,12 +145,22 @@ pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
 
 impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
-        let response = self.render_key_hook(ui, &context);
+        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+            render_hook(ui, RenderContext::Key(&context));
+            None
+        } else {
+            Some(context.render_default(ui))
+        };
         self.response_hook(response, context.pointer);
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
-        let response = self.render_value_hook(ui, &context);
+        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+            render_hook(ui, RenderContext::Value(&context));
+            None
+        } else {
+            Some(context.render_default(ui))
+        };
         self.response_hook(response, context.pointer);
     }
 
@@ -173,32 +183,6 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
                 context.render_default(ui);
             }
         };
-    }
-
-    fn render_key_hook<'b>(
-        &mut self,
-        ui: &mut Ui,
-        context: &RenderKeyContext<'a, 'b>,
-    ) -> Option<Response> {
-        if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-            render_hook(ui, RenderContext::Key(context));
-            None
-        } else {
-            Some(context.render_default(ui))
-        }
-    }
-
-    fn render_value_hook<'b>(
-        &mut self,
-        ui: &mut Ui,
-        context: &RenderValueContext<'a, 'b, T>,
-    ) -> Option<Response> {
-        if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-            render_hook(ui, RenderContext::Value(context));
-            None
-        } else {
-            Some(context.render_default(ui))
-        }
     }
 
     fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {

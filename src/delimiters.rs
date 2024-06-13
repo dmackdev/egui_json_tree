@@ -1,43 +1,56 @@
 pub(crate) struct Delimiters {
-    pub(crate) collapsed: Punc<'static>,
-    pub(crate) collapsed_empty: Punc<'static>,
-    pub(crate) opening: Punc<'static>,
-    pub(crate) closing: Punc<'static>,
+    pub(crate) collapsed: ExpandablePunc,
+    pub(crate) collapsed_empty: ExpandablePunc,
+    pub(crate) opening: ExpandablePunc,
+    pub(crate) closing: ExpandablePunc,
 }
 
 pub(crate) const ARRAY_DELIMITERS: Delimiters = Delimiters {
-    collapsed: Punc::CollapsedDelimiter("[...]"),
-    collapsed_empty: Punc::CollapsedDelimiter("[]"),
-    opening: Punc::OpeningDelimiter("["),
-    closing: Punc::ClosingDelimiter("]"),
+    collapsed: ExpandablePunc::CollapsedArray("[...]"),
+    collapsed_empty: ExpandablePunc::CollapsedArray("[]"),
+    opening: ExpandablePunc::OpeningArray("["),
+    closing: ExpandablePunc::ClosingArray("]"),
 };
 
 pub(crate) const OBJECT_DELIMITERS: Delimiters = Delimiters {
-    collapsed: Punc::CollapsedDelimiter("{...}"),
-    collapsed_empty: Punc::CollapsedDelimiter("{}"),
-    opening: Punc::OpeningDelimiter("{"),
-    closing: Punc::ClosingDelimiter("}"),
+    collapsed: ExpandablePunc::CollapsedObject("{...}"),
+    collapsed_empty: ExpandablePunc::CollapsedObject("{}"),
+    opening: ExpandablePunc::OpeningObject("{"),
+    closing: ExpandablePunc::ClosingObject("}"),
 };
 
-pub(crate) const EMPTY_SPACE: Punc = Punc::Spacing(" ");
-pub(crate) const COMMA_SPACE: Punc = Punc::Spacing(", ");
-pub(crate) const COLON_SPACE: Punc = Punc::Spacing(": ");
+pub(crate) const EMPTY_SPACE: SpacingPunc = SpacingPunc(" ");
+pub(crate) const COMMA_SPACE: SpacingPunc = SpacingPunc(", ");
+pub(crate) const COLON_SPACE: SpacingPunc = SpacingPunc(": ");
 
 #[derive(Clone, Copy)]
-pub(crate) enum Punc<'a> {
-    Spacing(&'a str),
-    CollapsedDelimiter(&'a str),
-    OpeningDelimiter(&'a str),
-    ClosingDelimiter(&'a str),
+pub(crate) struct SpacingPunc(&'static str);
+
+impl AsRef<str> for SpacingPunc {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
 }
 
-impl<'a> AsRef<str> for Punc<'a> {
+#[derive(Clone, Copy)]
+pub enum ExpandablePunc {
+    CollapsedArray(&'static str),
+    OpeningArray(&'static str),
+    ClosingArray(&'static str),
+    CollapsedObject(&'static str),
+    OpeningObject(&'static str),
+    ClosingObject(&'static str),
+}
+
+impl AsRef<str> for ExpandablePunc {
     fn as_ref(&self) -> &str {
         match self {
-            Punc::Spacing(s) => s,
-            Punc::CollapsedDelimiter(s) => s,
-            Punc::OpeningDelimiter(s) => s,
-            Punc::ClosingDelimiter(s) => s,
+            ExpandablePunc::CollapsedArray(s) => s,
+            ExpandablePunc::OpeningArray(s) => s,
+            ExpandablePunc::ClosingArray(s) => s,
+            ExpandablePunc::CollapsedObject(s) => s,
+            ExpandablePunc::OpeningObject(s) => s,
+            ExpandablePunc::ClosingObject(s) => s,
         }
     }
 }

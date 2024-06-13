@@ -7,7 +7,7 @@ use egui::{
 };
 
 use crate::{
-    delimiters::Punc,
+    delimiters::{ExpandablePunc, SpacingPunc},
     pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
@@ -24,6 +24,7 @@ pub trait DefaultRender {
 pub enum RenderContext<'a, 'b, 'c, T: ToJsonTreeValue> {
     Key(&'c RenderKeyContext<'a, 'b>),
     Value(&'c RenderValueContext<'a, 'b, T>),
+    ExpandablePunc(&'c RenderExpandablePuncContext<'a, 'b>),
 }
 
 impl<'a, 'b, 'c, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, 'c, T> {
@@ -31,6 +32,7 @@ impl<'a, 'b, 'c, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, 'c,
         match self {
             RenderContext::Key(context) => context.render_default(ui),
             RenderContext::Value(context) => context.render_default(ui),
+            RenderContext::ExpandablePunc(context) => context.render_default(ui),
         }
     }
 }
@@ -69,10 +71,53 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
     }
 }
 
-pub(crate) struct RenderPuncContext<'a, 'b> {
-    pub(crate) punc: Punc<'static>,
-    pub(crate) pointer: JsonPointer<'a, 'b>,
+pub(crate) enum RenderPuncContext<'a, 'b> {
+    Expandable(RenderExpandablePuncContext<'a, 'b>),
+    Spacing(RenderSpacingPuncContext<'b>),
+}
+
+impl<'a, 'b> From<RenderSpacingPuncContext<'b>> for RenderPuncContext<'a, 'b> {
+    fn from(context: RenderSpacingPuncContext<'b>) -> Self {
+        Self::Spacing(context)
+    }
+}
+
+impl<'a, 'b> From<RenderExpandablePuncContext<'a, 'b>> for RenderPuncContext<'a, 'b> {
+    fn from(context: RenderExpandablePuncContext<'a, 'b>) -> Self {
+        Self::Expandable(context)
+    }
+}
+
+impl<'a, 'b> DefaultRender for RenderPuncContext<'a, 'b> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        match self {
+            RenderPuncContext::Expandable(context) => context.render_default(ui),
+            RenderPuncContext::Spacing(context) => context.render_default(ui),
+        }
+    }
+}
+
+pub struct RenderExpandablePuncContext<'a, 'b> {
+    pub punc: ExpandablePunc,
+    pub pointer: JsonPointer<'a, 'b>,
+    pub style: &'b JsonTreeStyle,
+}
+
+impl<'a, 'b> DefaultRender for RenderExpandablePuncContext<'a, 'b> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        render_punc(ui, self.style, self.punc.as_ref())
+    }
+}
+
+pub(crate) struct RenderSpacingPuncContext<'b> {
+    pub(crate) punc: SpacingPunc,
     pub(crate) style: &'b JsonTreeStyle,
+}
+
+impl<'b> DefaultRender for RenderSpacingPuncContext<'b> {
+    fn render_default(&self, ui: &mut Ui) -> Response {
+        render_punc(ui, self.style, self.punc.as_ref())
+    }
 }
 
 pub struct ResponseContext<'a, 'b> {
@@ -109,11 +154,25 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         self.response_hook(response, context.pointer);
     }
 
-    pub(crate) fn render_punc<'b>(&mut self, ui: &mut Ui, context: RenderPuncContext<'a, 'b>) {
-        let response = render_punc(ui, context.style, context.punc.as_ref());
-        if matches!(context.punc, Punc::CollapsedDelimiter(_)) {
-            self.response_hook(Some(response), context.pointer);
-        }
+    pub(crate) fn render_punc<'b, C>(&mut self, ui: &mut Ui, context: C)
+    where
+        C: Into<RenderPuncContext<'a, 'b>>,
+        'a: 'b,
+    {
+        match context.into() {
+            RenderPuncContext::Expandable(context) => {
+                let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+                    render_hook(ui, RenderContext::ExpandablePunc(&context));
+                    None
+                } else {
+                    Some(context.render_default(ui))
+                };
+                self.response_hook(response, context.pointer);
+            }
+            RenderPuncContext::Spacing(context) => {
+                context.render_default(ui);
+            }
+        };
     }
 
     fn render_key_hook<'b>(

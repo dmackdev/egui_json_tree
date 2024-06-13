@@ -186,13 +186,9 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     }
 
     fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {
-        if let (Some(response_hook), Some(response)) =
-            (self.hooks.response_hook.as_mut(), response.as_ref())
+        if let (Some(response_hook), Some(response)) = (self.hooks.response_hook.as_mut(), response)
         {
-            response_hook(ResponseContext {
-                response: response.clone(),
-                pointer,
-            })
+            response_hook(ResponseContext { response, pointer })
         }
     }
 }

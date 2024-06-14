@@ -71,32 +71,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
     }
 }
 
-pub(crate) enum RenderPuncContext<'a, 'b> {
-    Expandable(RenderExpandablePuncContext<'a, 'b>),
-    Spacing(RenderSpacingPuncContext<'b>),
-}
-
-impl<'a, 'b> From<RenderSpacingPuncContext<'b>> for RenderPuncContext<'a, 'b> {
-    fn from(context: RenderSpacingPuncContext<'b>) -> Self {
-        Self::Spacing(context)
-    }
-}
-
-impl<'a, 'b> From<RenderExpandablePuncContext<'a, 'b>> for RenderPuncContext<'a, 'b> {
-    fn from(context: RenderExpandablePuncContext<'a, 'b>) -> Self {
-        Self::Expandable(context)
-    }
-}
-
-impl<'a, 'b> DefaultRender for RenderPuncContext<'a, 'b> {
-    fn render_default(&self, ui: &mut Ui) -> Response {
-        match self {
-            RenderPuncContext::Expandable(context) => context.render_default(ui),
-            RenderPuncContext::Spacing(context) => context.render_default(ui),
-        }
-    }
-}
-
 pub struct RenderExpandablePuncContext<'a, 'b> {
     pub punc: ExpandablePunc,
     pub pointer: JsonPointer<'a, 'b>,
@@ -164,25 +138,22 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         self.response_hook(response, context.pointer);
     }
 
-    pub(crate) fn render_punc<'b, C>(&mut self, ui: &mut Ui, context: C)
-    where
-        C: Into<RenderPuncContext<'a, 'b>>,
-        'a: 'b,
-    {
-        match context.into() {
-            RenderPuncContext::Expandable(context) => {
-                let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-                    render_hook(ui, RenderContext::ExpandablePunc(&context));
-                    None
-                } else {
-                    Some(context.render_default(ui))
-                };
-                self.response_hook(response, context.pointer);
-            }
-            RenderPuncContext::Spacing(context) => {
-                context.render_default(ui);
-            }
+    pub(crate) fn render_expandable_punc<'b>(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderExpandablePuncContext<'a, 'b>,
+    ) {
+        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
+            render_hook(ui, RenderContext::ExpandablePunc(&context));
+            None
+        } else {
+            Some(context.render_default(ui))
         };
+        self.response_hook(response, context.pointer);
+    }
+
+    pub(crate) fn render_spacing_punc(&mut self, ui: &mut Ui, context: RenderSpacingPuncContext) {
+        context.render_default(ui);
     }
 
     fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {

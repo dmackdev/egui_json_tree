@@ -118,7 +118,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                                 search_term: config.search_term.as_ref(),
                             },
                         );
-                        renderer.render_punc(
+                        renderer.render_spacing_punc(
                             ui,
                             RenderSpacingPuncContext {
                                 punc: COLON_SPACE,
@@ -203,7 +203,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        renderer.render_punc(
+                        renderer.render_expandable_punc(
                             ui,
                             RenderExpandablePuncContext {
                                 punc: delimiters.collapsed,
@@ -214,7 +214,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         return;
                     }
 
-                    renderer.render_punc(
+                    renderer.render_expandable_punc(
                         ui,
                         RenderExpandablePuncContext {
                             punc: delimiters.opening,
@@ -222,7 +222,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             style,
                         },
                     );
-                    renderer.render_punc(
+                    renderer.render_spacing_punc(
                         ui,
                         RenderSpacingPuncContext {
                             punc: EMPTY_SPACE,
@@ -244,7 +244,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     search_term: search_term.as_ref(),
                                 },
                             );
-                            renderer.render_punc(
+                            renderer.render_spacing_punc(
                                 ui,
                                 RenderSpacingPuncContext {
                                     punc: COLON_SPACE,
@@ -279,7 +279,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     nested_delimiters.collapsed
                                 };
 
-                                renderer.render_punc(
+                                renderer.render_expandable_punc(
                                     ui,
                                     RenderExpandablePuncContext {
                                         punc: delimiter,
@@ -294,7 +294,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             COMMA_SPACE
                         };
-                        renderer.render_punc(
+                        renderer.render_spacing_punc(
                             ui,
                             RenderSpacingPuncContext {
                                 punc: spacing,
@@ -303,7 +303,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         );
                     }
 
-                    renderer.render_punc(
+                    renderer.render_expandable_punc(
                         ui,
                         RenderExpandablePuncContext {
                             punc: delimiters.closing,
@@ -322,7 +322,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 search_term: config.search_term.as_ref(),
                             },
                         );
-                        renderer.render_punc(
+                        renderer.render_spacing_punc(
                             ui,
                             RenderSpacingPuncContext {
                                 punc: COLON_SPACE,
@@ -332,7 +332,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     }
 
                     if is_expanded {
-                        renderer.render_punc(
+                        renderer.render_expandable_punc(
                             ui,
                             RenderExpandablePuncContext {
                                 punc: delimiters.opening,
@@ -346,7 +346,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             delimiters.collapsed
                         };
-                        renderer.render_punc(
+                        renderer.render_expandable_punc(
                             ui,
                             RenderExpandablePuncContext {
                                 punc: delimiter,
@@ -401,7 +401,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            renderer.render_punc(
+            renderer.render_expandable_punc(
                 ui,
                 RenderExpandablePuncContext {
                     punc: delimiters.closing,

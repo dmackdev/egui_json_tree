@@ -15,7 +15,6 @@ use crate::{
 };
 
 type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a;
-type ResponseHook<'a> = dyn FnMut(ResponseContext<'a, '_>) + 'a;
 
 pub trait DefaultRender {
     fn render_default(&self, ui: &mut Ui) -> Response;
@@ -33,6 +32,16 @@ impl<'a, 'b, 'c, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, 'c,
             RenderContext::Key(context) => context.render_default(ui),
             RenderContext::Value(context) => context.render_default(ui),
             RenderContext::ExpandablePunc(context) => context.render_default(ui),
+        }
+    }
+}
+
+impl<'a, 'b, 'c, T: ToJsonTreeValue> RenderContext<'a, 'b, 'c, T> {
+    pub fn pointer(&self) -> JsonPointer {
+        match self {
+            RenderContext::Key(context) => context.pointer,
+            RenderContext::Value(context) => context.pointer,
+            RenderContext::ExpandablePunc(context) => context.pointer,
         }
     }
 }
@@ -94,22 +103,13 @@ impl<'b> DefaultRender for RenderSpacingPuncContext<'b> {
     }
 }
 
-pub struct ResponseContext<'a, 'b> {
-    pub response: Response,
-    pub pointer: JsonPointer<'a, 'b>,
-}
-
 pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
     pub(crate) render_hook: Option<Box<RenderHook<'a, T>>>,
-    pub(crate) response_hook: Option<Box<ResponseHook<'a>>>,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
     fn default() -> Self {
-        Self {
-            render_hook: None,
-            response_hook: None,
-        }
+        Self { render_hook: None }
     }
 }
 
@@ -119,23 +119,25 @@ pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
 
 impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
-        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-            render_hook(ui, RenderContext::Key(&context));
-            None
-        } else {
-            Some(context.render_default(ui))
+        match self.hooks.render_hook.as_mut() {
+            Some(render_hook) => {
+                render_hook(ui, RenderContext::Key(&context));
+            }
+            None => {
+                context.render_default(ui);
+            }
         };
-        self.response_hook(response, context.pointer);
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
-        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-            render_hook(ui, RenderContext::Value(&context));
-            None
-        } else {
-            Some(context.render_default(ui))
+        match self.hooks.render_hook.as_mut() {
+            Some(render_hook) => {
+                render_hook(ui, RenderContext::Value(&context));
+            }
+            None => {
+                context.render_default(ui);
+            }
         };
-        self.response_hook(response, context.pointer);
     }
 
     pub(crate) fn render_expandable_punc<'b>(
@@ -143,24 +145,18 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         ui: &mut Ui,
         context: RenderExpandablePuncContext<'a, 'b>,
     ) {
-        let response = if let Some(render_hook) = self.hooks.render_hook.as_mut() {
-            render_hook(ui, RenderContext::ExpandablePunc(&context));
-            None
-        } else {
-            Some(context.render_default(ui))
+        match self.hooks.render_hook.as_mut() {
+            Some(render_hook) => {
+                render_hook(ui, RenderContext::ExpandablePunc(&context));
+            }
+            None => {
+                context.render_default(ui);
+            }
         };
-        self.response_hook(response, context.pointer);
     }
 
     pub(crate) fn render_spacing_punc(&mut self, ui: &mut Ui, context: RenderSpacingPuncContext) {
         context.render_default(ui);
-    }
-
-    fn response_hook<'b>(&mut self, response: Option<Response>, pointer: JsonPointer<'a, 'b>) {
-        if let (Some(response_hook), Some(response)) = (self.hooks.response_hook.as_mut(), response)
-        {
-            response_hook(ResponseContext { response, pointer })
-        }
     }
 }
 

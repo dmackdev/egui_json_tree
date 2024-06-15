@@ -1,6 +1,6 @@
 use crate::{
     node::JsonTreeNode,
-    render::{RenderContext, RenderHooks, ResponseContext},
+    render::{RenderContext, RenderHooks},
     value::ToJsonTreeValue,
     DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
@@ -73,23 +73,6 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, '_, T>) + 'a,
     ) -> Self {
         self.config.render_hooks.render_hook = Some(Box::new(render_hook));
-        self
-    }
-
-    pub fn on_response_if(
-        self,
-        condition: bool,
-        response_hook: impl FnMut(ResponseContext<'a, '_>) + 'a,
-    ) -> Self {
-        if condition {
-            self.on_response(response_hook)
-        } else {
-            self
-        }
-    }
-
-    pub fn on_response(mut self, response_hook: impl FnMut(ResponseContext<'a, '_>) + 'a) -> Self {
-        self.config.render_hooks.response_hook = Some(Box::new(response_hook));
         self
     }
 

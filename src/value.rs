@@ -39,7 +39,7 @@ pub enum ExpandableType {
     Object,
 }
 
-pub trait ToJsonTreeValue: Display {
+pub trait ToJsonTreeValue {
     fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
     fn is_expandable(&self) -> bool;
 }

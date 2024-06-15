@@ -288,7 +288,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     ui,
                                     RenderExpandableDelimiterContext {
                                         delimiter,
-                                        value: expandable.value,
+                                        value: elem,
                                         pointer: JsonPointer(path_segments),
                                         style,
                                     },

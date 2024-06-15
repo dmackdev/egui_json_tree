@@ -94,12 +94,12 @@ fn json_tree_default_expand_none() {
               }
             })),
             display_value: "foo".to_string(),
-            pointer_str: "".to_string(),
+            pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
             value: None,
             display_value: "{...}".to_string(),
-            pointer_str: "".to_string(),
+            pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
             value: None,

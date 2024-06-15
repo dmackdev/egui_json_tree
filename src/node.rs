@@ -235,6 +235,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     let entries_len = expandable.entries.len();
 
                     for (idx, (property, elem)) in expandable.entries.iter().enumerate() {
+                        path_segments.push(*property);
+
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
                             renderer.render_property(
@@ -293,11 +295,13 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 );
                             }
                         };
+
                         let spacing = if idx == entries_len - 1 {
                             SpacingDelimiter::Empty
                         } else {
                             SpacingDelimiter::Comma
                         };
+
                         renderer.render_spacing_delimiter(
                             ui,
                             RenderSpacingDelimiterContext {
@@ -305,6 +309,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 style,
                             },
                         );
+
+                        path_segments.pop();
                     }
 
                     renderer.render_expandable_delimiter(

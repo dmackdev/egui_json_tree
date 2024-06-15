@@ -1,30 +1,68 @@
 use egui::{CentralPanel, Context, FontDefinitions, Style};
 use egui_json_tree::{
-    pointer::ToJsonPointerString, render::ResponseContext, DefaultExpand, JsonTree,
+    pointer::ToJsonPointerString, render::RenderContext, DefaultExpand, JsonTree,
 };
-use serde_json::json;
+#[cfg(feature = "serde_json")]
+use serde_json::{json, Value};
+
+#[cfg(all(feature = "simd_json", not(feature = "serde_json")))]
+use simd_json::{json, owned::Value};
+
+#[derive(Debug, PartialEq)]
+struct ExpectedRender {
+    value: Option<Value>,
+    display_value: String,
+    pointer_str: String,
+}
+
+impl<'a, 'b> From<RenderContext<'a, 'b, Value>> for ExpectedRender {
+    fn from(ctx: RenderContext<'a, 'b, Value>) -> Self {
+        match ctx {
+            RenderContext::Property(ctx) => ExpectedRender {
+                value: Some(ctx.value.clone()),
+                display_value: ctx.property.to_string(),
+                pointer_str: ctx.pointer.to_json_pointer_string(),
+            },
+            RenderContext::Value(ctx) => ExpectedRender {
+                value: Some(ctx.value.clone()),
+                display_value: ctx.display_value.to_string(),
+                pointer_str: ctx.pointer.to_json_pointer_string(),
+            },
+            RenderContext::ExpandableDelimiter(ctx) => ExpectedRender {
+                value: None,
+                display_value: ctx.delimiter.as_ref().to_string(),
+                pointer_str: ctx.pointer.to_json_pointer_string(),
+            },
+        }
+    }
+}
 
 #[test]
-fn json_tree_response_callback_for_rendering_string() {
+fn json_tree_render_string() {
     let value = json!("Hello World!");
 
-    let mut rendered_pointers = vec![];
+    let mut actual: Vec<ExpectedRender> = vec![];
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
-            .on_response(|ResponseContext { pointer, .. }| {
-                rendered_pointers.push(pointer.to_json_pointer_string());
+            .on_render(|_, render_ctx| {
+                actual.push(render_ctx.into());
             })
             .show(ui);
     });
 
-    let expected_pointers = vec![""];
-    assert_eq!(expected_pointers, rendered_pointers);
+    let expected = vec![ExpectedRender {
+        value: Some(json!("Hello World!")),
+        display_value: "Hello World!".to_string(),
+        pointer_str: "".to_string(),
+    }];
+
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn json_tree_default_expand_none() {
-    let obj = json!({
+    let value = json!({
       "foo": {
         "bar": {
           "fizz": true
@@ -32,24 +70,49 @@ fn json_tree_default_expand_none() {
       }
     });
 
-    let mut rendered_pointers = vec![];
+    let mut actual: Vec<ExpectedRender> = vec![];
 
     egui::__run_test_ui(|ui| {
-        JsonTree::new("id", &obj)
-            .on_response(|ResponseContext { pointer, .. }| {
-                rendered_pointers.push(pointer.to_json_pointer_string());
-            })
+        JsonTree::new("id", &value)
             .default_expand(DefaultExpand::None)
+            .on_render(|_, render_ctx| {
+                actual.push(render_ctx.into());
+            })
             .show(ui);
     });
 
-    let expected_pointers = vec!["", ""];
-    assert_eq!(expected_pointers, rendered_pointers);
+    let expected = vec![
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+              "bar": {
+                "fizz": true
+              }
+            })),
+            display_value: "foo".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{...}".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "".to_string(),
+        },
+    ];
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn json_tree_default_expand_all() {
-    let obj = json!({
+    let value = json!({
       "foo": {
         "bar": {
           "fizz": true
@@ -57,24 +120,81 @@ fn json_tree_default_expand_all() {
       }
     });
 
-    let mut rendered_pointers = vec![];
+    let mut actual: Vec<ExpectedRender> = vec![];
 
     egui::__run_test_ui(|ui| {
-        JsonTree::new("id", &obj)
-            .on_response(|ResponseContext { pointer, .. }| {
-                rendered_pointers.push(pointer.to_json_pointer_string());
-            })
+        JsonTree::new("id", &value)
             .default_expand(DefaultExpand::All)
+            .on_render(|_, render_ctx| {
+                actual.push(render_ctx.into());
+            })
             .show(ui);
     });
 
-    let expected_pointers = vec!["/foo", "/foo/bar", "/foo/bar/fizz", "/foo/bar/fizz"];
-    assert_eq!(expected_pointers, rendered_pointers);
+    let expected = vec![
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+              "bar": {
+                "fizz": true
+              }
+            })),
+            display_value: "foo".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+              "fizz": true
+            })),
+            display_value: "bar".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(true)),
+            display_value: "fizz".to_string(),
+            pointer_str: "/foo/bar/fizz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(true)),
+            display_value: "true".to_string(),
+            pointer_str: "/foo/bar/fizz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "".to_string(),
+        },
+    ];
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn json_tree_default_expand_to_level_one() {
-    let obj = json!({
+    let value = json!({
       "foo": {
         "bar": {
           "fizz": true
@@ -85,26 +205,84 @@ fn json_tree_default_expand_to_level_one() {
       }
     });
 
-    let mut rendered_pointers = vec![];
+    let mut actual: Vec<ExpectedRender> = vec![];
 
     egui::__run_test_ui(|ui| {
-        JsonTree::new("id", &obj)
-            .on_response(|ResponseContext { pointer, .. }| {
-                rendered_pointers.push(pointer.to_json_pointer_string());
-            })
+        JsonTree::new("id", &value)
             .default_expand(DefaultExpand::ToLevel(1))
+            .on_render(|_, render_ctx| {
+                actual.push(render_ctx.into());
+            })
             .show(ui);
     });
 
     // Level 1 would expand the top level object and "foo", so we would
-    // expect to see the keys "bar" and "buzz", but not "fizz" and "qux"
-    let expected_pointers = vec!["/foo", "/foo/bar", "/foo/bar", "/foo/buzz", "/foo/buzz"];
-    assert_eq!(expected_pointers, rendered_pointers);
+    // expect to see the keys "bar" and "buzz", but not "fizz" and "qux".
+    let expected = vec![
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "bar": {
+                    "fizz": true
+                },
+                "buzz": [
+                    { "qux": 50 }
+                ]
+            })),
+            display_value: "foo".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "fizz": true
+            })),
+            display_value: "bar".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{...}".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!([
+                { "qux": 50 }
+            ])),
+            display_value: "buzz".to_string(),
+            pointer_str: "/foo/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "[...]".to_string(),
+            pointer_str: "/foo/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "".to_string(),
+        },
+    ];
+
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn json_tree_default_expand_search() {
-    let obj = json!({
+    let value = json!({
       "foo": {
         "bar": {
           "fizz": true
@@ -118,34 +296,127 @@ fn json_tree_default_expand_search() {
       }
     });
 
-    let mut rendered_pointers = vec![];
+    let mut actual: Vec<ExpectedRender> = vec![];
 
     egui::__run_test_ui(|ui| {
-        JsonTree::new("id", &obj)
-            .on_response(|ResponseContext { pointer, .. }| {
-                rendered_pointers.push(pointer.to_json_pointer_string());
-            })
+        JsonTree::new("id", &value)
             .default_expand(DefaultExpand::SearchResults("t"))
+            .on_render(|_, render_ctx| {
+                actual.push(render_ctx.into());
+            })
             .show(ui);
     });
 
-    let expected_pointers = vec![
-        "/foo",
-        "/foo/bar",
-        "/foo/bar/fizz",
-        "/foo/bar/fizz",
-        "/foo/baz",
-        "/foo/baz/qux",
-        "/foo/baz/qux",
-        "/foo/buzz",
-        "/foo/buzz",
+    let expected = vec![
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "bar": {
+                    "fizz": true
+                },
+                "baz": {
+                    "qux": "thud"
+                },
+                "buzz": [
+                    { "grep": 50 }
+                ]
+            })),
+            display_value: "foo".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "fizz": true
+            })),
+            display_value: "bar".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(true)),
+            display_value: "fizz".to_string(),
+            pointer_str: "/foo/bar/fizz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(true)),
+            display_value: "true".to_string(),
+            pointer_str: "/foo/bar/fizz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo/bar".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "qux": "thud"
+            })),
+            display_value: "baz".to_string(),
+            pointer_str: "/foo/baz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/foo/baz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!("thud")),
+            display_value: "qux".to_string(),
+            pointer_str: "/foo/baz/qux".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!("thud")),
+            display_value: "thud".to_string(),
+            pointer_str: "/foo/baz/qux".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo/baz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!([
+                { "grep": 50 }
+            ])),
+            display_value: "buzz".to_string(),
+            pointer_str: "/foo/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "[...]".to_string(),
+            pointer_str: "/foo/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/foo".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "".to_string(),
+        },
     ];
-    assert_eq!(expected_pointers, rendered_pointers);
+
+    assert_eq!(actual, expected);
 }
 
 #[test]
 fn json_tree_reset_expanded() {
-    let obj = json!({
+    let value = json!({
       "baz": {
         "qux": 1
       },
@@ -162,27 +433,90 @@ fn json_tree_reset_expanded() {
         ..Default::default()
     });
 
-    let expected_pointers_all = vec![
-        "/baz", "/baz/qux", "/baz/qux", "/buzz", "/buzz/0", "/buzz/0",
-    ];
-
     let id = "id";
 
+    let expected_all_expanded = vec![
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!({
+                "qux": 1
+            })),
+            display_value: "baz".to_string(),
+            pointer_str: "/baz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "{".to_string(),
+            pointer_str: "/baz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(1)),
+            display_value: "qux".to_string(),
+            pointer_str: "/baz/qux".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(1)),
+            display_value: "1".to_string(),
+            pointer_str: "/baz/qux".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "/baz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!([1])),
+            display_value: "buzz".to_string(),
+            pointer_str: "/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "[".to_string(),
+            pointer_str: "/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(1)),
+            display_value: "0".to_string(),
+            pointer_str: "/buzz/0".to_string(),
+        },
+        ExpectedRender {
+            value: Some(json!(1)),
+            display_value: "1".to_string(),
+            pointer_str: "/buzz/0".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "]".to_string(),
+            pointer_str: "/buzz".to_string(),
+        },
+        ExpectedRender {
+            value: None,
+            display_value: "}".to_string(),
+            pointer_str: "".to_string(),
+        },
+    ];
+
     // First, render and expand everything.
+    // We call `abbreviate_root` to only show "{...}" when the root object is collapsed.
     // We expect everything to be expanded as this is the first render.
     let _ = ctx.run(Default::default(), |ctx| {
-        let mut rendered_pointers = vec![];
+        let mut actual: Vec<ExpectedRender> = vec![];
 
         CentralPanel::default().show(ctx, |ui| {
-            JsonTree::new(id, &obj)
-                .on_response(|ResponseContext { pointer, .. }| {
-                    rendered_pointers.push(pointer.to_json_pointer_string());
-                })
+            JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::All)
+                .abbreviate_root(true)
+                .on_render(|_, render_ctx| {
+                    actual.push(render_ctx.into());
+                })
                 .show(ui);
         });
 
-        assert_eq!(expected_pointers_all, rendered_pointers);
+        assert_eq!(actual, expected_all_expanded);
     });
 
     // Next we render the same tree but change the `default_expand` setting.
@@ -190,36 +524,44 @@ fn json_tree_reset_expanded() {
     // we expect everything to be expanded still.
     // Note that we call `reset_expanded` after rendering the tree.
     let _ = ctx.run(Default::default(), |ctx| {
-        let mut rendered_pointers = vec![];
+        let mut actual: Vec<ExpectedRender> = vec![];
 
         CentralPanel::default().show(ctx, |ui| {
-            JsonTree::new(id, &obj)
-                .on_response(|ResponseContext { pointer, .. }| {
-                    rendered_pointers.push(pointer.to_json_pointer_string());
-                })
+            JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
+                .abbreviate_root(true)
+                .on_render(|_, render_ctx| {
+                    actual.push(render_ctx.into());
+                })
                 .show(ui)
                 .reset_expanded(ui);
         });
 
-        assert_eq!(expected_pointers_all, rendered_pointers);
+        assert_eq!(actual, expected_all_expanded);
     });
 
     // Now we render again with the same `default_expand` setting as the last render.
     // Because we called `reset_expanded` in the last frame, we now expect this setting to be respected,
     // and now nothing should be expanded.
     let _ = ctx.run(Default::default(), |ctx| {
-        let mut rendered_pointers = vec![];
+        let mut actual: Vec<ExpectedRender> = vec![];
 
         CentralPanel::default().show(ctx, |ui| {
-            JsonTree::new(id, &obj)
-                .on_response(|ResponseContext { pointer, .. }| {
-                    rendered_pointers.push(pointer.to_json_pointer_string());
-                })
+            JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
+                .abbreviate_root(true)
+                .on_render(|_, render_ctx| {
+                    actual.push(render_ctx.into());
+                })
                 .show(ui);
         });
 
-        assert_eq!(vec!["", "", "", ""], rendered_pointers);
+        let expected_nothing_expanded = vec![ExpectedRender {
+            value: None,
+            display_value: "{...}".to_string(),
+            pointer_str: "".to_string(),
+        }];
+
+        assert_eq!(actual, expected_nothing_expanded);
     });
 }

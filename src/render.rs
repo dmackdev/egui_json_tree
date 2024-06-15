@@ -103,23 +103,19 @@ impl<'b> DefaultRender for RenderSpacingPuncContext<'b> {
     }
 }
 
-pub(crate) struct RenderHooks<'a, T: ToJsonTreeValue> {
+pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
     pub(crate) render_hook: Option<Box<RenderHook<'a, T>>>,
 }
 
-impl<'a, T: ToJsonTreeValue> Default for RenderHooks<'a, T> {
+impl<'a, T: ToJsonTreeValue> Default for JsonTreeRenderer<'a, T> {
     fn default() -> Self {
         Self { render_hook: None }
     }
 }
 
-pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
-    pub(crate) hooks: RenderHooks<'a, T>,
-}
-
 impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
-        match self.hooks.render_hook.as_mut() {
+        match self.render_hook.as_mut() {
             Some(render_hook) => {
                 render_hook(ui, RenderContext::Key(context));
             }
@@ -130,7 +126,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     }
 
     pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
-        match self.hooks.render_hook.as_mut() {
+        match self.render_hook.as_mut() {
             Some(render_hook) => {
                 render_hook(ui, RenderContext::Value(context));
             }
@@ -145,7 +141,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         ui: &mut Ui,
         context: RenderExpandablePuncContext<'a, 'b>,
     ) {
-        match self.hooks.render_hook.as_mut() {
+        match self.render_hook.as_mut() {
             Some(render_hook) => {
                 render_hook(ui, RenderContext::ExpandablePunc(context));
             }

@@ -62,9 +62,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             }
         };
 
-        let mut renderer = JsonTreeRenderer {
-            hooks: config.render_hooks,
-        };
+        let mut renderer = config.renderer;
 
         let node_config = JsonTreeNodeConfig {
             default_expand,

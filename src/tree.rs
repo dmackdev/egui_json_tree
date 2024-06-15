@@ -1,6 +1,6 @@
 use crate::{
     node::JsonTreeNode,
-    render::{RenderContext, RenderHooks},
+    render::{JsonTreeRenderer, RenderContext},
     value::ToJsonTreeValue,
     DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
@@ -11,7 +11,7 @@ pub struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,
-    pub(crate) render_hooks: RenderHooks<'a, T>,
+    pub(crate) renderer: JsonTreeRenderer<'a, T>,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
@@ -20,7 +20,7 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
             style: Default::default(),
             default_expand: Default::default(),
             abbreviate_root: Default::default(),
-            render_hooks: Default::default(),
+            renderer: Default::default(),
         }
     }
 }
@@ -72,7 +72,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         mut self,
         render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a,
     ) -> Self {
-        self.config.render_hooks.render_hook = Some(Box::new(render_hook));
+        self.config.renderer.render_hook = Some(Box::new(render_hook));
         self
     }
 

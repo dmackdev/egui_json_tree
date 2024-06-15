@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
-    delimiters::{ARRAY_DELIMITERS, COLON_SPACE, COMMA_SPACE, EMPTY_SPACE, OBJECT_DELIMITERS},
+    delimiters::{SpacingPunc, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
         JsonTreeRenderer, RenderExpandablePuncContext, RenderKeyContext, RenderSpacingPuncContext,
@@ -119,7 +119,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                         renderer.render_spacing_punc(
                             ui,
                             RenderSpacingPuncContext {
-                                punc: COLON_SPACE,
+                                punc: SpacingPunc::Colon,
                                 style: &config.style,
                             },
                         );
@@ -223,7 +223,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     renderer.render_spacing_punc(
                         ui,
                         RenderSpacingPuncContext {
-                            punc: EMPTY_SPACE,
+                            punc: SpacingPunc::Empty,
                             style,
                         },
                     );
@@ -245,7 +245,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             renderer.render_spacing_punc(
                                 ui,
                                 RenderSpacingPuncContext {
-                                    punc: COLON_SPACE,
+                                    punc: SpacingPunc::Colon,
                                     style,
                                 },
                             );
@@ -288,9 +288,9 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
-                            EMPTY_SPACE
+                            SpacingPunc::Empty
                         } else {
-                            COMMA_SPACE
+                            SpacingPunc::Comma
                         };
                         renderer.render_spacing_punc(
                             ui,
@@ -323,7 +323,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         renderer.render_spacing_punc(
                             ui,
                             RenderSpacingPuncContext {
-                                punc: COLON_SPACE,
+                                punc: SpacingPunc::Colon,
                                 style,
                             },
                         );

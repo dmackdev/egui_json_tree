@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
 impl<'a, 'b> ToJsonPointerString for JsonPointer<'a, 'b> {
@@ -20,7 +20,7 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonPointerSegment<'a> {
     Key(&'a str),
     Index(usize),

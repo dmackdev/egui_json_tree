@@ -34,17 +34,18 @@
 //! If you wish to use a different JSON type, see the [`value`](mod@value) module,
 //! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`](serde_json) dependency.
 mod default_expand;
-mod delimiters;
 mod node;
 mod response;
 mod search;
 mod style;
 mod tree;
 
+pub mod delimiters;
 pub mod pointer;
+pub mod render;
+pub mod value;
+
+pub use default_expand::DefaultExpand;
 pub use response::JsonTreeResponse;
 pub use style::JsonTreeStyle;
-pub mod value;
-pub use default_expand::DefaultExpand;
 pub use tree::JsonTree;
-pub mod render;

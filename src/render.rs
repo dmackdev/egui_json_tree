@@ -14,12 +14,13 @@ use crate::{
     JsonTreeStyle,
 };
 
-type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a;
+pub type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a;
 
 pub trait DefaultRender {
     fn render_default(&self, ui: &mut Ui) -> Response;
 }
 
+#[derive(Clone, Copy)]
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     Property(RenderPropertyContext<'a, 'b>),
     Value(RenderValueContext<'a, 'b, T>),
@@ -46,6 +47,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RenderPropertyContext<'a, 'b> {
     pub property: JsonPointerSegment<'a>,
     pub pointer: JsonPointer<'a, 'b>,
@@ -59,6 +61,7 @@ impl<'a, 'b> DefaultRender for RenderPropertyContext<'a, 'b> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
     pub display_value: &'a dyn Display,
@@ -80,6 +83,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RenderExpandableDelimiterContext<'a, 'b> {
     pub delimiter: ExpandableDelimiter,
     pub pointer: JsonPointer<'a, 'b>,
@@ -92,6 +96,7 @@ impl<'a, 'b> DefaultRender for RenderExpandableDelimiterContext<'a, 'b> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct RenderSpacingDelimiterContext<'b> {
     pub(crate) delimiter: SpacingDelimiter,
     pub(crate) style: &'b JsonTreeStyle,

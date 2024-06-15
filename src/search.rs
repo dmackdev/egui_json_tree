@@ -9,7 +9,7 @@ use crate::{
 pub struct SearchTerm(String);
 
 impl SearchTerm {
-    pub fn parse(search_str: &str) -> Option<Self> {
+    pub(crate) fn parse(search_str: &str) -> Option<Self> {
         SearchTerm::is_valid(search_str).then_some(Self(search_str.to_ascii_lowercase()))
     }
 
@@ -17,7 +17,7 @@ impl SearchTerm {
         !search_str.is_empty()
     }
 
-    pub fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
+    pub(crate) fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
         other
             .to_ascii_lowercase()
             .match_indices(&self.0)
@@ -25,11 +25,11 @@ impl SearchTerm {
             .collect()
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in<'a, T: ToJsonTreeValue>(
+    pub(crate) fn find_matching_paths_in<'a, T: ToJsonTreeValue>(
         &self,
         value: &'a T,
         abbreviate_root: bool,

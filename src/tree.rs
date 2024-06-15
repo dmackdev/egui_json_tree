@@ -7,7 +7,7 @@ use crate::{
 use egui::{Id, Ui};
 use std::hash::Hash;
 
-pub struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
+pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: JsonTreeStyle,
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,

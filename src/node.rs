@@ -16,7 +16,7 @@ use crate::{
     DefaultExpand, JsonTreeStyle,
 };
 
-pub struct JsonTreeNode<'a, T: ToJsonTreeValue> {
+pub(crate) struct JsonTreeNode<'a, T: ToJsonTreeValue> {
     id: Id,
     value: &'a T,
     parent: Option<JsonPointerSegment<'a>>,

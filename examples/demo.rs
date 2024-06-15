@@ -1,8 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use eframe::egui::{RichText, Ui};
-use egui::{Align, Button, Layout};
-use egui_json_tree::{DefaultExpand, JsonTree};
+use eframe::egui::{Frame, RichText, Ui};
+use egui::{vec2, Align, Button, Color32, Layout, Margin, Rounding, Stroke, TextEdit};
+use egui_json_tree::{
+    delimiters::ExpandableDelimiter,
+    pointer::{JsonPointerSegment, ToJsonPointerString},
+    render::{DefaultRender, RenderContext, RenderValueContext},
+    DefaultExpand, JsonTree,
+};
 use serde_json::{json, Value};
 
 trait Show {
@@ -162,27 +167,27 @@ impl Show for CopyToClipboardExample {
 
     fn show(&mut self, ui: &mut Ui) {
         JsonTree::new(self.title, &self.value)
-            .response_callback(|response, pointer| {
-                response.context_menu(|ui| {
+            .on_render(|ui, context| {
+                context.render_default(ui).context_menu(|ui| {
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                         ui.set_width(150.0);
 
-                        if !pointer.is_empty()
-                            && ui
-                                .add(Button::new("Copy property path").frame(false))
-                                .clicked()
+                        if ui
+                            .add(Button::new("Copy property path").frame(false))
+                            .clicked()
                         {
-                            println!("{}", pointer);
-                            ui.output_mut(|o| o.copied_text = pointer.clone());
+                            ui.output_mut(|o| {
+                                let pointer_str = context.pointer().to_json_pointer_string();
+                                println!("{}", pointer_str);
+                                o.copied_text = pointer_str;
+                            });
                             ui.close_menu();
                         }
 
                         if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                            if let Some(val) = self.value.pointer(pointer) {
-                                if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
-                                    println!("{}", pretty_str);
-                                    ui.output_mut(|o| o.copied_text = pretty_str);
-                                }
+                            if let Ok(pretty_str) = serde_json::to_string_pretty(context.value()) {
+                                println!("{}", pretty_str);
+                                ui.output_mut(|o| o.copied_text = pretty_str);
                             }
                             ui.close_menu();
                         }
@@ -193,6 +198,248 @@ impl Show for CopyToClipboardExample {
     }
 }
 
+struct RenderHooksExample {
+    value: Value,
+    edit: bool,
+    edit_state: Edit,
+}
+
+impl RenderHooksExample {
+    fn new(value: Value) -> Self {
+        Self {
+            value,
+            edit: false,
+            edit_state: Default::default(),
+        }
+    }
+}
+
+#[derive(Default)]
+struct Edit {
+    value_edits: HashMap<String, EditState>,
+    mutations: Vec<JsonValueMutationEvent>,
+}
+
+impl Edit {
+    fn edit_value_ui(&mut self, ui: &mut Ui, context: &RenderValueContext<Value>) {
+        let edit_state = self
+            .value_edits
+            .entry(context.pointer.to_json_pointer_string())
+            .or_insert_with(|| EditState {
+                input: context.value.to_string(),
+                error: None,
+            });
+
+        let mut frame = Frame::default().rounding(Rounding::same(2.0));
+
+        if edit_state.error.is_some() {
+            frame = frame.stroke(Stroke::new(1.0, Color32::RED));
+        }
+
+        let edit_response = frame
+            .show(ui, |ui| {
+                TextEdit::singleline(&mut edit_state.input)
+                    .code_editor()
+                    .margin(Margin::symmetric(2.0, 0.0))
+                    .clip_text(false)
+                    .desired_width(0.0)
+                    .min_size(vec2(10.0, 2.0))
+                    .show(ui)
+                    .response
+            })
+            .inner;
+
+        if edit_response.changed() {
+            edit_state.error.take();
+        }
+
+        if let Some(error) = &edit_state.error {
+            edit_response.on_hover_text(error);
+        }
+    }
+
+    fn delete_value_ui(&mut self, ui: &mut Ui, context: &RenderValueContext<Value>) {
+        ui.add_space(5.0);
+        if let (Some(parent_pointer), Some(seg)) =
+            (context.pointer.parent(), context.pointer.last())
+        {
+            if ui.add(Button::new("x").small()).clicked() {
+                let pointer = context.pointer.to_json_pointer_string();
+                let parent_pointer = parent_pointer.to_json_pointer_string();
+                let mutation = match seg {
+                    JsonPointerSegment::Key(key) => JsonValueMutationEvent::DeleteFromObject {
+                        pointer,
+                        parent_pointer,
+                        key: key.to_string(),
+                    },
+                    JsonPointerSegment::Index(idx) => JsonValueMutationEvent::DeleteFromArray {
+                        pointer,
+                        parent_pointer,
+                        idx: *idx,
+                    },
+                };
+                self.mutations.push(mutation);
+            }
+        }
+    }
+}
+
+struct EditState {
+    input: String,
+    error: Option<String>,
+}
+
+enum JsonValueMutationEvent {
+    DeleteFromObject {
+        pointer: String,
+        parent_pointer: String,
+        key: String,
+    },
+    DeleteFromArray {
+        pointer: String,
+        parent_pointer: String,
+        idx: usize,
+    },
+    AddToObject {
+        pointer: String,
+    },
+    AddToArray {
+        pointer: String,
+    },
+}
+
+impl Show for RenderHooksExample {
+    fn title(&self) -> &'static str {
+        "Render Hooks Example"
+    }
+
+    fn show(&mut self, ui: &mut Ui) {
+        let (edit_toggle_response, save_button_response) = ui
+            .horizontal(|ui| {
+                let edit_button_text = if self.edit { "Cancel Edit" } else { "Edit" };
+                (
+                    ui.toggle_value(&mut self.edit, edit_button_text),
+                    ui.add_enabled(self.edit, Button::new("Save")),
+                )
+            })
+            .inner;
+
+        JsonTree::new(self.title(), &self.value)
+            .default_expand(DefaultExpand::All)
+            .on_render_if(self.edit, |ui, context| {
+                match context {
+                    RenderContext::Property(context) => {
+                        context
+                            .render_default(ui)
+                            .on_hover_text(context.value.to_string());
+                    }
+                    RenderContext::Value(context) => {
+                        self.edit_state.edit_value_ui(ui, &context);
+                        self.edit_state.delete_value_ui(ui, &context);
+                    }
+                    RenderContext::ExpandableDelimiter(context) => {
+                        context.render_default(ui);
+                        match context.delimiter {
+                            ExpandableDelimiter::ClosingObject => {
+                                if ui.small_button("add to object").clicked() {
+                                    let pointer = context.pointer.to_json_pointer_string();
+                                    self.edit_state
+                                        .mutations
+                                        .push(JsonValueMutationEvent::AddToObject { pointer })
+                                }
+                            }
+                            ExpandableDelimiter::ClosingArray => {
+                                if ui.small_button("add to array").clicked() {
+                                    let pointer = context.pointer.to_json_pointer_string();
+                                    self.edit_state
+                                        .mutations
+                                        .push(JsonValueMutationEvent::AddToArray { pointer })
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                };
+            })
+            .show(ui);
+
+        for mutation in self.edit_state.mutations.drain(..) {
+            match mutation {
+                JsonValueMutationEvent::DeleteFromArray {
+                    pointer,
+                    parent_pointer,
+                    idx,
+                } => {
+                    let arr = self
+                        .value
+                        .pointer_mut(&parent_pointer)
+                        .unwrap()
+                        .as_array_mut()
+                        .unwrap();
+
+                    self.edit_state.value_edits.remove(&pointer);
+                    arr.remove(idx);
+                }
+                JsonValueMutationEvent::DeleteFromObject {
+                    pointer,
+                    parent_pointer,
+                    key,
+                } => {
+                    self.value
+                        .pointer_mut(&parent_pointer)
+                        .unwrap()
+                        .as_object_mut()
+                        .unwrap()
+                        .remove(&key);
+                    self.edit_state.value_edits.remove(&pointer);
+                }
+                JsonValueMutationEvent::AddToObject { pointer } => {
+                    let obj = self
+                        .value
+                        .pointer_mut(&pointer)
+                        .unwrap()
+                        .as_object_mut()
+                        .unwrap();
+                    obj.insert("new".to_string(), Value::Null);
+                }
+                JsonValueMutationEvent::AddToArray { pointer } => {
+                    let arr = self
+                        .value
+                        .pointer_mut(&pointer)
+                        .unwrap()
+                        .as_array_mut()
+                        .unwrap();
+                    arr.push(Value::Null);
+                }
+            }
+        }
+
+        if save_button_response.clicked() {
+            let mut save_error = false;
+            for (pointer, edit_state) in self.edit_state.value_edits.iter_mut() {
+                if let Some(value) = self.value.pointer_mut(pointer) {
+                    match Value::from_str(&edit_state.input) {
+                        Ok(new_value) => *value = new_value,
+                        Err(e) => {
+                            edit_state.error = Some(e.to_string());
+                            save_error = true;
+                        }
+                    }
+                }
+            }
+
+            if !save_error {
+                self.edit_state.value_edits.drain();
+                self.edit = false;
+            }
+        }
+
+        if edit_toggle_response.clicked() && !self.edit {
+            self.edit_state.value_edits.drain();
+        }
+    }
+}
+
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_titles: HashMap<&'static str, bool>,
@@ -200,7 +447,7 @@ struct DemoApp {
 
 impl Default for DemoApp {
     fn default() -> Self {
-        let complex_object = json!({"foo": [1, 2, [3]], "bar": { "a" : false, "b": { "fizz": [4, 5, { "x": "Greetings!" }]}, "c": 21}, "baz": null});
+        let complex_object = json!({"foo": [1, 2, [3]], "bar": { " " : false, "b": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "": 21}, "baz": null});
 
         Self {
             examples: vec![
@@ -222,7 +469,8 @@ impl Default for DemoApp {
                 Box::new(Example::new("Complex Object", complex_object.clone())),
                 Box::new(CustomExample::new("Custom Input")),
                 Box::new(SearchExample::new(complex_object.clone())),
-                Box::new(CopyToClipboardExample::new(complex_object)),
+                Box::new(CopyToClipboardExample::new(complex_object.clone())),
+                Box::new(RenderHooksExample::new(complex_object)),
             ],
             open_example_titles: HashMap::new(),
         }

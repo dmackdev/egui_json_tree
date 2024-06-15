@@ -24,7 +24,7 @@ pub trait DefaultRender {
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     Property(RenderPropertyContext<'a, 'b, T>),
     Value(RenderValueContext<'a, 'b, T>),
-    ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b>),
+    ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b, T>),
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
@@ -85,13 +85,14 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
 }
 
 #[derive(Clone, Copy)]
-pub struct RenderExpandableDelimiterContext<'a, 'b> {
+pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub delimiter: ExpandableDelimiter,
+    pub value: &'a T,
     pub pointer: JsonPointer<'a, 'b>,
     pub style: &'b JsonTreeStyle,
 }
 
-impl<'a, 'b> DefaultRender for RenderExpandableDelimiterContext<'a, 'b> {
+impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterContext<'a, 'b, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_delimiter(ui, self.style, self.delimiter.as_ref())
     }
@@ -149,7 +150,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_expandable_delimiter<'b>(
         &mut self,
         ui: &mut Ui,
-        context: RenderExpandableDelimiterContext<'a, 'b>,
+        context: RenderExpandableDelimiterContext<'a, 'b, T>,
     ) {
         match self.render_hook.as_mut() {
             Some(render_hook) => {

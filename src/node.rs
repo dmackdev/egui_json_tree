@@ -207,6 +207,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             ui,
                             RenderExpandableDelimiterContext {
                                 delimiter: delimiters.collapsed,
+                                value: expandable.value,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -218,6 +219,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         ui,
                         RenderExpandableDelimiterContext {
                             delimiter: delimiters.opening,
+                            value: expandable.value,
                             pointer: JsonPointer(path_segments),
                             style,
                         },
@@ -284,6 +286,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     ui,
                                     RenderExpandableDelimiterContext {
                                         delimiter,
+                                        value: expandable.value,
                                         pointer: JsonPointer(path_segments),
                                         style,
                                     },
@@ -308,6 +311,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         ui,
                         RenderExpandableDelimiterContext {
                             delimiter: delimiters.closing,
+                            value: expandable.value,
                             pointer: JsonPointer(path_segments),
                             style,
                         },
@@ -338,6 +342,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             ui,
                             RenderExpandableDelimiterContext {
                                 delimiter: delimiters.opening,
+                                value: expandable.value,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -352,6 +357,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             ui,
                             RenderExpandableDelimiterContext {
                                 delimiter,
+                                value: expandable.value,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -407,6 +413,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 ui,
                 RenderExpandableDelimiterContext {
                     delimiter: delimiters.closing,
+                    value: expandable.value,
                     pointer: JsonPointer(path_segments),
                     style,
                 },

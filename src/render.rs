@@ -22,7 +22,7 @@ pub trait DefaultRender {
 
 #[derive(Clone, Copy)]
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
-    Property(RenderPropertyContext<'a, 'b>),
+    Property(RenderPropertyContext<'a, 'b, T>),
     Value(RenderValueContext<'a, 'b, T>),
     ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b>),
 }
@@ -48,14 +48,15 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
 }
 
 #[derive(Clone, Copy)]
-pub struct RenderPropertyContext<'a, 'b> {
+pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     pub property: JsonPointerSegment<'a>,
+    pub value: &'a T,
     pub pointer: JsonPointer<'a, 'b>,
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
-impl<'a, 'b> DefaultRender for RenderPropertyContext<'a, 'b> {
+impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_property(ui, self.style, &self.property, self.search_term)
     }
@@ -122,7 +123,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
     pub(crate) fn render_property<'b>(
         &mut self,
         ui: &mut Ui,
-        context: RenderPropertyContext<'a, 'b>,
+        context: RenderPropertyContext<'a, 'b, T>,
     ) {
         match self.render_hook.as_mut() {
             Some(render_hook) => {

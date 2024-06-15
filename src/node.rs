@@ -111,6 +111,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                             ui,
                             RenderPropertyContext {
                                 property,
+                                value: self.value,
                                 pointer: JsonPointer(path_segments),
                                 style: &config.style,
                                 search_term: config.search_term.as_ref(),
@@ -141,6 +142,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             JsonTreeValue::Expandable(entries, expandable_type) => {
                 let expandable = Expandable {
                     id: self.id,
+                    value: self.value,
                     entries,
                     expandable_type,
                     parent: self.parent,
@@ -237,6 +239,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 ui,
                                 RenderPropertyContext {
                                     property: *property,
+                                    value: elem,
                                     pointer: JsonPointer(path_segments),
                                     style,
                                     search_term: search_term.as_ref(),
@@ -315,6 +318,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             ui,
                             RenderPropertyContext {
                                 property,
+                                value: expandable.value,
                                 pointer: JsonPointer(path_segments),
                                 style,
                                 search_term: config.search_term.as_ref(),
@@ -426,8 +430,9 @@ enum InnerExpand<'a> {
     Paths(HashSet<Vec<JsonPointerSegment<'a>>>),
 }
 
-struct Expandable<'a, T> {
+struct Expandable<'a, T: ToJsonTreeValue> {
     id: Id,
+    value: &'a T,
     entries: Vec<(JsonPointerSegment<'a>, &'a T)>,
     expandable_type: ExpandableType,
     parent: Option<JsonPointerSegment<'a>>,

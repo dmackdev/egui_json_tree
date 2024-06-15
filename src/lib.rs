@@ -17,10 +17,10 @@
 //!         ..Default::default()
 //!     })
 //!     .default_expand(DefaultExpand::All)
-//!     .response_callback(|response, json_pointer_string| {
-//!       // Handle interactions within the JsonTree.
-//!     })
 //!     .abbreviate_root(true) // Show {...} when the root object is collapsed.
+//!     .on_render(|ui, render_ctx| {
+//!       // Customise rendering of the JsonTree, and/or handle interactions.
+//!     })
 //!     .show(ui);
 //!
 //! // Reset the expanded state of all arrays/objects to respect the `default_expand` setting.

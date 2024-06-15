@@ -10,7 +10,7 @@ use simd_json::{json, owned::Value};
 
 #[derive(Debug, PartialEq)]
 struct ExpectedRender {
-    value: Option<Value>,
+    value: Value,
     display_value: String,
     pointer_str: String,
 }
@@ -19,17 +19,17 @@ impl<'a, 'b> From<RenderContext<'a, 'b, Value>> for ExpectedRender {
     fn from(ctx: RenderContext<'a, 'b, Value>) -> Self {
         match ctx {
             RenderContext::Property(ctx) => ExpectedRender {
-                value: Some(ctx.value.clone()),
+                value: ctx.value.clone(),
                 display_value: ctx.property.to_string(),
                 pointer_str: ctx.pointer.to_json_pointer_string(),
             },
             RenderContext::Value(ctx) => ExpectedRender {
-                value: Some(ctx.value.clone()),
+                value: (ctx.value.clone()),
                 display_value: ctx.display_value.to_string(),
                 pointer_str: ctx.pointer.to_json_pointer_string(),
             },
             RenderContext::ExpandableDelimiter(ctx) => ExpectedRender {
-                value: None,
+                value: ctx.value.clone(),
                 display_value: ctx.delimiter.as_ref().to_string(),
                 pointer_str: ctx.pointer.to_json_pointer_string(),
             },
@@ -52,7 +52,7 @@ fn json_tree_render_string() {
     });
 
     let expected = vec![ExpectedRender {
-        value: Some(json!("Hello World!")),
+        value: json!("Hello World!"),
         display_value: "Hello World!".to_string(),
         pointer_str: "".to_string(),
     }];
@@ -83,26 +83,30 @@ fn json_tree_default_expand_none() {
 
     let expected = vec![
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{".to_string(),
             pointer_str: "".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
+            value: json!({
               "bar": {
                 "fizz": true
               }
-            })),
+            }),
             display_value: "foo".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+              "bar": {
+                "fizz": true
+              }
+            }),
             display_value: "{...}".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "}".to_string(),
             pointer_str: "".to_string(),
         },
@@ -133,58 +137,64 @@ fn json_tree_default_expand_all() {
 
     let expected = vec![
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{".to_string(),
             pointer_str: "".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
+            value: json!({
               "bar": {
                 "fizz": true
               }
-            })),
+            }),
             display_value: "foo".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+              "bar": {
+                "fizz": true
+              }
+            }),
             display_value: "{".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
-              "fizz": true
-            })),
+            value: json!({"fizz": true}),
             display_value: "bar".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"fizz": true}),
             display_value: "{".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(true)),
+            value: json!(true),
             display_value: "fizz".to_string(),
             pointer_str: "/foo/bar/fizz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(true)),
+            value: json!(true),
             display_value: "true".to_string(),
             pointer_str: "/foo/bar/fizz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"fizz": true}),
             display_value: "}".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+              "bar": {
+                "fizz": true
+              }
+            }),
             display_value: "}".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "}".to_string(),
             pointer_str: "".to_string(),
         },
@@ -220,58 +230,68 @@ fn json_tree_default_expand_to_level_one() {
     // expect to see the keys "bar" and "buzz", but not "fizz" and "qux".
     let expected = vec![
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{".to_string(),
             pointer_str: "".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
+            value: json!({
                 "bar": {
                     "fizz": true
                 },
                 "buzz": [
                     { "qux": 50 }
                 ]
-            })),
+            }),
             display_value: "foo".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+                "bar": {
+                    "fizz": true
+                },
+                "buzz": [
+                    { "qux": 50 }
+                ]
+            }),
             display_value: "{".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
-                "fizz": true
-            })),
+            value: json!({"fizz": true}),
             display_value: "bar".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"fizz": true}),
             display_value: "{...}".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: Some(json!([
-                { "qux": 50 }
-            ])),
+            value: json!([{ "qux": 50 }]),
             display_value: "buzz".to_string(),
             pointer_str: "/foo/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!([{ "qux": 50 }]),
             display_value: "[...]".to_string(),
             pointer_str: "/foo/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+                "bar": {
+                    "fizz": true
+                },
+                "buzz": [
+                    { "qux": 50 }
+                ]
+            }),
             display_value: "}".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "}".to_string(),
             pointer_str: "".to_string(),
         },
@@ -309,12 +329,12 @@ fn json_tree_default_expand_search() {
 
     let expected = vec![
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{".to_string(),
             pointer_str: "".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
+            value: json!({
                 "bar": {
                     "fizz": true
                 },
@@ -324,88 +344,102 @@ fn json_tree_default_expand_search() {
                 "buzz": [
                     { "grep": 50 }
                 ]
-            })),
+            }),
             display_value: "foo".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+                "bar": {
+                    "fizz": true
+                },
+                "baz": {
+                    "qux": "thud"
+                },
+                "buzz": [
+                    { "grep": 50 }
+                ]
+            }),
             display_value: "{".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
-                "fizz": true
-            })),
+            value: json!({"fizz": true}),
             display_value: "bar".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"fizz": true}),
             display_value: "{".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(true)),
+            value: json!(true),
             display_value: "fizz".to_string(),
             pointer_str: "/foo/bar/fizz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(true)),
+            value: json!(true),
             display_value: "true".to_string(),
             pointer_str: "/foo/bar/fizz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"fizz": true}),
             display_value: "}".to_string(),
             pointer_str: "/foo/bar".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
-                "qux": "thud"
-            })),
+            value: json!({"qux": "thud"}),
             display_value: "baz".to_string(),
             pointer_str: "/foo/baz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"qux": "thud"}),
             display_value: "{".to_string(),
             pointer_str: "/foo/baz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!("thud")),
+            value: json!("thud"),
             display_value: "qux".to_string(),
             pointer_str: "/foo/baz/qux".to_string(),
         },
         ExpectedRender {
-            value: Some(json!("thud")),
+            value: json!("thud"),
             display_value: "thud".to_string(),
             pointer_str: "/foo/baz/qux".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"qux": "thud"}),
             display_value: "}".to_string(),
             pointer_str: "/foo/baz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!([
-                { "grep": 50 }
-            ])),
+            value: json!([{ "grep": 50 }]),
             display_value: "buzz".to_string(),
             pointer_str: "/foo/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!([{ "grep": 50 }]),
             display_value: "[...]".to_string(),
             pointer_str: "/foo/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({
+                "bar": {
+                    "fizz": true
+                },
+                "baz": {
+                    "qux": "thud"
+                },
+                "buzz": [
+                    { "grep": 50 }
+                ]
+            }),
             display_value: "}".to_string(),
             pointer_str: "/foo".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "}".to_string(),
             pointer_str: "".to_string(),
         },
@@ -437,64 +471,62 @@ fn json_tree_reset_expanded() {
 
     let expected_all_expanded = vec![
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{".to_string(),
             pointer_str: "".to_string(),
         },
         ExpectedRender {
-            value: Some(json!({
-                "qux": 1
-            })),
+            value: json!({"qux": 1}),
             display_value: "baz".to_string(),
             pointer_str: "/baz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"qux": 1}),
             display_value: "{".to_string(),
             pointer_str: "/baz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(1)),
+            value: json!(1),
             display_value: "qux".to_string(),
             pointer_str: "/baz/qux".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(1)),
+            value: json!(1),
             display_value: "1".to_string(),
             pointer_str: "/baz/qux".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!({"qux": 1}),
             display_value: "}".to_string(),
             pointer_str: "/baz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!([1])),
+            value: json!([1]),
             display_value: "buzz".to_string(),
             pointer_str: "/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!([1]),
             display_value: "[".to_string(),
             pointer_str: "/buzz".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(1)),
+            value: json!(1),
             display_value: "0".to_string(),
             pointer_str: "/buzz/0".to_string(),
         },
         ExpectedRender {
-            value: Some(json!(1)),
+            value: json!(1),
             display_value: "1".to_string(),
             pointer_str: "/buzz/0".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: json!([1]),
             display_value: "]".to_string(),
             pointer_str: "/buzz".to_string(),
         },
         ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "}".to_string(),
             pointer_str: "".to_string(),
         },
@@ -557,7 +589,7 @@ fn json_tree_reset_expanded() {
         });
 
         let expected_nothing_expanded = vec![ExpectedRender {
-            value: None,
+            value: value.clone(),
             display_value: "{...}".to_string(),
             pointer_str: "".to_string(),
         }];

@@ -1,43 +1,43 @@
 pub(crate) struct Delimiters {
-    pub(crate) collapsed: ExpandablePunc,
-    pub(crate) collapsed_empty: ExpandablePunc,
-    pub(crate) opening: ExpandablePunc,
-    pub(crate) closing: ExpandablePunc,
+    pub(crate) collapsed: ExpandableDelimiter,
+    pub(crate) collapsed_empty: ExpandableDelimiter,
+    pub(crate) opening: ExpandableDelimiter,
+    pub(crate) closing: ExpandableDelimiter,
 }
 
 pub(crate) const ARRAY_DELIMITERS: Delimiters = Delimiters {
-    collapsed: ExpandablePunc::CollapsedArray,
-    collapsed_empty: ExpandablePunc::CollapsedEmptyArray,
-    opening: ExpandablePunc::OpeningArray,
-    closing: ExpandablePunc::ClosingArray,
+    collapsed: ExpandableDelimiter::CollapsedArray,
+    collapsed_empty: ExpandableDelimiter::CollapsedEmptyArray,
+    opening: ExpandableDelimiter::OpeningArray,
+    closing: ExpandableDelimiter::ClosingArray,
 };
 
 pub(crate) const OBJECT_DELIMITERS: Delimiters = Delimiters {
-    collapsed: ExpandablePunc::CollapsedObject,
-    collapsed_empty: ExpandablePunc::CollapsedEmptyObject,
-    opening: ExpandablePunc::OpeningObject,
-    closing: ExpandablePunc::ClosingObject,
+    collapsed: ExpandableDelimiter::CollapsedObject,
+    collapsed_empty: ExpandableDelimiter::CollapsedEmptyObject,
+    opening: ExpandableDelimiter::OpeningObject,
+    closing: ExpandableDelimiter::ClosingObject,
 };
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum SpacingPunc {
+pub(crate) enum SpacingDelimiter {
     Empty,
     Comma,
     Colon,
 }
 
-impl AsRef<str> for SpacingPunc {
+impl AsRef<str> for SpacingDelimiter {
     fn as_ref(&self) -> &str {
         match self {
-            SpacingPunc::Empty => " ",
-            SpacingPunc::Comma => ", ",
-            SpacingPunc::Colon => ": ",
+            SpacingDelimiter::Empty => " ",
+            SpacingDelimiter::Comma => ", ",
+            SpacingDelimiter::Colon => ": ",
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ExpandablePunc {
+pub enum ExpandableDelimiter {
     CollapsedArray,
     CollapsedEmptyArray,
     OpeningArray,
@@ -48,17 +48,17 @@ pub enum ExpandablePunc {
     ClosingObject,
 }
 
-impl AsRef<str> for ExpandablePunc {
+impl AsRef<str> for ExpandableDelimiter {
     fn as_ref(&self) -> &str {
         match self {
-            ExpandablePunc::CollapsedArray => "[...]",
-            ExpandablePunc::CollapsedEmptyArray => "[]",
-            ExpandablePunc::OpeningArray => "[",
-            ExpandablePunc::ClosingArray => "]",
-            ExpandablePunc::CollapsedObject => "{...}",
-            ExpandablePunc::CollapsedEmptyObject => "{}",
-            ExpandablePunc::OpeningObject => "{",
-            ExpandablePunc::ClosingObject => "}",
+            ExpandableDelimiter::CollapsedArray => "[...]",
+            ExpandableDelimiter::CollapsedEmptyArray => "[]",
+            ExpandableDelimiter::OpeningArray => "[",
+            ExpandableDelimiter::ClosingArray => "]",
+            ExpandableDelimiter::CollapsedObject => "{...}",
+            ExpandableDelimiter::CollapsedEmptyObject => "{}",
+            ExpandableDelimiter::OpeningObject => "{",
+            ExpandableDelimiter::ClosingObject => "}",
         }
     }
 }

@@ -7,7 +7,7 @@ use egui::{
 };
 
 use crate::{
-    delimiters::{ExpandablePunc, SpacingPunc},
+    delimiters::{ExpandableDelimiter, SpacingDelimiter},
     pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
@@ -23,7 +23,7 @@ pub trait DefaultRender {
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     Key(RenderKeyContext<'a, 'b>),
     Value(RenderValueContext<'a, 'b, T>),
-    ExpandablePunc(RenderExpandablePuncContext<'a, 'b>),
+    ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b>),
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
@@ -31,7 +31,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
         match self {
             RenderContext::Key(context) => context.render_default(ui),
             RenderContext::Value(context) => context.render_default(ui),
-            RenderContext::ExpandablePunc(context) => context.render_default(ui),
+            RenderContext::ExpandableDelimiter(context) => context.render_default(ui),
         }
     }
 }
@@ -41,7 +41,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
         match self {
             RenderContext::Key(context) => context.pointer,
             RenderContext::Value(context) => context.pointer,
-            RenderContext::ExpandablePunc(context) => context.pointer,
+            RenderContext::ExpandableDelimiter(context) => context.pointer,
         }
     }
 }
@@ -80,26 +80,26 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
     }
 }
 
-pub struct RenderExpandablePuncContext<'a, 'b> {
-    pub punc: ExpandablePunc,
+pub struct RenderExpandableDelimiterContext<'a, 'b> {
+    pub delimiter: ExpandableDelimiter,
     pub pointer: JsonPointer<'a, 'b>,
     pub style: &'b JsonTreeStyle,
 }
 
-impl<'a, 'b> DefaultRender for RenderExpandablePuncContext<'a, 'b> {
+impl<'a, 'b> DefaultRender for RenderExpandableDelimiterContext<'a, 'b> {
     fn render_default(&self, ui: &mut Ui) -> Response {
-        render_punc(ui, self.style, self.punc.as_ref())
+        render_delimiter(ui, self.style, self.delimiter.as_ref())
     }
 }
 
-pub(crate) struct RenderSpacingPuncContext<'b> {
-    pub(crate) punc: SpacingPunc,
+pub(crate) struct RenderSpacingDelimiterContext<'b> {
+    pub(crate) delimiter: SpacingDelimiter,
     pub(crate) style: &'b JsonTreeStyle,
 }
 
-impl<'b> DefaultRender for RenderSpacingPuncContext<'b> {
+impl<'b> DefaultRender for RenderSpacingDelimiterContext<'b> {
     fn render_default(&self, ui: &mut Ui) -> Response {
-        render_punc(ui, self.style, self.punc.as_ref())
+        render_delimiter(ui, self.style, self.delimiter.as_ref())
     }
 }
 
@@ -136,14 +136,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         };
     }
 
-    pub(crate) fn render_expandable_punc<'b>(
+    pub(crate) fn render_expandable_delimiter<'b>(
         &mut self,
         ui: &mut Ui,
-        context: RenderExpandablePuncContext<'a, 'b>,
+        context: RenderExpandableDelimiterContext<'a, 'b>,
     ) {
         match self.render_hook.as_mut() {
             Some(render_hook) => {
-                render_hook(ui, RenderContext::ExpandablePunc(context));
+                render_hook(ui, RenderContext::ExpandableDelimiter(context));
             }
             None => {
                 context.render_default(ui);
@@ -151,7 +151,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         };
     }
 
-    pub(crate) fn render_spacing_punc(&mut self, ui: &mut Ui, context: RenderSpacingPuncContext) {
+    pub(crate) fn render_spacing_delimiter(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderSpacingDelimiterContext,
+    ) {
         context.render_default(ui);
     }
 }
@@ -381,11 +385,11 @@ fn append(
     job.append(text_str, 0.0, text_format);
 }
 
-fn render_punc(ui: &mut Ui, style: &JsonTreeStyle, punc_str: &str) -> Response {
+fn render_delimiter(ui: &mut Ui, style: &JsonTreeStyle, delimiter_str: &str) -> Response {
     let mut job = LayoutJob::default();
     append(
         &mut job,
-        punc_str,
+        delimiter_str,
         style.punctuation_color,
         None,
         &style.font_id(ui),

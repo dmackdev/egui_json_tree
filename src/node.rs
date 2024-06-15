@@ -3,11 +3,11 @@ use std::collections::{HashMap, HashSet};
 use egui::{collapsing_header::CollapsingState, Id, Ui};
 
 use crate::{
-    delimiters::{SpacingPunc, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
-        JsonTreeRenderer, RenderExpandablePuncContext, RenderKeyContext, RenderSpacingPuncContext,
-        RenderValueContext,
+        JsonTreeRenderer, RenderExpandableDelimiterContext, RenderKeyContext,
+        RenderSpacingDelimiterContext, RenderValueContext,
     },
     response::JsonTreeResponse,
     search::SearchTerm,
@@ -116,10 +116,10 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                                 search_term: config.search_term.as_ref(),
                             },
                         );
-                        renderer.render_spacing_punc(
+                        renderer.render_spacing_delimiter(
                             ui,
-                            RenderSpacingPuncContext {
-                                punc: SpacingPunc::Colon,
+                            RenderSpacingDelimiterContext {
+                                delimiter: SpacingDelimiter::Colon,
                                 style: &config.style,
                             },
                         );
@@ -201,10 +201,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                 if path_segments.is_empty() && !is_expanded {
                     if *abbreviate_root {
-                        renderer.render_expandable_punc(
+                        renderer.render_expandable_delimiter(
                             ui,
-                            RenderExpandablePuncContext {
-                                punc: delimiters.collapsed,
+                            RenderExpandableDelimiterContext {
+                                delimiter: delimiters.collapsed,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -212,18 +212,18 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         return;
                     }
 
-                    renderer.render_expandable_punc(
+                    renderer.render_expandable_delimiter(
                         ui,
-                        RenderExpandablePuncContext {
-                            punc: delimiters.opening,
+                        RenderExpandableDelimiterContext {
+                            delimiter: delimiters.opening,
                             pointer: JsonPointer(path_segments),
                             style,
                         },
                     );
-                    renderer.render_spacing_punc(
+                    renderer.render_spacing_delimiter(
                         ui,
-                        RenderSpacingPuncContext {
-                            punc: SpacingPunc::Empty,
+                        RenderSpacingDelimiterContext {
+                            delimiter: SpacingDelimiter::Empty,
                             style,
                         },
                     );
@@ -242,10 +242,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     search_term: search_term.as_ref(),
                                 },
                             );
-                            renderer.render_spacing_punc(
+                            renderer.render_spacing_delimiter(
                                 ui,
-                                RenderSpacingPuncContext {
-                                    punc: SpacingPunc::Colon,
+                                RenderSpacingDelimiterContext {
+                                    delimiter: SpacingDelimiter::Colon,
                                     style,
                                 },
                             );
@@ -277,10 +277,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                     nested_delimiters.collapsed
                                 };
 
-                                renderer.render_expandable_punc(
+                                renderer.render_expandable_delimiter(
                                     ui,
-                                    RenderExpandablePuncContext {
-                                        punc: delimiter,
+                                    RenderExpandableDelimiterContext {
+                                        delimiter,
                                         pointer: JsonPointer(path_segments),
                                         style,
                                     },
@@ -288,23 +288,23 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             }
                         };
                         let spacing = if idx == entries_len - 1 {
-                            SpacingPunc::Empty
+                            SpacingDelimiter::Empty
                         } else {
-                            SpacingPunc::Comma
+                            SpacingDelimiter::Comma
                         };
-                        renderer.render_spacing_punc(
+                        renderer.render_spacing_delimiter(
                             ui,
-                            RenderSpacingPuncContext {
-                                punc: spacing,
+                            RenderSpacingDelimiterContext {
+                                delimiter: spacing,
                                 style,
                             },
                         );
                     }
 
-                    renderer.render_expandable_punc(
+                    renderer.render_expandable_delimiter(
                         ui,
-                        RenderExpandablePuncContext {
-                            punc: delimiters.closing,
+                        RenderExpandableDelimiterContext {
+                            delimiter: delimiters.closing,
                             pointer: JsonPointer(path_segments),
                             style,
                         },
@@ -320,20 +320,20 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 search_term: config.search_term.as_ref(),
                             },
                         );
-                        renderer.render_spacing_punc(
+                        renderer.render_spacing_delimiter(
                             ui,
-                            RenderSpacingPuncContext {
-                                punc: SpacingPunc::Colon,
+                            RenderSpacingDelimiterContext {
+                                delimiter: SpacingDelimiter::Colon,
                                 style,
                             },
                         );
                     }
 
                     if is_expanded {
-                        renderer.render_expandable_punc(
+                        renderer.render_expandable_delimiter(
                             ui,
-                            RenderExpandablePuncContext {
-                                punc: delimiters.opening,
+                            RenderExpandableDelimiterContext {
+                                delimiter: delimiters.opening,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -344,10 +344,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         } else {
                             delimiters.collapsed
                         };
-                        renderer.render_expandable_punc(
+                        renderer.render_expandable_delimiter(
                             ui,
-                            RenderExpandablePuncContext {
-                                punc: delimiter,
+                            RenderExpandableDelimiterContext {
+                                delimiter,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
@@ -399,10 +399,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         ui.horizontal_wrapped(|ui| {
             let indent = ui.spacing().icon_width / 2.0;
             ui.add_space(indent);
-            renderer.render_expandable_punc(
+            renderer.render_expandable_delimiter(
                 ui,
-                RenderExpandablePuncContext {
-                    punc: delimiters.closing,
+                RenderExpandableDelimiterContext {
+                    delimiter: delimiters.closing,
                     pointer: JsonPointer(path_segments),
                     style,
                 },

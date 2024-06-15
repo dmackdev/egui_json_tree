@@ -64,11 +64,11 @@ fn search_impl<'a, T: ToJsonTreeValue>(
             }
         }
         JsonTreeValue::Expandable(entries, expandable_type) => {
-            for (key, val) in entries.iter() {
-                path_segments.push(*key);
+            for (property, val) in entries.iter() {
+                path_segments.push(*property);
 
                 // Ignore matches for indices in an array.
-                if expandable_type == ExpandableType::Object && search_term.matches(key) {
+                if expandable_type == ExpandableType::Object && search_term.matches(property) {
                     update_matches(path_segments, matching_paths);
                 }
 

@@ -6,7 +6,7 @@ use crate::{
     delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
-        JsonTreeRenderer, RenderExpandableDelimiterContext, RenderKeyContext,
+        JsonTreeRenderer, RenderExpandableDelimiterContext, RenderPropertyContext,
         RenderSpacingDelimiterContext, RenderValueContext,
     },
     response::JsonTreeResponse,
@@ -106,11 +106,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 ui.horizontal_wrapped(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
-                    if let Some(key) = self.parent {
-                        renderer.render_key(
+                    if let Some(property) = self.parent {
+                        renderer.render_property(
                             ui,
-                            RenderKeyContext {
-                                key,
+                            RenderPropertyContext {
+                                property,
                                 pointer: JsonPointer(path_segments),
                                 style: &config.style,
                                 search_term: config.search_term.as_ref(),
@@ -230,13 +230,13 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
                     let entries_len = expandable.entries.len();
 
-                    for (idx, (key, elem)) in expandable.entries.iter().enumerate() {
+                    for (idx, (property, elem)) in expandable.entries.iter().enumerate() {
                         // Don't show array indices when the array is collapsed.
                         if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            renderer.render_key(
+                            renderer.render_property(
                                 ui,
-                                RenderKeyContext {
-                                    key: *key,
+                                RenderPropertyContext {
+                                    property: *property,
                                     pointer: JsonPointer(path_segments),
                                     style,
                                     search_term: search_term.as_ref(),
@@ -310,11 +310,11 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         },
                     );
                 } else {
-                    if let Some(key) = expandable.parent {
-                        renderer.render_key(
+                    if let Some(property) = expandable.parent {
+                        renderer.render_property(
                             ui,
-                            RenderKeyContext {
-                                key,
+                            RenderPropertyContext {
+                                property,
                                 pointer: JsonPointer(path_segments),
                                 style,
                                 search_term: config.search_term.as_ref(),
@@ -357,16 +357,16 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
             });
         })
         .body(|ui| {
-            for (key, elem) in expandable.entries {
+            for (property, elem) in expandable.entries {
                 let is_expandable = elem.is_expandable();
 
-                path_segments.push(key);
+                path_segments.push(property);
 
                 let mut add_nested_tree = |ui: &mut Ui| {
                     let nested_tree = JsonTreeNode {
                         id: expandable.id,
                         value: elem,
-                        parent: Some(key),
+                        parent: Some(property),
                     };
 
                     nested_tree.show_impl(
@@ -450,10 +450,10 @@ fn populate_path_id_map_impl<'a, 'b, T: ToJsonTreeValue>(
     make_persistent_id: &'b dyn Fn(&Vec<JsonPointerSegment<'a>>) -> Id,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
-        for (key, val) in entries {
+        for (property, val) in entries {
             let id = make_persistent_id(path_segments);
             path_id_map.insert(path_segments.clone(), id);
-            path_segments.push(key);
+            path_segments.push(property);
             populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
             path_segments.pop();
         }

@@ -21,7 +21,7 @@ pub trait DefaultRender {
 }
 
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
-    Key(RenderKeyContext<'a, 'b>),
+    Property(RenderPropertyContext<'a, 'b>),
     Value(RenderValueContext<'a, 'b, T>),
     ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b>),
 }
@@ -29,7 +29,7 @@ pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         match self {
-            RenderContext::Key(context) => context.render_default(ui),
+            RenderContext::Property(context) => context.render_default(ui),
             RenderContext::Value(context) => context.render_default(ui),
             RenderContext::ExpandableDelimiter(context) => context.render_default(ui),
         }
@@ -39,23 +39,23 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
 impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     pub fn pointer(&self) -> JsonPointer {
         match self {
-            RenderContext::Key(context) => context.pointer,
+            RenderContext::Property(context) => context.pointer,
             RenderContext::Value(context) => context.pointer,
             RenderContext::ExpandableDelimiter(context) => context.pointer,
         }
     }
 }
 
-pub struct RenderKeyContext<'a, 'b> {
-    pub key: JsonPointerSegment<'a>,
+pub struct RenderPropertyContext<'a, 'b> {
+    pub property: JsonPointerSegment<'a>,
     pub pointer: JsonPointer<'a, 'b>,
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
-impl<'a, 'b> DefaultRender for RenderKeyContext<'a, 'b> {
+impl<'a, 'b> DefaultRender for RenderPropertyContext<'a, 'b> {
     fn render_default(&self, ui: &mut Ui) -> Response {
-        render_key(ui, self.style, &self.key, self.search_term)
+        render_property(ui, self.style, &self.property, self.search_term)
     }
 }
 
@@ -114,10 +114,14 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeRenderer<'a, T> {
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
-    pub(crate) fn render_key<'b>(&mut self, ui: &mut Ui, context: RenderKeyContext<'a, 'b>) {
+    pub(crate) fn render_property<'b>(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderPropertyContext<'a, 'b>,
+    ) {
         match self.render_hook.as_mut() {
             Some(render_hook) => {
-                render_hook(ui, RenderContext::Key(context));
+                render_hook(ui, RenderContext::Property(context));
             }
             None => {
                 context.render_default(ui);
@@ -242,24 +246,27 @@ fn render_value(
 }
 
 #[derive(Default)]
-struct KeyLayoutJobCreator;
+struct PropertyLayoutJobCreator;
 
-impl KeyLayoutJobCreator {
+impl PropertyLayoutJobCreator {
     fn create(
         &self,
         style: &JsonTreeStyle,
-        key: &JsonPointerSegment,
+        property: &JsonPointerSegment,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
     ) -> LayoutJob {
         let mut job = LayoutJob::default();
-        match key {
-            JsonPointerSegment::Index(_) => {
-                add_array_idx(&mut job, &key.to_string(), style.array_idx_color, font_id)
-            }
+        match property {
+            JsonPointerSegment::Index(_) => add_array_idx(
+                &mut job,
+                &property.to_string(),
+                style.array_idx_color,
+                font_id,
+            ),
             JsonPointerSegment::Key(_) => add_object_key(
                 &mut job,
-                &key.to_string(),
+                &property.to_string(),
                 style.object_key_color,
                 search_term,
                 style.highlight_color,
@@ -279,7 +286,7 @@ impl<'a>
             &FontId,
         ),
         LayoutJob,
-    > for KeyLayoutJobCreator
+    > for PropertyLayoutJobCreator
 {
     fn compute(
         &mut self,
@@ -294,18 +301,18 @@ impl<'a>
     }
 }
 
-type KeyLayoutJobCreatorCache = FrameCache<LayoutJob, KeyLayoutJobCreator>;
+type PropertyLayoutJobCreatorCache = FrameCache<LayoutJob, PropertyLayoutJobCreator>;
 
-fn render_key(
+fn render_property(
     ui: &mut Ui,
     style: &JsonTreeStyle,
-    key: &JsonPointerSegment,
+    property: &JsonPointerSegment,
     search_term: Option<&SearchTerm>,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
-        mem.caches.cache::<KeyLayoutJobCreatorCache>().get((
+        mem.caches.cache::<PropertyLayoutJobCreatorCache>().get((
             style,
-            key,
+            property,
             search_term,
             &style.font_id(ui),
         ))

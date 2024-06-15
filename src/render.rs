@@ -38,6 +38,14 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
+    pub fn value(&self) -> &'a T {
+        match self {
+            RenderContext::Property(context) => context.value,
+            RenderContext::Value(context) => context.value,
+            RenderContext::ExpandableDelimiter(context) => context.value,
+        }
+    }
+
     pub fn pointer(&self) -> JsonPointer {
         match self {
             RenderContext::Property(context) => context.pointer,

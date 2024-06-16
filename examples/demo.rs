@@ -263,7 +263,7 @@ impl Edit {
         if let (Some(parent_pointer), Some(seg)) =
             (context.pointer.parent(), context.pointer.last())
         {
-            if ui.add(Button::new("x").small()).clicked() {
+            if ui.small_button("x").clicked() {
                 let pointer = context.pointer.to_json_pointer_string();
                 let parent_pointer = parent_pointer.to_json_pointer_string();
                 let mutation = match seg {

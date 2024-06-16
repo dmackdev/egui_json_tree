@@ -341,7 +341,7 @@ impl Show for RenderHooksExample {
                         context.render_default(ui);
                         match context.delimiter {
                             ExpandableDelimiter::ClosingObject => {
-                                if ui.small_button("add to object").clicked() {
+                                if ui.small_button("+").clicked() {
                                     let pointer = context.pointer.to_json_pointer_string();
                                     self.edit_state
                                         .mutations
@@ -349,7 +349,7 @@ impl Show for RenderHooksExample {
                                 }
                             }
                             ExpandableDelimiter::ClosingArray => {
-                                if ui.small_button("add to array").clicked() {
+                                if ui.small_button("+").clicked() {
                                     let pointer = context.pointer.to_json_pointer_string();
                                     self.edit_state
                                         .mutations

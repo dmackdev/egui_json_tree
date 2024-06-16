@@ -216,11 +216,37 @@ impl RenderHooksExample {
 
 #[derive(Default)]
 struct Edit {
+    object_key_edits: HashMap<String, EditObjectKeyState>,
     value_edits: HashMap<String, EditState>,
     mutations: Vec<JsonValueMutationEvent>,
 }
 
 impl Edit {
+    fn edit_key_ui(
+        &mut self,
+        ui: &mut Ui,
+        parent_pointer_str: String,
+        pointer_str: String,
+        key: &str,
+    ) {
+        let edit_state =
+            self.object_key_edits
+                .entry(pointer_str)
+                .or_insert_with(|| EditObjectKeyState {
+                    parent_pointer_str,
+                    original_key: key.to_string(),
+                    new_key: key.to_string(),
+                });
+
+        TextEdit::singleline(&mut edit_state.new_key)
+            .code_editor()
+            .margin(Margin::symmetric(2.0, 0.0))
+            .clip_text(false)
+            .desired_width(0.0)
+            .min_size(vec2(10.0, 2.0))
+            .show(ui);
+    }
+
     fn edit_value_ui(&mut self, ui: &mut Ui, context: &RenderValueContext<Value>) {
         let edit_state = self
             .value_edits
@@ -289,6 +315,12 @@ struct EditState {
     error: Option<String>,
 }
 
+struct EditObjectKeyState {
+    original_key: String,
+    parent_pointer_str: String,
+    new_key: String,
+}
+
 enum JsonValueMutationEvent {
     DeleteFromObject {
         pointer: String,
@@ -329,9 +361,16 @@ impl Show for RenderHooksExample {
             .on_render_if(self.edit, |ui, context| {
                 match context {
                     RenderContext::Property(context) => {
-                        context
-                            .render_default(ui)
-                            .on_hover_text(context.value.to_string());
+                        if let JsonPointerSegment::Key(key) = context.property {
+                            self.edit_state.edit_key_ui(
+                                ui,
+                                context.pointer.parent().unwrap().to_json_pointer_string(),
+                                context.pointer.to_json_pointer_string(),
+                                key,
+                            );
+                        } else {
+                            context.render_default(ui);
+                        }
                     }
                     RenderContext::Value(context) => {
                         self.edit_state.edit_value_ui(ui, &context);
@@ -392,6 +431,7 @@ impl Show for RenderHooksExample {
                         .unwrap()
                         .remove(&key);
                     self.edit_state.value_edits.remove(&pointer);
+                    self.edit_state.object_key_edits.remove(&pointer);
                 }
                 JsonValueMutationEvent::AddToObject { pointer } => {
                     let obj = self
@@ -425,6 +465,17 @@ impl Show for RenderHooksExample {
                             save_error = true;
                         }
                     }
+                }
+            }
+
+            for (_, edit_state) in self.edit_state.object_key_edits.drain() {
+                if let Some(obj) = self
+                    .value
+                    .pointer_mut(&edit_state.parent_pointer_str)
+                    .and_then(|value| value.as_object_mut())
+                {
+                    let value = obj.remove(&edit_state.original_key).unwrap();
+                    obj.insert(edit_state.new_key, value);
                 }
             }
 

@@ -442,7 +442,7 @@ impl Show for RenderHooksExample {
 
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
-    open_example_titles: HashMap<&'static str, bool>,
+    open_example_idx: Option<usize>,
 }
 
 impl Default for DemoApp {
@@ -472,7 +472,7 @@ impl Default for DemoApp {
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(RenderHooksExample::new(complex_object)),
             ],
-            open_example_titles: HashMap::new(),
+            open_example_idx: None,
         }
     }
 }
@@ -483,20 +483,44 @@ impl eframe::App for DemoApp {
             .resizable(false)
             .show(ctx, |ui| {
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    for example in self.examples.iter() {
-                        let is_open = self.open_example_titles.entry(example.title()).or_default();
+                    for (idx, example) in self.examples.iter().enumerate() {
+                        let is_open = self
+                            .open_example_idx
+                            .is_some_and(|open_idx| open_idx == idx);
 
-                        ui.toggle_value(is_open, example.title());
+                        if ui.selectable_label(is_open, example.title()).clicked() {
+                            if is_open {
+                                self.open_example_idx = None;
+                            } else {
+                                self.open_example_idx = Some(idx);
+                            }
+                        }
                     }
                 });
             });
 
-        for example in self.examples.iter_mut() {
-            let is_open = self.open_example_titles.entry(example.title()).or_default();
-
-            egui::Window::new(example.title())
-                .open(is_open)
-                .show(ctx, |ui| example.show(ui));
+        match self.open_example_idx {
+            Some(open_idx) => {
+                let example = &mut self.examples[open_idx];
+                egui::TopBottomPanel::top("top-panel")
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
+                    .show(ctx, |ui| {
+                        ui.heading(example.title());
+                    });
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    example.show(ui);
+                });
+            }
+            None => {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.with_layout(
+                        egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                        |ui| {
+                            ui.heading("Select an example.");
+                        },
+                    );
+                });
+            }
         }
     }
 

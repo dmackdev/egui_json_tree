@@ -172,9 +172,9 @@ impl Show for CopyToClipboardExample {
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                         ui.set_width(150.0);
 
-                        if ui
-                            .add(Button::new("Copy property path").frame(false))
-                            .clicked()
+                        let pointer_str = context.pointer().to_json_pointer_string();
+                        if !pointer_str.is_empty()
+                            && ui.add(Button::new("Copy path").frame(false)).clicked()
                         {
                             ui.output_mut(|o| {
                                 let pointer_str = context.pointer().to_json_pointer_string();

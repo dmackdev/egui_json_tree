@@ -498,7 +498,7 @@ struct DemoApp {
 
 impl Default for DemoApp {
     fn default() -> Self {
-        let complex_object = json!({"foo": [1, 2, [3]], "bar": { " " : false, "b": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "": 21}, "baz": null});
+        let complex_object = json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
 
         Self {
             examples: vec![

@@ -1,11 +1,17 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
-use eframe::egui::{Frame, RichText, Ui};
-use egui::{vec2, Align, Button, Color32, Layout, Margin, Rounding, Stroke, TextEdit};
+use eframe::egui::{RichText, Ui};
+use egui::{
+    text::{CCursor, CCursorRange},
+    vec2, Align, Button, Layout, Margin, TextEdit,
+};
 use egui_json_tree::{
     delimiters::ExpandableDelimiter,
     pointer::{JsonPointerSegment, ToJsonPointerString},
-    render::{DefaultRender, RenderContext, RenderValueContext},
+    render::{
+        DefaultRender, RenderContext, RenderExpandableDelimiterContext, RenderPropertyContext,
+        RenderValueContext,
+    },
     DefaultExpand, JsonTree,
 };
 use serde_json::{json, Value};
@@ -172,14 +178,13 @@ impl Show for CopyToClipboardExample {
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                         ui.set_width(150.0);
 
-                        let pointer_str = context.pointer().to_json_pointer_string();
-                        if !pointer_str.is_empty()
+                        let pointer = context.pointer().to_json_pointer_string();
+                        if !pointer.is_empty()
                             && ui.add(Button::new("Copy path").frame(false)).clicked()
                         {
                             ui.output_mut(|o| {
-                                let pointer_str = context.pointer().to_json_pointer_string();
-                                println!("{}", pointer_str);
-                                o.copied_text = pointer_str;
+                                println!("{}", pointer);
+                                o.copied_text = pointer;
                             });
                             ui.close_menu();
                         }
@@ -198,296 +203,412 @@ impl Show for CopyToClipboardExample {
     }
 }
 
-struct RenderHooksExample {
+struct JsonEditorExample {
     value: Value,
-    edit: bool,
-    edit_state: Edit,
+    editor: Editor,
 }
 
-impl RenderHooksExample {
+impl JsonEditorExample {
     fn new(value: Value) -> Self {
         Self {
             value,
-            edit: false,
-            edit_state: Default::default(),
+            editor: Default::default(),
         }
     }
 }
 
 #[derive(Default)]
-struct Edit {
-    object_key_edits: HashMap<String, EditObjectKeyState>,
-    value_edits: HashMap<String, EditState>,
-    mutations: Vec<JsonValueMutationEvent>,
+struct Editor {
+    edit_events: Vec<EditEvent>,
+    state: Option<EditState>,
 }
 
-impl Edit {
-    fn edit_key_ui(
+impl Editor {
+    fn show(&mut self, ui: &mut Ui, document: &Value, context: RenderContext<'_, '_, Value>) {
+        match self.state.as_mut() {
+            Some(EditState::EditObjectKey(state)) => {
+                Self::show_edit_object_key(ui, document, context, state, &mut self.edit_events)
+            }
+            Some(EditState::EditValue(state)) => {
+                Self::show_edit_value(ui, context, state, &mut self.edit_events);
+            }
+            None => {
+                self.show_with_context_menus(ui, context);
+            }
+        };
+    }
+
+    fn show_edit_object_key(
+        ui: &mut Ui,
+        document: &Value,
+        context: RenderContext<Value>,
+        state: &mut EditObjectKeyState,
+        edit_events: &mut Vec<EditEvent>,
+    ) {
+        if let RenderContext::Property(context) = &context {
+            if let JsonPointerSegment::Key(key) = context.property {
+                if key == state.key
+                    && context
+                        .pointer
+                        .parent()
+                        .map(|parent| parent.to_json_pointer_string())
+                        .is_some_and(|object_pointer| object_pointer == state.object_pointer)
+                {
+                    Self::show_text_edit_with_focus(
+                        ui,
+                        &mut state.new_key_input,
+                        &mut state.request_focus,
+                    );
+
+                    ui.add_space(5.0);
+
+                    let valid_key = state.key == state.new_key_input
+                        || document
+                            .pointer(&state.object_pointer)
+                            .and_then(|v| v.as_object())
+                            .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
+
+                    ui.add_enabled_ui(valid_key, |ui| {
+                        if ui.small_button("✅").clicked() {
+                            edit_events.push(EditEvent::SaveObjectKeyEdit);
+                        }
+                    });
+
+                    ui.add_space(5.0);
+
+                    if ui.small_button("❌").clicked() {
+                        if state.is_new_key {
+                            edit_events.push(EditEvent::DeleteFromObject {
+                                object_pointer: state.object_pointer.to_string(),
+                                key: key.to_string(),
+                            });
+                        }
+                        edit_events.push(EditEvent::CloseObjectKeyEdit);
+                    }
+                    return;
+                }
+            }
+        }
+        context.render_default(ui);
+    }
+
+    fn show_edit_value(
+        ui: &mut Ui,
+        context: RenderContext<Value>,
+        state: &mut EditValueState,
+        edit_events: &mut Vec<EditEvent>,
+    ) {
+        if let RenderContext::Value(context) = &context {
+            if state.pointer == context.pointer.to_json_pointer_string() {
+                Self::show_text_edit_with_focus(
+                    ui,
+                    &mut state.new_value_input,
+                    &mut state.request_focus,
+                );
+
+                ui.add_space(5.0);
+
+                if ui.small_button("✅").clicked() {
+                    edit_events.push(EditEvent::SaveValueEdit);
+                }
+
+                ui.add_space(5.0);
+
+                if ui.small_button("❌").clicked() {
+                    edit_events.push(EditEvent::CloseValueEdit);
+                }
+                return;
+            }
+        }
+        context.render_default(ui);
+    }
+
+    fn show_with_context_menus(&mut self, ui: &mut Ui, context: RenderContext<Value>) {
+        match context {
+            RenderContext::Property(context) => {
+                self.show_property_context_menu(ui, context);
+            }
+            RenderContext::Value(context) => {
+                self.show_value_context_menu(ui, context);
+            }
+            RenderContext::ExpandableDelimiter(context) => {
+                self.show_expandable_delimiter_context_menu(ui, context);
+            }
+        };
+    }
+
+    fn show_property_context_menu(
         &mut self,
         ui: &mut Ui,
-        parent_pointer_str: String,
-        pointer_str: String,
-        key: &str,
+        context: RenderPropertyContext<'_, '_, Value>,
     ) {
-        let edit_state =
-            self.object_key_edits
-                .entry(pointer_str)
-                .or_insert_with(|| EditObjectKeyState {
-                    parent_pointer_str,
-                    original_key: key.to_string(),
-                    new_key: key.to_string(),
+        context.render_default(ui).context_menu(|ui| {
+            if context.value.is_object() && ui.button("Add to object").clicked() {
+                self.edit_events.push(EditEvent::AddToObject {
+                    pointer: context.pointer.to_json_pointer_string(),
                 });
+                ui.close_menu();
+            }
 
-        TextEdit::singleline(&mut edit_state.new_key)
+            if context.value.is_array() && ui.button("Add to array").clicked() {
+                self.edit_events.push(EditEvent::AddToArray {
+                    pointer: context.pointer.to_json_pointer_string(),
+                });
+                ui.close_menu();
+            }
+
+            if let Some(parent) = context.pointer.parent() {
+                if let JsonPointerSegment::Key(key) = &context.property {
+                    if ui.button("Edit key").clicked() {
+                        self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
+                            key: key.to_string(),
+                            object_pointer: parent.to_json_pointer_string(),
+                            new_key_input: key.to_string(),
+                            request_focus: true,
+                            is_new_key: false,
+                        }));
+                        ui.close_menu()
+                    }
+                }
+
+                if ui.button("Delete").clicked() {
+                    let event = match context.property {
+                        JsonPointerSegment::Key(key) => EditEvent::DeleteFromObject {
+                            object_pointer: parent.to_json_pointer_string(),
+                            key: key.to_string(),
+                        },
+                        JsonPointerSegment::Index(idx) => EditEvent::DeleteFromArray {
+                            array_pointer: parent.to_json_pointer_string(),
+                            idx,
+                        },
+                    };
+                    self.edit_events.push(event);
+                    ui.close_menu();
+                }
+            }
+        });
+    }
+
+    fn show_value_context_menu(&mut self, ui: &mut Ui, context: RenderValueContext<'_, '_, Value>) {
+        context.render_default(ui).context_menu(|ui| {
+            if ui.button("Edit value").clicked() {
+                self.state = Some(EditState::EditValue(EditValueState {
+                    pointer: context.pointer.to_json_pointer_string(),
+                    new_value_input: context.value.to_string(),
+                    request_focus: true,
+                }));
+                ui.close_menu();
+            }
+
+            match (context.pointer.parent(), context.pointer.last()) {
+                (Some(parent), Some(JsonPointerSegment::Key(key))) => {
+                    if ui.button("Delete").clicked() {
+                        self.edit_events.push(EditEvent::DeleteFromObject {
+                            object_pointer: parent.to_json_pointer_string(),
+                            key: key.to_string(),
+                        });
+                        ui.close_menu();
+                    }
+                }
+                (Some(parent), Some(JsonPointerSegment::Index(idx))) => {
+                    if ui.button("Delete").clicked() {
+                        self.edit_events.push(EditEvent::DeleteFromArray {
+                            array_pointer: parent.to_json_pointer_string(),
+                            idx: *idx,
+                        });
+                        ui.close_menu();
+                    }
+                }
+                _ => {}
+            };
+        });
+    }
+
+    fn show_expandable_delimiter_context_menu(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderExpandableDelimiterContext<'_, '_, Value>,
+    ) {
+        match context.delimiter {
+            ExpandableDelimiter::OpeningArray => {
+                context.render_default(ui).context_menu(|ui| {
+                    if ui.button("Add to array").clicked() {
+                        self.edit_events.push(EditEvent::AddToArray {
+                            pointer: context.pointer.to_json_pointer_string(),
+                        });
+                        ui.close_menu();
+                    }
+                });
+            }
+            ExpandableDelimiter::OpeningObject => {
+                context.render_default(ui).context_menu(|ui| {
+                    if ui.button("Add to object").clicked() {
+                        self.edit_events.push(EditEvent::AddToObject {
+                            pointer: context.pointer.to_json_pointer_string(),
+                        });
+                        ui.close_menu();
+                    }
+                });
+            }
+            _ => {
+                context.render_default(ui);
+            }
+        };
+    }
+
+    fn show_text_edit_with_focus(ui: &mut Ui, input: &mut String, request_focus: &mut bool) {
+        let text_edit_output = TextEdit::singleline(input)
             .code_editor()
             .margin(Margin::symmetric(2.0, 0.0))
             .clip_text(false)
             .desired_width(0.0)
             .min_size(vec2(10.0, 2.0))
             .show(ui);
-    }
 
-    fn edit_value_ui(&mut self, ui: &mut Ui, context: &RenderValueContext<Value>) {
-        let edit_state = self
-            .value_edits
-            .entry(context.pointer.to_json_pointer_string())
-            .or_insert_with(|| EditState {
-                input: context.value.to_string(),
-                error: None,
-            });
-
-        let mut frame = Frame::default().rounding(Rounding::same(2.0));
-
-        if edit_state.error.is_some() {
-            frame = frame.stroke(Stroke::new(1.0, Color32::RED));
-        }
-
-        let edit_response = frame
-            .show(ui, |ui| {
-                TextEdit::singleline(&mut edit_state.input)
-                    .code_editor()
-                    .margin(Margin::symmetric(2.0, 0.0))
-                    .clip_text(false)
-                    .desired_width(0.0)
-                    .min_size(vec2(10.0, 2.0))
-                    .show(ui)
-                    .response
-            })
-            .inner;
-
-        if edit_response.changed() {
-            edit_state.error.take();
-        }
-
-        if let Some(error) = &edit_state.error {
-            edit_response.on_hover_text(error);
+        if *request_focus {
+            *request_focus = false;
+            let text_edit_id = text_edit_output.response.id;
+            if let Some(mut text_edit_state) = TextEdit::load_state(ui.ctx(), text_edit_id) {
+                text_edit_state
+                    .cursor
+                    .set_char_range(Some(CCursorRange::two(
+                        CCursor::new(0),
+                        CCursor::new(input.len()),
+                    )));
+                text_edit_state.store(ui.ctx(), text_edit_id);
+                ui.ctx().memory_mut(|mem| mem.request_focus(text_edit_id));
+            }
         }
     }
 
-    fn delete_value_ui(&mut self, ui: &mut Ui, context: &RenderValueContext<Value>) {
-        ui.add_space(5.0);
-        if let (Some(parent_pointer), Some(seg)) =
-            (context.pointer.parent(), context.pointer.last())
-        {
-            if ui.small_button("x").clicked() {
-                let pointer = context.pointer.to_json_pointer_string();
-                let parent_pointer = parent_pointer.to_json_pointer_string();
-                let mutation = match seg {
-                    JsonPointerSegment::Key(key) => JsonValueMutationEvent::DeleteFromObject {
-                        pointer,
-                        parent_pointer,
-                        key: key.to_string(),
-                    },
-                    JsonPointerSegment::Index(idx) => JsonValueMutationEvent::DeleteFromArray {
-                        pointer,
-                        parent_pointer,
-                        idx: *idx,
-                    },
-                };
-                self.mutations.push(mutation);
+    fn apply_events(&mut self, document: &mut Value) {
+        for event in self.edit_events.drain(..) {
+            match event {
+                EditEvent::DeleteFromArray { array_pointer, idx } => {
+                    if let Some(arr) = document
+                        .pointer_mut(&array_pointer)
+                        .and_then(|value| value.as_array_mut())
+                    {
+                        arr.remove(idx);
+                    }
+                }
+                EditEvent::DeleteFromObject {
+                    object_pointer,
+                    key,
+                } => {
+                    if let Some(obj) = document
+                        .pointer_mut(&object_pointer)
+                        .and_then(|value| value.as_object_mut())
+                    {
+                        obj.remove(&key);
+                    }
+                }
+                EditEvent::AddToObject { pointer } => {
+                    if let Some(obj) = document
+                        .pointer_mut(&pointer)
+                        .and_then(|value| value.as_object_mut())
+                    {
+                        let mut counter = 0;
+                        let mut new_key = "new_key".to_string();
+
+                        while obj.contains_key(&new_key) {
+                            counter += 1;
+                            new_key = format!("new_key_{counter}");
+                        }
+
+                        obj.insert(new_key.clone(), Value::Null);
+
+                        self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
+                            key: new_key.clone(),
+                            object_pointer: pointer,
+                            new_key_input: new_key,
+                            request_focus: true,
+                            is_new_key: true,
+                        }));
+                    }
+                }
+                EditEvent::AddToArray { pointer } => {
+                    if let Some(arr) = document
+                        .pointer_mut(&pointer)
+                        .and_then(|value| value.as_array_mut())
+                    {
+                        arr.push(Value::Null);
+                    }
+                }
+                EditEvent::SaveValueEdit => {
+                    if let Some(EditState::EditValue(value_edit)) = self.state.take() {
+                        if let Some(value) = document.pointer_mut(&value_edit.pointer) {
+                            match Value::from_str(&value_edit.new_value_input) {
+                                Ok(new_value) => *value = new_value,
+                                Err(_) => *value = Value::String(value_edit.new_value_input),
+                            }
+                        }
+                    }
+                }
+                EditEvent::SaveObjectKeyEdit => {
+                    if let Some(EditState::EditObjectKey(object_key_edit)) = self.state.take() {
+                        let obj = document
+                            .pointer_mut(&object_key_edit.object_pointer)
+                            .and_then(|value| value.as_object_mut());
+
+                        if let Some(obj) = obj {
+                            if let Some(value) = obj.remove(&object_key_edit.key) {
+                                obj.insert(object_key_edit.new_key_input, value);
+                            }
+                        }
+                    }
+                }
+                EditEvent::CloseObjectKeyEdit | EditEvent::CloseValueEdit => {
+                    self.state.take();
+                }
             }
         }
     }
 }
 
-struct EditState {
-    input: String,
-    error: Option<String>,
+enum EditState {
+    EditObjectKey(EditObjectKeyState),
+    EditValue(EditValueState),
 }
 
 struct EditObjectKeyState {
-    original_key: String,
-    parent_pointer_str: String,
-    new_key: String,
+    key: String,
+    object_pointer: String,
+    new_key_input: String,
+    request_focus: bool,
+    is_new_key: bool,
 }
 
-enum JsonValueMutationEvent {
-    DeleteFromObject {
-        pointer: String,
-        parent_pointer: String,
-        key: String,
-    },
-    DeleteFromArray {
-        pointer: String,
-        parent_pointer: String,
-        idx: usize,
-    },
-    AddToObject {
-        pointer: String,
-    },
-    AddToArray {
-        pointer: String,
-    },
+struct EditValueState {
+    pointer: String,
+    new_value_input: String,
+    request_focus: bool,
 }
 
-impl Show for RenderHooksExample {
+enum EditEvent {
+    DeleteFromObject { object_pointer: String, key: String },
+    DeleteFromArray { array_pointer: String, idx: usize },
+    AddToObject { pointer: String },
+    AddToArray { pointer: String },
+    SaveValueEdit,
+    SaveObjectKeyEdit,
+    CloseObjectKeyEdit,
+    CloseValueEdit,
+}
+
+impl Show for JsonEditorExample {
     fn title(&self) -> &'static str {
-        "Render Hooks Example"
+        "JSON Editor Example"
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        let (edit_toggle_response, save_button_response) = ui
-            .horizontal(|ui| {
-                let edit_button_text = if self.edit { "Cancel Edit" } else { "Edit" };
-                (
-                    ui.toggle_value(&mut self.edit, edit_button_text),
-                    ui.add_enabled(self.edit, Button::new("Save")),
-                )
-            })
-            .inner;
-
         JsonTree::new(self.title(), &self.value)
+            .abbreviate_root(true)
             .default_expand(DefaultExpand::All)
-            .on_render_if(self.edit, |ui, context| {
-                match context {
-                    RenderContext::Property(context) => {
-                        if let JsonPointerSegment::Key(key) = context.property {
-                            self.edit_state.edit_key_ui(
-                                ui,
-                                context.pointer.parent().unwrap().to_json_pointer_string(),
-                                context.pointer.to_json_pointer_string(),
-                                key,
-                            );
-                        } else {
-                            context.render_default(ui);
-                        }
-                    }
-                    RenderContext::Value(context) => {
-                        self.edit_state.edit_value_ui(ui, &context);
-                        self.edit_state.delete_value_ui(ui, &context);
-                    }
-                    RenderContext::ExpandableDelimiter(context) => {
-                        context.render_default(ui);
-                        match context.delimiter {
-                            ExpandableDelimiter::ClosingObject => {
-                                if ui.small_button("+").clicked() {
-                                    let pointer = context.pointer.to_json_pointer_string();
-                                    self.edit_state
-                                        .mutations
-                                        .push(JsonValueMutationEvent::AddToObject { pointer })
-                                }
-                            }
-                            ExpandableDelimiter::ClosingArray => {
-                                if ui.small_button("+").clicked() {
-                                    let pointer = context.pointer.to_json_pointer_string();
-                                    self.edit_state
-                                        .mutations
-                                        .push(JsonValueMutationEvent::AddToArray { pointer })
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                };
-            })
+            .on_render(|ui, context| self.editor.show(ui, &self.value, context))
             .show(ui);
 
-        for mutation in self.edit_state.mutations.drain(..) {
-            match mutation {
-                JsonValueMutationEvent::DeleteFromArray {
-                    pointer,
-                    parent_pointer,
-                    idx,
-                } => {
-                    let arr = self
-                        .value
-                        .pointer_mut(&parent_pointer)
-                        .unwrap()
-                        .as_array_mut()
-                        .unwrap();
-
-                    self.edit_state.value_edits.remove(&pointer);
-                    arr.remove(idx);
-                }
-                JsonValueMutationEvent::DeleteFromObject {
-                    pointer,
-                    parent_pointer,
-                    key,
-                } => {
-                    self.value
-                        .pointer_mut(&parent_pointer)
-                        .unwrap()
-                        .as_object_mut()
-                        .unwrap()
-                        .remove(&key);
-                    self.edit_state.value_edits.remove(&pointer);
-                    self.edit_state.object_key_edits.remove(&pointer);
-                }
-                JsonValueMutationEvent::AddToObject { pointer } => {
-                    let obj = self
-                        .value
-                        .pointer_mut(&pointer)
-                        .unwrap()
-                        .as_object_mut()
-                        .unwrap();
-                    obj.insert("new".to_string(), Value::Null);
-                }
-                JsonValueMutationEvent::AddToArray { pointer } => {
-                    let arr = self
-                        .value
-                        .pointer_mut(&pointer)
-                        .unwrap()
-                        .as_array_mut()
-                        .unwrap();
-                    arr.push(Value::Null);
-                }
-            }
-        }
-
-        if save_button_response.clicked() {
-            let mut save_error = false;
-            for (pointer, edit_state) in self.edit_state.value_edits.iter_mut() {
-                if let Some(value) = self.value.pointer_mut(pointer) {
-                    match Value::from_str(&edit_state.input) {
-                        Ok(new_value) => *value = new_value,
-                        Err(e) => {
-                            edit_state.error = Some(e.to_string());
-                            save_error = true;
-                        }
-                    }
-                }
-            }
-
-            for (_, edit_state) in self.edit_state.object_key_edits.drain() {
-                if let Some(obj) = self
-                    .value
-                    .pointer_mut(&edit_state.parent_pointer_str)
-                    .and_then(|value| value.as_object_mut())
-                {
-                    let value = obj.remove(&edit_state.original_key).unwrap();
-                    obj.insert(edit_state.new_key, value);
-                }
-            }
-
-            if !save_error {
-                self.edit_state.value_edits.drain();
-                self.edit = false;
-            }
-        }
-
-        if edit_toggle_response.clicked() && !self.edit {
-            self.edit_state.value_edits.drain();
-        }
+        self.editor.apply_events(&mut self.value);
     }
 }
 
@@ -521,7 +642,7 @@ impl Default for DemoApp {
                 Box::new(CustomExample::new("Custom Input")),
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
-                Box::new(RenderHooksExample::new(complex_object)),
+                Box::new(JsonEditorExample::new(complex_object)),
             ],
             open_example_idx: None,
         }

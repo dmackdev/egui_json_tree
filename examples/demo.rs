@@ -3,7 +3,7 @@ use std::str::FromStr;
 use eframe::egui::{RichText, Ui};
 use egui::{
     text::{CCursor, CCursorRange},
-    vec2, Align, Button, Layout, Margin, TextEdit,
+    vec2, Align, Button, CursorIcon, Layout, Margin, TextEdit,
 };
 use egui_json_tree::{
     delimiters::ExpandableDelimiter,
@@ -174,30 +174,35 @@ impl Show for CopyToClipboardExample {
     fn show(&mut self, ui: &mut Ui) {
         JsonTree::new(self.title, &self.value)
             .on_render(|ui, context| {
-                context.render_default(ui).context_menu(|ui| {
-                    ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                        ui.set_width(150.0);
+                context
+                    .render_default(ui)
+                    .on_hover_cursor(CursorIcon::ContextMenu)
+                    .context_menu(|ui| {
+                        ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                            ui.set_width(150.0);
 
-                        let pointer = context.pointer().to_json_pointer_string();
-                        if !pointer.is_empty()
-                            && ui.add(Button::new("Copy path").frame(false)).clicked()
-                        {
-                            ui.output_mut(|o| {
-                                println!("{}", pointer);
-                                o.copied_text = pointer;
-                            });
-                            ui.close_menu();
-                        }
-
-                        if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                            if let Ok(pretty_str) = serde_json::to_string_pretty(context.value()) {
-                                println!("{}", pretty_str);
-                                ui.output_mut(|o| o.copied_text = pretty_str);
+                            let pointer = context.pointer().to_json_pointer_string();
+                            if !pointer.is_empty()
+                                && ui.add(Button::new("Copy path").frame(false)).clicked()
+                            {
+                                ui.output_mut(|o| {
+                                    println!("{}", pointer);
+                                    o.copied_text = pointer;
+                                });
+                                ui.close_menu();
                             }
-                            ui.close_menu();
-                        }
+
+                            if ui.add(Button::new("Copy contents").frame(false)).clicked() {
+                                if let Ok(pretty_str) =
+                                    serde_json::to_string_pretty(context.value())
+                                {
+                                    println!("{}", pretty_str);
+                                    ui.output_mut(|o| o.copied_text = pretty_str);
+                                }
+                                ui.close_menu();
+                            }
+                        });
                     });
-                });
             })
             .show(ui);
     }
@@ -342,86 +347,92 @@ impl Editor {
         ui: &mut Ui,
         context: RenderPropertyContext<'_, '_, Value>,
     ) {
-        context.render_default(ui).context_menu(|ui| {
-            if context.value.is_object() && ui.button("Add to object").clicked() {
-                self.edit_events.push(EditEvent::AddToObject {
-                    pointer: context.pointer.to_json_pointer_string(),
-                });
-                ui.close_menu();
-            }
-
-            if context.value.is_array() && ui.button("Add to array").clicked() {
-                self.edit_events.push(EditEvent::AddToArray {
-                    pointer: context.pointer.to_json_pointer_string(),
-                });
-                ui.close_menu();
-            }
-
-            if let Some(parent) = context.pointer.parent() {
-                if let JsonPointerSegment::Key(key) = &context.property {
-                    if ui.button("Edit key").clicked() {
-                        self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
-                            key: key.to_string(),
-                            object_pointer: parent.to_json_pointer_string(),
-                            new_key_input: key.to_string(),
-                            request_focus: true,
-                            is_new_key: false,
-                        }));
-                        ui.close_menu()
-                    }
-                }
-
-                if ui.button("Delete").clicked() {
-                    let event = match context.property {
-                        JsonPointerSegment::Key(key) => EditEvent::DeleteFromObject {
-                            object_pointer: parent.to_json_pointer_string(),
-                            key: key.to_string(),
-                        },
-                        JsonPointerSegment::Index(idx) => EditEvent::DeleteFromArray {
-                            array_pointer: parent.to_json_pointer_string(),
-                            idx,
-                        },
-                    };
-                    self.edit_events.push(event);
+        context
+            .render_default(ui)
+            .on_hover_cursor(CursorIcon::ContextMenu)
+            .context_menu(|ui| {
+                if context.value.is_object() && ui.button("Add to object").clicked() {
+                    self.edit_events.push(EditEvent::AddToObject {
+                        pointer: context.pointer.to_json_pointer_string(),
+                    });
                     ui.close_menu();
                 }
-            }
-        });
+
+                if context.value.is_array() && ui.button("Add to array").clicked() {
+                    self.edit_events.push(EditEvent::AddToArray {
+                        pointer: context.pointer.to_json_pointer_string(),
+                    });
+                    ui.close_menu();
+                }
+
+                if let Some(parent) = context.pointer.parent() {
+                    if let JsonPointerSegment::Key(key) = &context.property {
+                        if ui.button("Edit key").clicked() {
+                            self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
+                                key: key.to_string(),
+                                object_pointer: parent.to_json_pointer_string(),
+                                new_key_input: key.to_string(),
+                                request_focus: true,
+                                is_new_key: false,
+                            }));
+                            ui.close_menu()
+                        }
+                    }
+
+                    if ui.button("Delete").clicked() {
+                        let event = match context.property {
+                            JsonPointerSegment::Key(key) => EditEvent::DeleteFromObject {
+                                object_pointer: parent.to_json_pointer_string(),
+                                key: key.to_string(),
+                            },
+                            JsonPointerSegment::Index(idx) => EditEvent::DeleteFromArray {
+                                array_pointer: parent.to_json_pointer_string(),
+                                idx,
+                            },
+                        };
+                        self.edit_events.push(event);
+                        ui.close_menu();
+                    }
+                }
+            });
     }
 
     fn show_value_context_menu(&mut self, ui: &mut Ui, context: RenderValueContext<'_, '_, Value>) {
-        context.render_default(ui).context_menu(|ui| {
-            if ui.button("Edit value").clicked() {
-                self.state = Some(EditState::EditValue(EditValueState {
-                    pointer: context.pointer.to_json_pointer_string(),
-                    new_value_input: context.value.to_string(),
-                    request_focus: true,
-                }));
-                ui.close_menu();
-            }
+        context
+            .render_default(ui)
+            .on_hover_cursor(CursorIcon::ContextMenu)
+            .context_menu(|ui| {
+                if ui.button("Edit value").clicked() {
+                    self.state = Some(EditState::EditValue(EditValueState {
+                        pointer: context.pointer.to_json_pointer_string(),
+                        new_value_input: context.value.to_string(),
+                        request_focus: true,
+                    }));
+                    ui.close_menu();
+                }
 
-            match (context.pointer.parent(), context.pointer.last()) {
-                (Some(parent), Some(JsonPointerSegment::Key(key))) => {
-                    if ui.button("Delete").clicked() {
-                        self.edit_events.push(EditEvent::DeleteFromObject {
-                            object_pointer: parent.to_json_pointer_string(),
-                            key: key.to_string(),
-                        });
-                        ui.close_menu();
+                match (context.pointer.parent(), context.pointer.last()) {
+                    (Some(parent), Some(JsonPointerSegment::Key(key))) => {
+                        if ui.button("Delete").clicked() {
+                            self.edit_events.push(EditEvent::DeleteFromObject {
+                                object_pointer: parent.to_json_pointer_string(),
+                                key: key.to_string(),
+                            });
+                            ui.close_menu();
+                        }
                     }
-                }
-                (Some(parent), Some(JsonPointerSegment::Index(idx))) => {
-                    if ui.button("Delete").clicked() {
-                        self.edit_events.push(EditEvent::DeleteFromArray {
-                            array_pointer: parent.to_json_pointer_string(),
-                            idx: *idx,
-                        });
-                        ui.close_menu();
+                    (Some(parent), Some(JsonPointerSegment::Index(idx))) => {
+                        if ui.button("Delete").clicked() {
+                            self.edit_events.push(EditEvent::DeleteFromArray {
+                                array_pointer: parent.to_json_pointer_string(),
+                                idx: *idx,
+                            });
+                            ui.close_menu();
+                        }
                     }
-                }
-                _ => {}
-            };
-        });
+                    _ => {}
+                };
+            });
     }
 
     fn show_expandable_delimiter_context_menu(
@@ -431,24 +442,30 @@ impl Editor {
     ) {
         match context.delimiter {
             ExpandableDelimiter::OpeningArray => {
-                context.render_default(ui).context_menu(|ui| {
-                    if ui.button("Add to array").clicked() {
-                        self.edit_events.push(EditEvent::AddToArray {
-                            pointer: context.pointer.to_json_pointer_string(),
-                        });
-                        ui.close_menu();
-                    }
-                });
+                context
+                    .render_default(ui)
+                    .on_hover_cursor(CursorIcon::ContextMenu)
+                    .context_menu(|ui| {
+                        if ui.button("Add to array").clicked() {
+                            self.edit_events.push(EditEvent::AddToArray {
+                                pointer: context.pointer.to_json_pointer_string(),
+                            });
+                            ui.close_menu();
+                        }
+                    });
             }
             ExpandableDelimiter::OpeningObject => {
-                context.render_default(ui).context_menu(|ui| {
-                    if ui.button("Add to object").clicked() {
-                        self.edit_events.push(EditEvent::AddToObject {
-                            pointer: context.pointer.to_json_pointer_string(),
-                        });
-                        ui.close_menu();
-                    }
-                });
+                context
+                    .render_default(ui)
+                    .on_hover_cursor(CursorIcon::ContextMenu)
+                    .context_menu(|ui| {
+                        if ui.button("Add to object").clicked() {
+                            self.edit_events.push(EditEvent::AddToObject {
+                                pointer: context.pointer.to_json_pointer_string(),
+                            });
+                            ui.close_menu();
+                        }
+                    });
             }
             _ => {
                 context.render_default(ui);

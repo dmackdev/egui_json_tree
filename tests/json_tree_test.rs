@@ -21,7 +21,7 @@ impl<'a, 'b> From<RenderContext<'a, 'b, Value>> for ExpectedRender {
                 display_value: ctx.property.to_string(),
                 pointer_str: ctx.pointer.to_json_pointer_string(),
             },
-            RenderContext::Value(ctx) => ExpectedRender {
+            RenderContext::BaseValue(ctx) => ExpectedRender {
                 value: (ctx.value.clone()),
                 display_value: ctx.display_value.to_string(),
                 pointer_str: ctx.pointer.to_json_pointer_string(),

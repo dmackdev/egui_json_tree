@@ -9,8 +9,8 @@ use egui_json_tree::{
     delimiters::ExpandableDelimiter,
     pointer::JsonPointerSegment,
     render::{
-        DefaultRender, RenderContext, RenderExpandableDelimiterContext, RenderPropertyContext,
-        RenderValueContext,
+        DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
+        RenderPropertyContext,
     },
     DefaultExpand, JsonTree,
 };
@@ -303,7 +303,7 @@ impl Editor {
         state: &mut EditValueState,
         edit_events: &mut Vec<EditEvent>,
     ) {
-        if let RenderContext::Value(context) = &context {
+        if let RenderContext::BaseValue(context) = &context {
             if state.pointer == context.pointer.to_json_pointer_string() {
                 Self::show_text_edit_with_focus(
                     ui,
@@ -333,7 +333,7 @@ impl Editor {
             RenderContext::Property(context) => {
                 self.show_property_context_menu(ui, context);
             }
-            RenderContext::Value(context) => {
+            RenderContext::BaseValue(context) => {
                 self.show_value_context_menu(ui, context);
             }
             RenderContext::ExpandableDelimiter(context) => {
@@ -397,7 +397,11 @@ impl Editor {
             });
     }
 
-    fn show_value_context_menu(&mut self, ui: &mut Ui, context: RenderValueContext<'_, '_, Value>) {
+    fn show_value_context_menu(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderBaseValueContext<'_, '_, Value>,
+    ) {
         context
             .render_default(ui)
             .on_hover_cursor(CursorIcon::ContextMenu)

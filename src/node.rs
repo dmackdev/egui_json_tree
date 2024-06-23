@@ -6,8 +6,8 @@ use crate::{
     delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
-        JsonTreeRenderer, RenderExpandableDelimiterContext, RenderPropertyContext,
-        RenderSpacingDelimiterContext, RenderValueContext,
+        JsonTreeRenderer, RenderBaseValueContext, RenderExpandableDelimiterContext,
+        RenderPropertyContext, RenderSpacingDelimiterContext,
     },
     response::JsonTreeResponse,
     search::SearchTerm,
@@ -128,7 +128,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
                     renderer.render_value(
                         ui,
-                        RenderValueContext {
+                        RenderBaseValueContext {
                             value,
                             display_value,
                             value_type,
@@ -262,7 +262,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             JsonTreeValue::Base(value, display_value, value_type) => {
                                 renderer.render_value(
                                     ui,
-                                    RenderValueContext {
+                                    RenderBaseValueContext {
                                         value,
                                         display_value,
                                         value_type,

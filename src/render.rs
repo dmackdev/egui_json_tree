@@ -30,7 +30,7 @@ pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     /// A render call for an array index or an object key.
     Property(RenderPropertyContext<'a, 'b, T>),
     /// A render call for a non-recursive JSON value.
-    Value(RenderValueContext<'a, 'b, T>),
+    BaseValue(RenderBaseValueContext<'a, 'b, T>),
     /// A render call for array brackets or object braces.
     ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b, T>),
 }
@@ -39,7 +39,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         match self {
             RenderContext::Property(context) => context.render_default(ui),
-            RenderContext::Value(context) => context.render_default(ui),
+            RenderContext::BaseValue(context) => context.render_default(ui),
             RenderContext::ExpandableDelimiter(context) => context.render_default(ui),
         }
     }
@@ -50,7 +50,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     pub fn value(&self) -> &'a T {
         match self {
             RenderContext::Property(context) => context.value,
-            RenderContext::Value(context) => context.value,
+            RenderContext::BaseValue(context) => context.value,
             RenderContext::ExpandableDelimiter(context) => context.value,
         }
     }
@@ -59,7 +59,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     pub fn pointer(&self) -> JsonPointer {
         match self {
             RenderContext::Property(context) => context.pointer,
-            RenderContext::Value(context) => context.pointer,
+            RenderContext::BaseValue(context) => context.pointer,
             RenderContext::ExpandableDelimiter(context) => context.pointer,
         }
     }
@@ -87,7 +87,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b,
 
 /// A handle to the information of a render call for a non-recursive JSON value.
 #[derive(Clone, Copy)]
-pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
+pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     /// The non-recursive JSON value being rendered.
     pub value: &'a T,
     /// A reference to a value that visually represents the JSON value being rendered.
@@ -101,7 +101,7 @@ pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T> {
+impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_value(
             ui,
@@ -170,10 +170,14 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         };
     }
 
-    pub(crate) fn render_value<'b>(&mut self, ui: &mut Ui, context: RenderValueContext<'a, 'b, T>) {
+    pub(crate) fn render_value<'b>(
+        &mut self,
+        ui: &mut Ui,
+        context: RenderBaseValueContext<'a, 'b, T>,
+    ) {
         match self.render_hook.as_mut() {
             Some(render_hook) => {
-                render_hook(ui, RenderContext::Value(context));
+                render_hook(ui, RenderContext::BaseValue(context));
             }
             None => {
                 context.render_default(ui);

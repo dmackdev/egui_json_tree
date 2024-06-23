@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
@@ -26,11 +28,11 @@ pub enum JsonPointerSegment<'a> {
     Index(usize),
 }
 
-impl<'a> ToString for JsonPointerSegment<'a> {
-    fn to_string(&self) -> String {
+impl<'a> fmt::Display for JsonPointerSegment<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            JsonPointerSegment::Key(key) => key.to_string(),
-            JsonPointerSegment::Index(idx) => idx.to_string(),
+            JsonPointerSegment::Key(key) => write!(f, "{}", key),
+            JsonPointerSegment::Index(idx) => write!(f, "{}", idx),
         }
     }
 }

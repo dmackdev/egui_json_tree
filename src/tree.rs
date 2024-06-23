@@ -56,6 +56,8 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         self
     }
 
+    /// A convenience method for conditionally registering a custom rendering hook.
+    /// See [`JsonTree::on_render`].
     pub fn on_render_if(
         self,
         condition: bool,
@@ -68,6 +70,23 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         }
     }
 
+    /// Customise rendering of the [`JsonTree`], and/or handle interactions.
+    ///
+    /// This hook can be used to enrich the visualisation with
+    /// extra UI interactions by handling [`egui::Response`] values,
+    /// and adding UI elements such as buttons and checkboxes within the [`JsonTree`].
+    ///
+    /// The provided hook will be called in order to render array indices and brackets,
+    /// object keys and braces, and non-recursive JSON values, instead of the default render implementation.
+    ///
+    /// The [`RenderContext`] argument to the hook provides information about the render call,
+    /// including the JSON value and a JSON pointer to it.
+    ///
+    /// You may also call [`render_ctx.render_default(ui)`](crate::render::DefaultRender) on this argument
+    /// (or on any of the render contexts contained within its enum variants) to render as normal.
+    ///
+    /// See [`examples/demo.rs`](https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo.rs)
+    /// for detailed examples and use cases.
     pub fn on_render(
         mut self,
         render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a,

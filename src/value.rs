@@ -16,9 +16,9 @@ pub enum JsonTreeValue<'a, T: ?Sized> {
     /// - The type of the base value.
     Base(&'a T, &'a dyn Display, BaseValueType),
     /// Representation for a recursive JSON value:
-    /// - A `Vec` of key-value pairs. The order *must always* be the same.
-    ///   - For arrays, the key should be the index of each element.
-    ///   - For objects, the key should be the key of each object entry, without quotes.
+    /// - A `Vec` of property-value pairs. The order *must always* be the same.
+    ///   - For arrays, the property should be the index of each element.
+    ///   - For objects, the property should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
     Expandable(Vec<(JsonPointerSegment<'a>, &'a T)>, ExpandableType),
 }
@@ -39,8 +39,11 @@ pub enum ExpandableType {
     Object,
 }
 
+/// A trait for types that can be converted to a [JsonTreeValue].
 pub trait ToJsonTreeValue {
+    /// Converts this JSON value to a [JsonTreeValue].
     fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
+    /// Returns whether this JSON value is expandable, i.e. whether it is an object or an array.
     fn is_expandable(&self) -> bool;
 }
 

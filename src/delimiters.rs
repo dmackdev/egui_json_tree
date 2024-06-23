@@ -1,3 +1,5 @@
+//! Tokens for array brackets and object braces used during rendering.
+
 pub(crate) struct Delimiters {
     pub(crate) collapsed: ExpandableDelimiter,
     pub(crate) collapsed_empty: ExpandableDelimiter,
@@ -36,6 +38,7 @@ impl AsRef<str> for SpacingDelimiter {
     }
 }
 
+/// Tokens for array brackets and object braces.
 #[derive(Debug, Clone, Copy)]
 pub enum ExpandableDelimiter {
     CollapsedArray,

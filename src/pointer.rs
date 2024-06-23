@@ -1,5 +1,16 @@
+//! A JSON Pointer implementation for identifying specific values within a JSON document.
+
 use std::fmt;
 
+/// A JSON Pointer implementation.
+///
+/// Call [ToJsonPointerString] to receive a JSON Pointer string that can be used to look up specific values within a JSON document, where:
+///   - The root document is identified by the empty string `""`.
+///   - A pointer string to a value within the document starts with `/`.
+///   - The pointer string is comprised of segments separated by `/`.
+///   - Each segment represents either an array index or object key.
+///   - The special character `~` in an object key is delimited as `~0`.
+///   - The special character `/` in an object key is delimited as `~1`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
@@ -13,19 +24,22 @@ impl<'a, 'b> ToJsonPointerString for JsonPointer<'a, 'b> {
 }
 
 impl<'a, 'b> JsonPointer<'a, 'b> {
+    /// Returns the last [JsonPointerSegment] of this pointer, if it exists.
     pub fn last(&self) -> Option<&JsonPointerSegment<'a>> {
         self.0.last()
     }
 
+    /// Returns a [JsonPointer] to the parent of this pointer, if it exists.
     pub fn parent(&self) -> Option<JsonPointer> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
     }
 }
 
+/// An individual segment of a [JsonPointer] - either an array index or object key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonPointerSegment<'a> {
-    Key(&'a str),
     Index(usize),
+    Key(&'a str),
 }
 
 impl<'a> fmt::Display for JsonPointerSegment<'a> {

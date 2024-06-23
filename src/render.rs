@@ -1,3 +1,5 @@
+//! Rendering implementation for a [`JsonTree`](crate::JsonTree).
+
 use std::fmt::Display;
 
 use egui::{
@@ -14,16 +16,22 @@ use crate::{
     JsonTreeStyle,
 };
 
+/// A closure for a user-defined custom rendering implementation.
 pub type RenderHook<'a, T> = dyn FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a;
 
+/// A trait for types that provide a default rendering implementation.
 pub trait DefaultRender {
     fn render_default(&self, ui: &mut Ui) -> Response;
 }
 
+/// A handle to the information of a render call.
 #[derive(Clone, Copy)]
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
+    /// A render call for an array index or an object key.
     Property(RenderPropertyContext<'a, 'b, T>),
+    /// A render call for a non-recursive JSON value.
     Value(RenderValueContext<'a, 'b, T>),
+    /// A render call for array brackets or object braces.
     ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b, T>),
 }
 
@@ -38,6 +46,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
+    /// Convenience method to access the JSON value involved in this render call.
     pub fn value(&self) -> &'a T {
         match self {
             RenderContext::Property(context) => context.value,
@@ -46,6 +55,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
         }
     }
 
+    /// Convenience method to access the full JSON pointer to the JSON value involved in this render call.
     pub fn pointer(&self) -> JsonPointer {
         match self {
             RenderContext::Property(context) => context.pointer,
@@ -55,11 +65,16 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     }
 }
 
+/// A handle to the information of a render call for an array index or object key.
 #[derive(Clone, Copy)]
 pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
+    /// The array index or object key being rendered.
     pub property: JsonPointerSegment<'a>,
+    /// The JSON array or object under this property.
     pub value: &'a T,
+    /// The full JSON pointer to the array or object under this property.
     pub pointer: JsonPointer<'a, 'b>,
+    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
@@ -70,12 +85,18 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b,
     }
 }
 
+/// A handle to the information of a render call for a non-recursive JSON value.
 #[derive(Clone, Copy)]
 pub struct RenderValueContext<'a, 'b, T: ToJsonTreeValue> {
+    /// The non-recursive JSON value being rendered.
     pub value: &'a T,
+    /// A reference to a value that visually represents the JSON value being rendered.
     pub display_value: &'a dyn Display,
+    /// The type of the non-recursive JSON value being rendered.
     pub value_type: BaseValueType,
+    /// The full JSON pointer to the JSON value being rendered.
     pub pointer: JsonPointer<'a, 'b>,
+    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
@@ -92,11 +113,16 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderValueContext<'a, 'b, T>
     }
 }
 
+/// A handle to the information of a render call for array brackets or object braces.
 #[derive(Clone, Copy)]
 pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
+    /// The specific token of the array bracket or object brace being rendered.
     pub delimiter: ExpandableDelimiter,
+    /// The JSON array or object that the delimiter belongs to.
     pub value: &'a T,
+    /// The full JSON pointer to the array or object that the delimiter belongs to.
     pub pointer: JsonPointer<'a, 'b>,
+    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
 }
 

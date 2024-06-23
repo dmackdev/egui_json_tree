@@ -22,11 +22,15 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
     }
 
     /// Returns the last [JsonPointerSegment] of this pointer, if it exists.
+    ///
+    /// This is useful for retrieving the array index or object key that points to a JSON value.
     pub fn last(&self) -> Option<&JsonPointerSegment<'a>> {
         self.0.last()
     }
 
     /// Returns a [JsonPointer] to the parent of this pointer, if it exists.
+    ///
+    /// This is useful for retrieving a pointer to the enclosing array or object of a JSON value.
     pub fn parent(&self) -> Option<JsonPointer> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
     }

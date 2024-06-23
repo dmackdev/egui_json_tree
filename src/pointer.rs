@@ -3,27 +3,24 @@
 use std::fmt;
 
 /// A JSON Pointer implementation.
-///
-/// Call [ToJsonPointerString] to receive a JSON Pointer string that can be used to look up specific values within a JSON document, where:
-///   - The root document is identified by the empty string `""`.
-///   - A pointer string to a value within the document starts with `/`.
-///   - The pointer string is comprised of segments separated by `/`.
-///   - Each segment represents either an array index or object key.
-///   - The special character `~` in an object key is delimited as `~0`.
-///   - The special character `/` in an object key is delimited as `~1`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
-impl<'a, 'b> ToJsonPointerString for JsonPointer<'a, 'b> {
-    fn to_json_pointer_string(&self) -> String {
+impl<'a, 'b> JsonPointer<'a, 'b> {
+    /// Returns a JSON Pointer string that can be used to look up specific values within a JSON document, where:
+    /// - The root document is identified by the empty string `""`.
+    /// - A pointer string to a value within the document starts with `/`.
+    /// - The pointer string is comprised of segments separated by `/`.
+    /// - Each segment represents either an array index or object key.
+    /// - The special character `~` in an object key is delimited as `~0`.
+    /// - The special character `/` in an object key is delimited as `~1`.
+    pub fn to_json_pointer_string(&self) -> String {
         self.0
             .iter()
-            .map(ToJsonPointerString::to_json_pointer_string)
+            .map(JsonPointerSegment::to_json_pointer_segment_string)
             .collect()
     }
-}
 
-impl<'a, 'b> JsonPointer<'a, 'b> {
     /// Returns the last [JsonPointerSegment] of this pointer, if it exists.
     pub fn last(&self) -> Option<&JsonPointerSegment<'a>> {
         self.0.last()
@@ -51,8 +48,8 @@ impl<'a> fmt::Display for JsonPointerSegment<'a> {
     }
 }
 
-impl<'a> ToJsonPointerString for JsonPointerSegment<'a> {
-    fn to_json_pointer_string(&self) -> String {
+impl<'a> JsonPointerSegment<'a> {
+    pub fn to_json_pointer_segment_string(&self) -> String {
         match self {
             JsonPointerSegment::Key(key) => {
                 format!("/{}", key.replace('~', "~0").replace('/', "~1"))
@@ -60,10 +57,6 @@ impl<'a> ToJsonPointerString for JsonPointerSegment<'a> {
             JsonPointerSegment::Index(idx) => format!("/{}", idx),
         }
     }
-}
-
-pub trait ToJsonPointerString {
-    fn to_json_pointer_string(&self) -> String;
 }
 
 #[cfg(test)]

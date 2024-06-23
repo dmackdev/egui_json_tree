@@ -1,7 +1,5 @@
 use egui::{CentralPanel, Context, FontDefinitions, Style};
-use egui_json_tree::{
-    pointer::ToJsonPointerString, render::RenderContext, DefaultExpand, JsonTree,
-};
+use egui_json_tree::{render::RenderContext, DefaultExpand, JsonTree};
 #[cfg(feature = "serde_json")]
 use serde_json::{json, Value};
 

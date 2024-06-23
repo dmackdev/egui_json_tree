@@ -7,7 +7,7 @@ use egui::{
 };
 use egui_json_tree::{
     delimiters::ExpandableDelimiter,
-    pointer::{JsonPointerSegment, ToJsonPointerString},
+    pointer::JsonPointerSegment,
     render::{
         DefaultRender, RenderContext, RenderExpandableDelimiterContext, RenderPropertyContext,
         RenderValueContext,

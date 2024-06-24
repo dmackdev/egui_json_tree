@@ -18,6 +18,8 @@ jobs:
         run: cargo build
       - name: Test
         run: cargo test
+      - name: Test json_tree_test for simd_json feature
+        run: cargo test --features=simd_json --no-default-features --test json_tree_test
       - name: Clippy
         run: cargo clippy
       - name: Format

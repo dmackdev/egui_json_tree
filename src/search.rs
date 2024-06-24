@@ -1,12 +1,15 @@
 use std::collections::HashSet;
 
-use crate::value::{ExpandableType, JsonTreeValue, ToJsonTreeValue};
+use crate::{
+    pointer::JsonPointerSegment,
+    value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
+};
 
 #[derive(Debug, Clone, Hash)]
 pub struct SearchTerm(String);
 
 impl SearchTerm {
-    pub fn parse(search_str: &str) -> Option<Self> {
+    pub(crate) fn parse(search_str: &str) -> Option<Self> {
         SearchTerm::is_valid(search_str).then_some(Self(search_str.to_ascii_lowercase()))
     }
 
@@ -14,7 +17,7 @@ impl SearchTerm {
         !search_str.is_empty()
     }
 
-    pub fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
+    pub(crate) fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
         other
             .to_ascii_lowercase()
             .match_indices(&self.0)
@@ -22,15 +25,15 @@ impl SearchTerm {
             .collect()
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn find_matching_paths_in(
+    pub(crate) fn find_matching_paths_in<'a, T: ToJsonTreeValue>(
         &self,
-        value: &dyn ToJsonTreeValue,
+        value: &'a T,
         abbreviate_root: bool,
-    ) -> HashSet<Vec<String>> {
+    ) -> HashSet<Vec<JsonPointerSegment<'a>>> {
         let mut matching_paths = HashSet::new();
 
         search_impl(value, self, &mut vec![], &mut matching_paths);
@@ -48,24 +51,24 @@ impl SearchTerm {
     }
 }
 
-fn search_impl(
-    value: &dyn ToJsonTreeValue,
+fn search_impl<'a, T: ToJsonTreeValue>(
+    value: &'a T,
     search_term: &SearchTerm,
-    path_segments: &mut Vec<String>,
-    matching_paths: &mut HashSet<Vec<String>>,
+    path_segments: &mut Vec<JsonPointerSegment<'a>>,
+    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
 ) {
     match value.to_json_tree_value() {
-        JsonTreeValue::Base(value_str, _) => {
-            if search_term.matches(value_str) {
+        JsonTreeValue::Base(_, display_value, _) => {
+            if search_term.matches(display_value) {
                 update_matches(path_segments, matching_paths);
             }
         }
         JsonTreeValue::Expandable(entries, expandable_type) => {
-            for (key, val) in entries.iter() {
-                path_segments.push(key.to_string());
+            for (property, val) in entries.iter() {
+                path_segments.push(*property);
 
                 // Ignore matches for indices in an array.
-                if expandable_type == ExpandableType::Object && search_term.matches(key) {
+                if expandable_type == ExpandableType::Object && search_term.matches(property) {
                     update_matches(path_segments, matching_paths);
                 }
 
@@ -76,7 +79,10 @@ fn search_impl(
     };
 }
 
-fn update_matches(path_segments: &[String], matching_paths: &mut HashSet<Vec<String>>) {
+fn update_matches<'a>(
+    path_segments: &[JsonPointerSegment<'a>],
+    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
+) {
     for i in 0..path_segments.len() {
         matching_paths.insert(path_segments[0..i].to_vec());
     }

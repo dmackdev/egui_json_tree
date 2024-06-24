@@ -1,4 +1,4 @@
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone, Copy, Default)]
 /// Configuration for how a [`JsonTree`](crate::JsonTree) should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.

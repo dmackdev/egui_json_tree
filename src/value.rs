@@ -4,18 +4,23 @@
 //! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`](serde_json) dependency.
 //!
 //! See the [`impl ToJsonTreeValue for serde_json::Value `](../../src/egui_json_tree/value.rs.html#43-77) implementation for reference.
+
+use std::fmt::Display;
+
+use crate::pointer::JsonPointerSegment;
 /// Representation of JSON values for presentation purposes.
-pub enum JsonTreeValue<'a> {
+pub enum JsonTreeValue<'a, T: ?Sized> {
     /// Representation for a non-recursive JSON value:
-    /// - A value that can be converted to a `String` to represent the base value, e.g. `"true"` for the boolean value `true`.
+    /// - A reference to the actual JSON value itself.
+    /// - A reference to a value that visually represents the JSON value.
     /// - The type of the base value.
-    Base(&'a dyn ToString, BaseValueType),
+    Base(&'a T, &'a dyn Display, BaseValueType),
     /// Representation for a recursive JSON value:
-    /// - A `Vec` of key-value pairs. The order *must always* be the same.
-    ///   - For arrays, the key should be the index of each element.
-    ///   - For objects, the key should be the key of each object entry, without quotes.
+    /// - A `Vec` of property-value pairs. The order *must always* be the same.
+    ///   - For arrays, the property should be the index of each element.
+    ///   - For objects, the property should be the key of each object entry, without quotes.
     /// - The type of the recursive value, i.e. array or object.
-    Expandable(Vec<(String, &'a dyn ToJsonTreeValue)>, ExpandableType),
+    Expandable(Vec<(JsonPointerSegment<'a>, &'a T)>, ExpandableType),
 }
 
 /// The type of a non-recursive JSON value.
@@ -34,31 +39,32 @@ pub enum ExpandableType {
     Object,
 }
 
+/// A trait for types that can be converted to a [JsonTreeValue].
 pub trait ToJsonTreeValue {
-    fn to_json_tree_value(&self) -> JsonTreeValue;
+    /// Converts this JSON value to a [JsonTreeValue].
+    fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
+    /// Returns whether this JSON value is expandable, i.e. whether it is an object or an array.
     fn is_expandable(&self) -> bool;
 }
 
-const NULL_STR: &str = "null";
-
 #[cfg(feature = "serde_json")]
 impl ToJsonTreeValue for serde_json::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue {
+    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
         match self {
-            serde_json::Value::Null => JsonTreeValue::Base(&NULL_STR, BaseValueType::Null),
-            serde_json::Value::Bool(b) => JsonTreeValue::Base(b, BaseValueType::Bool),
-            serde_json::Value::Number(n) => JsonTreeValue::Base(n, BaseValueType::Number),
-            serde_json::Value::String(s) => JsonTreeValue::Base(s, BaseValueType::String),
+            serde_json::Value::Null => JsonTreeValue::Base(self, self, BaseValueType::Null),
+            serde_json::Value::Bool(b) => JsonTreeValue::Base(self, b, BaseValueType::Bool),
+            serde_json::Value::Number(n) => JsonTreeValue::Base(self, n, BaseValueType::Number),
+            serde_json::Value::String(s) => JsonTreeValue::Base(self, s, BaseValueType::String),
             serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (idx.to_string(), elem as &dyn ToJsonTreeValue))
+                    .map(|(idx, elem)| (JsonPointerSegment::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
-                    .map(|(key, val)| (key.to_owned(), val as &dyn ToJsonTreeValue))
+                    .map(|(key, val)| (JsonPointerSegment::Key(key), val))
                     .collect(),
                 ExpandableType::Object,
             ),
@@ -75,26 +81,32 @@ impl ToJsonTreeValue for serde_json::Value {
 
 #[cfg(feature = "simd_json")]
 impl ToJsonTreeValue for simd_json::owned::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue {
+    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
         match self {
             simd_json::OwnedValue::Static(s) => match s {
-                simd_json::StaticNode::I64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
-                simd_json::StaticNode::U64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
-                simd_json::StaticNode::F64(v) => JsonTreeValue::Base(v, BaseValueType::Number),
-                simd_json::StaticNode::Bool(v) => JsonTreeValue::Base(v, BaseValueType::Bool),
-                simd_json::StaticNode::Null => JsonTreeValue::Base(&NULL_STR, BaseValueType::Null),
+                simd_json::StaticNode::I64(n) => {
+                    JsonTreeValue::Base(self, n, BaseValueType::Number)
+                }
+                simd_json::StaticNode::U64(n) => {
+                    JsonTreeValue::Base(self, n, BaseValueType::Number)
+                }
+                simd_json::StaticNode::F64(n) => {
+                    JsonTreeValue::Base(self, n, BaseValueType::Number)
+                }
+                simd_json::StaticNode::Bool(b) => JsonTreeValue::Base(self, b, BaseValueType::Bool),
+                simd_json::StaticNode::Null => JsonTreeValue::Base(self, self, BaseValueType::Null),
             },
-            simd_json::OwnedValue::String(s) => JsonTreeValue::Base(s, BaseValueType::String),
+            simd_json::OwnedValue::String(s) => JsonTreeValue::Base(self, s, BaseValueType::String),
             simd_json::OwnedValue::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
-                    .map(|(idx, elem)| (idx.to_string(), elem as &dyn ToJsonTreeValue))
+                    .map(|(idx, elem)| (JsonPointerSegment::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
             simd_json::OwnedValue::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
-                    .map(|(key, val)| (key.to_owned(), val as &dyn ToJsonTreeValue))
+                    .map(|(key, val)| (JsonPointerSegment::Key(key), val))
                     .collect(),
                 ExpandableType::Object,
             ),

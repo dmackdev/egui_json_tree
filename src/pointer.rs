@@ -8,7 +8,7 @@ pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
 impl<'a, 'b> JsonPointer<'a, 'b> {
     /// Returns a JSON Pointer string that can be used to look up specific values within a JSON document, where:
-    /// - The root document is identified by the empty string `""`.
+    /// - The whole document is identified by the empty string `""`.
     /// - A pointer string to a value within the document starts with `/`.
     /// - The pointer string is comprised of segments separated by `/`.
     /// - Each segment represents either an array index or object key.

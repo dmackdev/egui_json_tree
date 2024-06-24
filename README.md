@@ -65,6 +65,7 @@ See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cas
 ## Supported JSON Types
 
 `JsonTree` can visualise any type that implements `value::ToJsonTreeValue`.
+
 See the table of crate features below for provided implementations.
 
 | Feature      | JSON Type                 | Default |

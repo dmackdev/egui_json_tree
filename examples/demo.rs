@@ -726,6 +726,6 @@ fn main() {
     let _ = eframe::run_native(
         "egui-json-tree example",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Box::<DemoApp>::default()),
+        Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );
 }

@@ -179,12 +179,8 @@ impl Show for CopyToClipboardExample {
                     .on_hover_cursor(CursorIcon::ContextMenu)
                     .context_menu(|ui| {
                         ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                            ui.set_width(150.0);
-
                             let pointer = context.pointer().to_json_pointer_string();
-                            if !pointer.is_empty()
-                                && ui.add(Button::new("Copy path").frame(false)).clicked()
-                            {
+                            if !pointer.is_empty() && ui.add(Button::new("Copy path")).clicked() {
                                 ui.output_mut(|o| {
                                     println!("{}", pointer);
                                     o.copied_text = pointer;
@@ -192,7 +188,7 @@ impl Show for CopyToClipboardExample {
                                 ui.close_menu();
                             }
 
-                            if ui.add(Button::new("Copy contents").frame(false)).clicked() {
+                            if ui.add(Button::new("Copy contents")).clicked() {
                                 if let Ok(pretty_str) =
                                     serde_json::to_string_pretty(context.value())
                                 {

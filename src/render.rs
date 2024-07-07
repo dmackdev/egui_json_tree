@@ -74,7 +74,7 @@ pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
     /// The full JSON pointer to the array or object under this property.
     pub pointer: JsonPointer<'a, 'b>,
-    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
+    /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
@@ -96,7 +96,7 @@ pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub value_type: BaseValueType,
     /// The full JSON pointer to the JSON value being rendered.
     pub pointer: JsonPointer<'a, 'b>,
-    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
+    /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
@@ -122,7 +122,7 @@ pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub value: &'a T,
     /// The full JSON pointer to the array or object that the delimiter belongs to.
     pub pointer: JsonPointer<'a, 'b>,
-    /// The [`JsonTreeStyle`](crate::JsonTreeStyle) that the [`JsonTree`](crate::JsonTree) was configured with.
+    /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
 }
 

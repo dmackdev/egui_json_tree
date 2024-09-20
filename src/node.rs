@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use egui::{collapsing_header::CollapsingState, Id, Ui};
+use egui::{
+    collapsing_header::{paint_default_icon, CollapsingState},
+    Id, Ui,
+};
 
 use crate::{
     delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
@@ -193,223 +196,221 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         .entry(path_segments.to_vec())
         .or_insert_with(|| make_persistent_id(path_segments));
 
-    let state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
+    let mut state = CollapsingState::load_with_default_open(ui.ctx(), id_source, default_open);
     let is_expanded = state.is_open();
 
-    state
-        .show_header(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
+    let header_res = ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        state.show_toggle_button(ui, paint_default_icon);
 
-                if path_segments.is_empty() && !is_expanded {
-                    if *abbreviate_root {
-                        renderer.render_expandable_delimiter(
-                            ui,
-                            RenderExpandableDelimiterContext {
-                                delimiter: delimiters.collapsed,
-                                value: expandable.value,
-                                pointer: JsonPointer(path_segments),
-                                style,
-                            },
-                        );
-                        return;
-                    }
+        if path_segments.is_empty() && !is_expanded {
+            if *abbreviate_root {
+                renderer.render_expandable_delimiter(
+                    ui,
+                    RenderExpandableDelimiterContext {
+                        delimiter: delimiters.collapsed,
+                        value: expandable.value,
+                        pointer: JsonPointer(path_segments),
+                        style,
+                    },
+                );
+                return;
+            }
 
-                    renderer.render_expandable_delimiter(
+            renderer.render_expandable_delimiter(
+                ui,
+                RenderExpandableDelimiterContext {
+                    delimiter: delimiters.opening,
+                    value: expandable.value,
+                    pointer: JsonPointer(path_segments),
+                    style,
+                },
+            );
+            renderer.render_spacing_delimiter(
+                ui,
+                RenderSpacingDelimiterContext {
+                    delimiter: SpacingDelimiter::Empty,
+                    style,
+                },
+            );
+
+            let entries_len = expandable.entries.len();
+
+            for (idx, (property, elem)) in expandable.entries.iter().enumerate() {
+                path_segments.push(*property);
+
+                // Don't show array indices when the array is collapsed.
+                if matches!(expandable.expandable_type, ExpandableType::Object) {
+                    renderer.render_property(
                         ui,
-                        RenderExpandableDelimiterContext {
-                            delimiter: delimiters.opening,
-                            value: expandable.value,
+                        RenderPropertyContext {
+                            property: *property,
+                            value: elem,
                             pointer: JsonPointer(path_segments),
                             style,
+                            search_term: search_term.as_ref(),
                         },
                     );
                     renderer.render_spacing_delimiter(
                         ui,
                         RenderSpacingDelimiterContext {
-                            delimiter: SpacingDelimiter::Empty,
+                            delimiter: SpacingDelimiter::Colon,
                             style,
                         },
                     );
+                }
 
-                    let entries_len = expandable.entries.len();
-
-                    for (idx, (property, elem)) in expandable.entries.iter().enumerate() {
-                        path_segments.push(*property);
-
-                        // Don't show array indices when the array is collapsed.
-                        if matches!(expandable.expandable_type, ExpandableType::Object) {
-                            renderer.render_property(
-                                ui,
-                                RenderPropertyContext {
-                                    property: *property,
-                                    value: elem,
-                                    pointer: JsonPointer(path_segments),
-                                    style,
-                                    search_term: search_term.as_ref(),
-                                },
-                            );
-                            renderer.render_spacing_delimiter(
-                                ui,
-                                RenderSpacingDelimiterContext {
-                                    delimiter: SpacingDelimiter::Colon,
-                                    style,
-                                },
-                            );
-                        }
-
-                        match elem.to_json_tree_value() {
-                            JsonTreeValue::Base(value, display_value, value_type) => {
-                                renderer.render_value(
-                                    ui,
-                                    RenderBaseValueContext {
-                                        value,
-                                        display_value,
-                                        value_type,
-                                        pointer: JsonPointer(path_segments),
-                                        style,
-                                        search_term: search_term.as_ref(),
-                                    },
-                                );
-                            }
-                            JsonTreeValue::Expandable(entries, expandable_type) => {
-                                let nested_delimiters = match expandable_type {
-                                    ExpandableType::Array => &ARRAY_DELIMITERS,
-                                    ExpandableType::Object => &OBJECT_DELIMITERS,
-                                };
-
-                                let delimiter = if entries.is_empty() {
-                                    nested_delimiters.collapsed_empty
-                                } else {
-                                    nested_delimiters.collapsed
-                                };
-
-                                renderer.render_expandable_delimiter(
-                                    ui,
-                                    RenderExpandableDelimiterContext {
-                                        delimiter,
-                                        value: elem,
-                                        pointer: JsonPointer(path_segments),
-                                        style,
-                                    },
-                                );
-                            }
-                        };
-
-                        let spacing = if idx == entries_len - 1 {
-                            SpacingDelimiter::Empty
-                        } else {
-                            SpacingDelimiter::Comma
-                        };
-
-                        renderer.render_spacing_delimiter(
+                match elem.to_json_tree_value() {
+                    JsonTreeValue::Base(value, display_value, value_type) => {
+                        renderer.render_value(
                             ui,
-                            RenderSpacingDelimiterContext {
-                                delimiter: spacing,
-                                style,
-                            },
-                        );
-
-                        path_segments.pop();
-                    }
-
-                    renderer.render_expandable_delimiter(
-                        ui,
-                        RenderExpandableDelimiterContext {
-                            delimiter: delimiters.closing,
-                            value: expandable.value,
-                            pointer: JsonPointer(path_segments),
-                            style,
-                        },
-                    );
-                } else {
-                    if let Some(property) = expandable.parent {
-                        renderer.render_property(
-                            ui,
-                            RenderPropertyContext {
-                                property,
-                                value: expandable.value,
+                            RenderBaseValueContext {
+                                value,
+                                display_value,
+                                value_type,
                                 pointer: JsonPointer(path_segments),
                                 style,
-                                search_term: config.search_term.as_ref(),
-                            },
-                        );
-                        renderer.render_spacing_delimiter(
-                            ui,
-                            RenderSpacingDelimiterContext {
-                                delimiter: SpacingDelimiter::Colon,
-                                style,
+                                search_term: search_term.as_ref(),
                             },
                         );
                     }
-
-                    if is_expanded {
-                        renderer.render_expandable_delimiter(
-                            ui,
-                            RenderExpandableDelimiterContext {
-                                delimiter: delimiters.opening,
-                                value: expandable.value,
-                                pointer: JsonPointer(path_segments),
-                                style,
-                            },
-                        );
-                    } else {
-                        let delimiter = if expandable.entries.is_empty() {
-                            delimiters.collapsed_empty
-                        } else {
-                            delimiters.collapsed
+                    JsonTreeValue::Expandable(entries, expandable_type) => {
+                        let nested_delimiters = match expandable_type {
+                            ExpandableType::Array => &ARRAY_DELIMITERS,
+                            ExpandableType::Object => &OBJECT_DELIMITERS,
                         };
+
+                        let delimiter = if entries.is_empty() {
+                            nested_delimiters.collapsed_empty
+                        } else {
+                            nested_delimiters.collapsed
+                        };
+
                         renderer.render_expandable_delimiter(
                             ui,
                             RenderExpandableDelimiterContext {
                                 delimiter,
-                                value: expandable.value,
+                                value: elem,
                                 pointer: JsonPointer(path_segments),
                                 style,
                             },
                         );
                     }
-                }
-            });
-        })
-        .body(|ui| {
-            for (property, elem) in expandable.entries {
-                let is_expandable = elem.is_expandable();
-
-                path_segments.push(property);
-
-                let mut add_nested_tree = |ui: &mut Ui| {
-                    let nested_tree = JsonTreeNode {
-                        id: expandable.id,
-                        value: elem,
-                        parent: Some(property),
-                    };
-
-                    nested_tree.show_impl(
-                        ui,
-                        path_segments,
-                        path_id_map,
-                        make_persistent_id,
-                        config,
-                        renderer,
-                    );
                 };
 
-                if is_expandable {
-                    add_nested_tree(ui);
+                let spacing = if idx == entries_len - 1 {
+                    SpacingDelimiter::Empty
                 } else {
-                    ui.scope(|ui| {
-                        ui.visuals_mut().indent_has_left_vline = false;
-                        ui.spacing_mut().indent =
-                            ui.spacing().icon_width + ui.spacing().icon_spacing;
+                    SpacingDelimiter::Comma
+                };
 
-                        ui.indent(id_source, add_nested_tree);
-                    });
-                }
+                renderer.render_spacing_delimiter(
+                    ui,
+                    RenderSpacingDelimiterContext {
+                        delimiter: spacing,
+                        style,
+                    },
+                );
 
                 path_segments.pop();
             }
-        });
+
+            renderer.render_expandable_delimiter(
+                ui,
+                RenderExpandableDelimiterContext {
+                    delimiter: delimiters.closing,
+                    value: expandable.value,
+                    pointer: JsonPointer(path_segments),
+                    style,
+                },
+            );
+        } else {
+            if let Some(property) = expandable.parent {
+                renderer.render_property(
+                    ui,
+                    RenderPropertyContext {
+                        property,
+                        value: expandable.value,
+                        pointer: JsonPointer(path_segments),
+                        style,
+                        search_term: config.search_term.as_ref(),
+                    },
+                );
+                renderer.render_spacing_delimiter(
+                    ui,
+                    RenderSpacingDelimiterContext {
+                        delimiter: SpacingDelimiter::Colon,
+                        style,
+                    },
+                );
+            }
+
+            if is_expanded {
+                renderer.render_expandable_delimiter(
+                    ui,
+                    RenderExpandableDelimiterContext {
+                        delimiter: delimiters.opening,
+                        value: expandable.value,
+                        pointer: JsonPointer(path_segments),
+                        style,
+                    },
+                );
+            } else {
+                let delimiter = if expandable.entries.is_empty() {
+                    delimiters.collapsed_empty
+                } else {
+                    delimiters.collapsed
+                };
+                renderer.render_expandable_delimiter(
+                    ui,
+                    RenderExpandableDelimiterContext {
+                        delimiter,
+                        value: expandable.value,
+                        pointer: JsonPointer(path_segments),
+                        style,
+                    },
+                );
+            }
+        }
+    });
+
+    state.show_body_indented(&header_res.response, ui, |ui| {
+        for (property, elem) in expandable.entries {
+            let is_expandable = elem.is_expandable();
+
+            path_segments.push(property);
+
+            let mut add_nested_tree = |ui: &mut Ui| {
+                let nested_tree = JsonTreeNode {
+                    id: expandable.id,
+                    value: elem,
+                    parent: Some(property),
+                };
+
+                nested_tree.show_impl(
+                    ui,
+                    path_segments,
+                    path_id_map,
+                    make_persistent_id,
+                    config,
+                    renderer,
+                );
+            };
+
+            if is_expandable {
+                add_nested_tree(ui);
+            } else {
+                ui.scope(|ui| {
+                    ui.visuals_mut().indent_has_left_vline = false;
+                    ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
+
+                    ui.indent(id_source, add_nested_tree);
+                });
+            }
+
+            path_segments.pop();
+        }
+    });
 
     if is_expanded {
         ui.horizontal_wrapped(|ui| {

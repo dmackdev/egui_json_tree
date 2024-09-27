@@ -12,6 +12,7 @@ pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
+    pub(crate) enable_icons: bool,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
@@ -21,6 +22,7 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
             default_expand: Default::default(),
             abbreviate_root: Default::default(),
             renderer: Default::default(),
+            enable_icons: true,
         }
     }
 }
@@ -102,6 +104,11 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Otherwise, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
     pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
         self.config.abbreviate_root = abbreviate_root;
+        self
+    }
+
+    pub fn enable_icons(mut self, enable_icons: bool) -> Self {
+        self.config.enable_icons = enable_icons;
         self
     }
 

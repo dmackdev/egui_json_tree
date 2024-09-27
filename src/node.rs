@@ -72,6 +72,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             abbreviate_root: config.abbreviate_root,
             style: config.style,
             search_term,
+            enable_icons: config.enable_icons,
         };
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
@@ -178,6 +179,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         abbreviate_root,
         style,
         search_term,
+        enable_icons,
     } = config;
 
     let delimiters = match expandable.expandable_type {
@@ -201,7 +203,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
     let header_res = ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        state.show_toggle_button(ui, paint_default_icon);
+
+        ui.add_enabled_ui(*enable_icons, |ui| {
+            state.show_toggle_button(ui, paint_default_icon);
+        });
 
         if path_segments.is_empty() && !is_expanded {
             if *abbreviate_root {
@@ -434,6 +439,7 @@ struct JsonTreeNodeConfig<'a> {
     abbreviate_root: bool,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
+    enable_icons: bool,
 }
 
 #[derive(Debug, Clone)]

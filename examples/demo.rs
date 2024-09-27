@@ -625,6 +625,29 @@ impl Show for JsonEditorExample {
     }
 }
 
+struct NonInteractiveDemo {
+    value: Value,
+}
+
+impl NonInteractiveDemo {
+    fn new(value: Value) -> Self {
+        Self { value }
+    }
+}
+
+impl Show for NonInteractiveDemo {
+    fn title(&self) -> &'static str {
+        "Non Interactive"
+    }
+
+    fn show(&mut self, ui: &mut Ui) {
+        JsonTree::new(self.title(), &self.value)
+            .default_expand(DefaultExpand::All)
+            .enable_icons(false)
+            .show(ui);
+    }
+}
+
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_idx: Option<usize>,
@@ -655,7 +678,8 @@ impl Default for DemoApp {
                 Box::new(CustomExample::new("Custom Input")),
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
-                Box::new(JsonEditorExample::new(complex_object)),
+                Box::new(JsonEditorExample::new(complex_object.clone())),
+                Box::new(NonInteractiveDemo::new(complex_object)),
             ],
             open_example_idx: None,
         }

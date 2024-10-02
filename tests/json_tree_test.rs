@@ -1,4 +1,6 @@
-use egui::{CentralPanel, Context, FontDefinitions, Style};
+use std::sync::Arc;
+
+use egui::{mutex::Mutex, CentralPanel, Context, FontDefinitions, Style};
 use egui_json_tree::{render::RenderContext, DefaultExpand, JsonTree};
 #[cfg(feature = "serde_json")]
 use serde_json::{json, Value};
@@ -39,12 +41,12 @@ impl<'a, 'b> From<RenderContext<'a, 'b, Value>> for ExpectedRender {
 fn json_tree_render_string() {
     let value = json!("Hello World!");
 
-    let mut actual: Vec<ExpectedRender> = vec![];
+    let actual: Arc<Mutex<Vec<ExpectedRender>>> = Arc::new(Mutex::new(vec![]));
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
             .on_render(|_, render_ctx| {
-                actual.push(render_ctx.into());
+                actual.lock().push(render_ctx.into());
             })
             .show(ui);
     });
@@ -55,7 +57,7 @@ fn json_tree_render_string() {
         pointer_str: "".to_string(),
     }];
 
-    assert_eq!(actual, expected);
+    assert_eq!(actual.lock().as_slice(), expected);
 }
 
 #[test]
@@ -68,13 +70,13 @@ fn json_tree_default_expand_none() {
       }
     });
 
-    let mut actual: Vec<ExpectedRender> = vec![];
+    let actual: Arc<Mutex<Vec<ExpectedRender>>> = Arc::new(Mutex::new(vec![]));
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
             .default_expand(DefaultExpand::None)
             .on_render(|_, render_ctx| {
-                actual.push(render_ctx.into());
+                actual.lock().push(render_ctx.into());
             })
             .show(ui);
     });
@@ -109,7 +111,7 @@ fn json_tree_default_expand_none() {
             pointer_str: "".to_string(),
         },
     ];
-    assert_eq!(actual, expected);
+    assert_eq!(actual.lock().as_slice(), expected);
 }
 
 #[test]
@@ -122,13 +124,13 @@ fn json_tree_default_expand_all() {
       }
     });
 
-    let mut actual: Vec<ExpectedRender> = vec![];
+    let actual: Arc<Mutex<Vec<ExpectedRender>>> = Arc::new(Mutex::new(vec![]));
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
             .default_expand(DefaultExpand::All)
             .on_render(|_, render_ctx| {
-                actual.push(render_ctx.into());
+                actual.lock().push(render_ctx.into());
             })
             .show(ui);
     });
@@ -197,7 +199,7 @@ fn json_tree_default_expand_all() {
             pointer_str: "".to_string(),
         },
     ];
-    assert_eq!(actual, expected);
+    assert_eq!(actual.lock().as_slice(), expected);
 }
 
 #[test]
@@ -213,13 +215,13 @@ fn json_tree_default_expand_to_level_one() {
       }
     });
 
-    let mut actual: Vec<ExpectedRender> = vec![];
+    let actual: Arc<Mutex<Vec<ExpectedRender>>> = Arc::new(Mutex::new(vec![]));
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
             .default_expand(DefaultExpand::ToLevel(1))
             .on_render(|_, render_ctx| {
-                actual.push(render_ctx.into());
+                actual.lock().push(render_ctx.into());
             })
             .show(ui);
     });
@@ -295,7 +297,7 @@ fn json_tree_default_expand_to_level_one() {
         },
     ];
 
-    assert_eq!(actual, expected);
+    assert_eq!(actual.lock().as_slice(), expected);
 }
 
 #[test]
@@ -314,13 +316,13 @@ fn json_tree_default_expand_search() {
       }
     });
 
-    let mut actual: Vec<ExpectedRender> = vec![];
+    let actual: Arc<Mutex<Vec<ExpectedRender>>> = Arc::new(Mutex::new(vec![]));
 
     egui::__run_test_ui(|ui| {
         JsonTree::new("id", &value)
             .default_expand(DefaultExpand::SearchResults("t"))
             .on_render(|_, render_ctx| {
-                actual.push(render_ctx.into());
+                actual.lock().push(render_ctx.into());
             })
             .show(ui);
     });
@@ -443,7 +445,7 @@ fn json_tree_default_expand_search() {
         },
     ];
 
-    assert_eq!(actual, expected);
+    assert_eq!(actual.lock().as_slice(), expected);
 }
 
 #[test]

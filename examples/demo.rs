@@ -12,7 +12,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree,
+    DefaultExpand, JsonTree, ToggleButtonsState,
 };
 use serde_json::{json, Value};
 
@@ -625,26 +625,50 @@ impl Show for JsonEditorExample {
     }
 }
 
-struct NonInteractiveDemo {
+struct ToggleButtonsCustomisationDemo {
     value: Value,
+    toggle_buttons_state: ToggleButtonsState,
 }
 
-impl NonInteractiveDemo {
+impl ToggleButtonsCustomisationDemo {
     fn new(value: Value) -> Self {
-        Self { value }
+        Self {
+            value,
+            toggle_buttons_state: Default::default(),
+        }
     }
 }
 
-impl Show for NonInteractiveDemo {
+impl Show for ToggleButtonsCustomisationDemo {
     fn title(&self) -> &'static str {
-        "Non Interactive"
+        "Toggle Buttons Customisation"
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title(), &self.value)
-            .default_expand(DefaultExpand::All)
-            .enable_icons(false)
-            .show(ui);
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::VisibleEnabled,
+                    "Visible and enabled",
+                );
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::VisibleDisabled,
+                    "Visible and disabled",
+                );
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::Hidden,
+                    "Hidden",
+                );
+            });
+
+            JsonTree::new("show", &self.value)
+                .default_expand(DefaultExpand::All)
+                .toggle_buttons_state(self.toggle_buttons_state)
+                .show(ui);
+        });
     }
 }
 
@@ -679,7 +703,7 @@ impl Default for DemoApp {
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),
-                Box::new(NonInteractiveDemo::new(complex_object)),
+                Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
             ],
             open_example_idx: None,
         }

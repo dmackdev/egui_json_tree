@@ -16,7 +16,7 @@ use crate::{
     search::SearchTerm,
     tree::JsonTreeConfig,
     value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
-    DefaultExpand, JsonTreeStyle,
+    DefaultExpand, JsonTreeStyle, ToggleButtonsState,
 };
 
 pub(crate) struct JsonTreeNode<'a, T: ToJsonTreeValue> {
@@ -72,7 +72,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             abbreviate_root: config.abbreviate_root,
             style: config.style,
             search_term,
-            enable_icons: config.enable_icons,
+            toggle_buttons_state: config.toggle_buttons_state,
         };
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
@@ -179,7 +179,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         abbreviate_root,
         style,
         search_term,
-        enable_icons,
+        toggle_buttons_state,
     } = config;
 
     let delimiters = match expandable.expandable_type {
@@ -204,9 +204,11 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     let header_res = ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
 
-        ui.add_enabled_ui(*enable_icons, |ui| {
-            state.show_toggle_button(ui, paint_default_icon);
-        });
+        if let Some(enabled) = toggle_buttons_state.enabled() {
+            ui.add_enabled_ui(enabled, |ui| {
+                state.show_toggle_button(ui, paint_default_icon)
+            });
+        }
 
         if path_segments.is_empty() && !is_expanded {
             if *abbreviate_root {
@@ -379,6 +381,11 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         }
     });
 
+    if *toggle_buttons_state == ToggleButtonsState::Hidden {
+        ui.visuals_mut().indent_has_left_vline = true;
+        ui.spacing_mut().indent = (ui.spacing().icon_width + ui.spacing().icon_spacing) / 2.0;
+    }
+
     state.show_body_indented(&header_res.response, ui, |ui| {
         for (property, elem) in expandable.entries {
             let is_expandable = elem.is_expandable();
@@ -402,12 +409,16 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 );
             };
 
-            if is_expandable {
+            if is_expandable && *toggle_buttons_state != ToggleButtonsState::Hidden {
                 add_nested_tree(ui);
             } else {
                 ui.scope(|ui| {
                     ui.visuals_mut().indent_has_left_vline = false;
                     ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
+
+                    if *toggle_buttons_state == ToggleButtonsState::Hidden {
+                        ui.spacing_mut().indent /= 2.0;
+                    }
 
                     ui.indent(id_source, add_nested_tree);
                 });
@@ -419,8 +430,10 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
     if is_expanded {
         ui.horizontal_wrapped(|ui| {
-            let indent = ui.spacing().icon_width / 2.0;
-            ui.add_space(indent);
+            if *toggle_buttons_state != ToggleButtonsState::Hidden {
+                let indent = ui.spacing().icon_width / 2.0;
+                ui.add_space(indent);
+            }
             renderer.render_expandable_delimiter(
                 ui,
                 RenderExpandableDelimiterContext {
@@ -439,7 +452,7 @@ struct JsonTreeNodeConfig<'a> {
     abbreviate_root: bool,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
-    enable_icons: bool,
+    toggle_buttons_state: ToggleButtonsState,
 }
 
 #[derive(Debug, Clone)]

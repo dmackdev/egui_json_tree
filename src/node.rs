@@ -381,7 +381,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         }
     });
 
-    if *toggle_buttons_state == ToggleButtonsState::Hidden {
+    let toggle_buttons_hidden = *toggle_buttons_state == ToggleButtonsState::Hidden;
+    if toggle_buttons_hidden {
         ui.visuals_mut().indent_has_left_vline = true;
         ui.spacing_mut().indent = (ui.spacing().icon_width + ui.spacing().icon_spacing) / 2.0;
     }
@@ -409,14 +410,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 );
             };
 
-            if is_expandable && *toggle_buttons_state != ToggleButtonsState::Hidden {
+            if is_expandable && !toggle_buttons_hidden {
                 add_nested_tree(ui);
             } else {
                 ui.scope(|ui| {
                     ui.visuals_mut().indent_has_left_vline = false;
                     ui.spacing_mut().indent = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-                    if *toggle_buttons_state == ToggleButtonsState::Hidden {
+                    if toggle_buttons_hidden {
                         ui.spacing_mut().indent /= 2.0;
                     }
 
@@ -430,7 +431,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
     if is_expanded {
         ui.horizontal_wrapped(|ui| {
-            if *toggle_buttons_state != ToggleButtonsState::Hidden {
+            if !toggle_buttons_hidden {
                 let indent = ui.spacing().icon_width / 2.0;
                 ui.add_space(indent);
             }

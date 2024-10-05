@@ -8,7 +8,7 @@
 //! #       DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
 //! #       RenderPropertyContext,
 //! #   },
-//! #   DefaultExpand, JsonTree, JsonTreeStyle
+//! #   DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState
 //! # };
 //! # egui::__run_test_ui(|ui| {
 //! let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
@@ -24,6 +24,7 @@
 //!     })
 //!     .default_expand(DefaultExpand::All)
 //!     .abbreviate_root(true) // Show {...} when the root object is collapsed.
+//!     .toggle_buttons_state(ToggleButtonsState::VisibleDisabled)
 //!     .on_render(|ui, ctx| {
 //!         // Customise rendering of the JsonTree, and/or handle interactions.
 //!         match ctx {

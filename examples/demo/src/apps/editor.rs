@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use egui::{
     text::{CCursor, CCursorRange},
-    vec2, CursorIcon, Margin, TextEdit, Ui,
+    vec2, CursorIcon, Id, Margin, TextEdit, Ui,
 };
 use egui_json_tree::{
     delimiters::ExpandableDelimiter,
@@ -11,7 +11,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree,
+    DefaultExpand, JsonTree, JsonTreeResponse, ToggleButtonsState,
 };
 use serde_json::Value;
 
@@ -163,6 +163,7 @@ impl Editor {
                 if context.value.is_object() && ui.button("Add to object").clicked() {
                     self.edit_events.push(EditEvent::AddToObject {
                         pointer: context.pointer.to_json_pointer_string(),
+                        id: context.pointer.id(),
                     });
                     ui.close_menu();
                 }
@@ -170,6 +171,7 @@ impl Editor {
                 if context.value.is_array() && ui.button("Add to array").clicked() {
                     self.edit_events.push(EditEvent::AddToArray {
                         pointer: context.pointer.to_json_pointer_string(),
+                        id: context.pointer.id(),
                     });
                     ui.close_menu();
                 }
@@ -262,6 +264,7 @@ impl Editor {
                         if ui.button("Add to array").clicked() {
                             self.edit_events.push(EditEvent::AddToArray {
                                 pointer: context.pointer.to_json_pointer_string(),
+                                id: context.pointer.id(),
                             });
                             ui.close_menu();
                         }
@@ -275,6 +278,7 @@ impl Editor {
                         if ui.button("Add to object").clicked() {
                             self.edit_events.push(EditEvent::AddToObject {
                                 pointer: context.pointer.to_json_pointer_string(),
+                                id: context.pointer.id(),
                             });
                             ui.close_menu();
                         }
@@ -311,7 +315,7 @@ impl Editor {
         }
     }
 
-    fn apply_events(&mut self, document: &mut Value) {
+    fn apply_events(&mut self, document: &mut Value, ui: &mut Ui, tree_response: JsonTreeResponse) {
         for event in self.edit_events.drain(..) {
             match event {
                 EditEvent::DeleteFromArray { array_pointer, idx } => {
@@ -333,7 +337,7 @@ impl Editor {
                         obj.remove(&key);
                     }
                 }
-                EditEvent::AddToObject { pointer } => {
+                EditEvent::AddToObject { pointer, id } => {
                     if let Some(obj) = document
                         .pointer_mut(&pointer)
                         .and_then(|value| value.as_object_mut())
@@ -355,14 +359,16 @@ impl Editor {
                             request_focus: true,
                             is_new_key: true,
                         }));
+                        tree_response.reset_expanded_for_id(ui, id);
                     }
                 }
-                EditEvent::AddToArray { pointer } => {
+                EditEvent::AddToArray { pointer, id } => {
                     if let Some(arr) = document
                         .pointer_mut(&pointer)
                         .and_then(|value| value.as_array_mut())
                     {
                         arr.push(Value::Null);
+                        tree_response.reset_expanded_for_id(ui, id);
                     }
                 }
                 EditEvent::SaveValueEdit => {
@@ -418,8 +424,8 @@ struct EditValueState {
 enum EditEvent {
     DeleteFromObject { object_pointer: String, key: String },
     DeleteFromArray { array_pointer: String, idx: usize },
-    AddToObject { pointer: String },
-    AddToArray { pointer: String },
+    AddToObject { pointer: String, id: Id },
+    AddToArray { pointer: String, id: Id },
     SaveValueEdit,
     SaveObjectKeyEdit,
     CloseObjectKeyEdit,
@@ -432,12 +438,19 @@ impl Show for JsonEditorExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title(), &self.value)
+        let toggle_buttons_state = if self.editor.state.is_some() {
+            ToggleButtonsState::VisibleDisabled
+        } else {
+            ToggleButtonsState::VisibleEnabled
+        };
+
+        let response = JsonTree::new(self.title(), &self.value)
             .abbreviate_root(true)
             .default_expand(DefaultExpand::All)
+            .toggle_buttons_state(toggle_buttons_state)
             .on_render(|ui, context| self.editor.show(ui, &self.value, context))
             .show(ui);
 
-        self.editor.apply_events(&mut self.value);
+        self.editor.apply_events(&mut self.value, ui, response);
     }
 }

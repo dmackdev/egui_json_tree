@@ -42,7 +42,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         let persistent_id = ui.id();
         let tree_id = self.id;
         let make_persistent_id = |path_segments: &Vec<JsonPointerSegment>| {
-            persistent_id.with(tree_id.with(path_segments))
+            persistent_id.with(tree_id.with(Id::new(path_segments)))
         };
 
         let mut path_id_map = HashMap::new();
@@ -93,6 +93,8 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
         JsonTreeResponse {
             collapsing_state_ids: path_id_map.into_values().collect(),
+            persistent_id,
+            tree_id,
         }
     }
 

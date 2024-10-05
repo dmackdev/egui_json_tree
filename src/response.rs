@@ -5,6 +5,8 @@ use egui::{collapsing_header::CollapsingState, Id, Ui};
 /// The response from showing a [`JsonTree`](crate::JsonTree).
 pub struct JsonTreeResponse {
     pub(crate) collapsing_state_ids: HashSet<Id>,
+    pub(crate) persistent_id: Id,
+    pub(crate) tree_id: Id,
 }
 
 impl JsonTreeResponse {
@@ -18,6 +20,14 @@ impl JsonTreeResponse {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
                 state.remove(ui.ctx());
             }
+        }
+    }
+
+    pub fn reset_expanded_for_id(&self, ui: &mut Ui, id: Id) {
+        if let Some(state) =
+            CollapsingState::load(ui.ctx(), self.persistent_id.with(self.tree_id.with(id)))
+        {
+            state.remove(ui.ctx());
         }
     }
 }

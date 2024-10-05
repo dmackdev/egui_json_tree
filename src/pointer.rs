@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use egui::Id;
+
 /// A JSON Pointer implementation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
@@ -33,6 +35,10 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
     /// This is useful for retrieving a pointer to the enclosing array or object of a JSON value.
     pub fn parent(&self) -> Option<JsonPointer> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
+    }
+
+    pub fn id(&self) -> Id {
+        Id::new(self.0)
     }
 }
 

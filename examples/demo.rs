@@ -3,7 +3,7 @@ use std::str::FromStr;
 use eframe::egui::{RichText, Ui};
 use egui::{
     text::{CCursor, CCursorRange},
-    vec2, Align, Button, CursorIcon, Layout, Margin, TextEdit,
+    vec2, CursorIcon, Margin, TextEdit,
 };
 use egui_json_tree::{
     delimiters::ExpandableDelimiter,
@@ -12,7 +12,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree,
+    DefaultExpand, JsonTree, ToggleButtonsState,
 };
 use serde_json::{json, Value};
 
@@ -178,30 +178,22 @@ impl Show for CopyToClipboardExample {
                     .render_default(ui)
                     .on_hover_cursor(CursorIcon::ContextMenu)
                     .context_menu(|ui| {
-                        ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                            ui.set_width(150.0);
+                        let pointer = context.pointer().to_json_pointer_string();
+                        if !pointer.is_empty() && ui.button("Copy path").clicked() {
+                            ui.output_mut(|o| {
+                                println!("{}", pointer);
+                                o.copied_text = pointer;
+                            });
+                            ui.close_menu();
+                        }
 
-                            let pointer = context.pointer().to_json_pointer_string();
-                            if !pointer.is_empty()
-                                && ui.add(Button::new("Copy path").frame(false)).clicked()
-                            {
-                                ui.output_mut(|o| {
-                                    println!("{}", pointer);
-                                    o.copied_text = pointer;
-                                });
-                                ui.close_menu();
+                        if ui.button("Copy contents").clicked() {
+                            if let Ok(pretty_str) = serde_json::to_string_pretty(context.value()) {
+                                println!("{}", pretty_str);
+                                ui.output_mut(|o| o.copied_text = pretty_str);
                             }
-
-                            if ui.add(Button::new("Copy contents").frame(false)).clicked() {
-                                if let Ok(pretty_str) =
-                                    serde_json::to_string_pretty(context.value())
-                                {
-                                    println!("{}", pretty_str);
-                                    ui.output_mut(|o| o.copied_text = pretty_str);
-                                }
-                                ui.close_menu();
-                            }
-                        });
+                            ui.close_menu();
+                        }
                     });
             })
             .show(ui);
@@ -633,6 +625,53 @@ impl Show for JsonEditorExample {
     }
 }
 
+struct ToggleButtonsCustomisationDemo {
+    value: Value,
+    toggle_buttons_state: ToggleButtonsState,
+}
+
+impl ToggleButtonsCustomisationDemo {
+    fn new(value: Value) -> Self {
+        Self {
+            value,
+            toggle_buttons_state: Default::default(),
+        }
+    }
+}
+
+impl Show for ToggleButtonsCustomisationDemo {
+    fn title(&self) -> &'static str {
+        "Toggle Buttons Customisation"
+    }
+
+    fn show(&mut self, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::VisibleEnabled,
+                    "Visible and enabled",
+                );
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::VisibleDisabled,
+                    "Visible and disabled",
+                );
+                ui.selectable_value(
+                    &mut self.toggle_buttons_state,
+                    ToggleButtonsState::Hidden,
+                    "Hidden",
+                );
+            });
+
+            JsonTree::new("show", &self.value)
+                .default_expand(DefaultExpand::All)
+                .toggle_buttons_state(self.toggle_buttons_state)
+                .show(ui);
+        });
+    }
+}
+
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_idx: Option<usize>,
@@ -663,7 +702,8 @@ impl Default for DemoApp {
                 Box::new(CustomExample::new("Custom Input")),
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
-                Box::new(JsonEditorExample::new(complex_object)),
+                Box::new(JsonEditorExample::new(complex_object.clone())),
+                Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
             ],
             open_example_idx: None,
         }
@@ -726,6 +766,6 @@ fn main() {
     let _ = eframe::run_native(
         "egui-json-tree example",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Box::<DemoApp>::default()),
+        Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );
 }

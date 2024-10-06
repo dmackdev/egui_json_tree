@@ -2,7 +2,7 @@ use crate::{
     node::JsonTreeNode,
     render::{JsonTreeRenderer, RenderContext},
     value::ToJsonTreeValue,
-    DefaultExpand, JsonTreeResponse, JsonTreeStyle,
+    DefaultExpand, JsonTreeResponse, JsonTreeStyle, ToggleButtonsState,
 };
 use egui::{Id, Ui};
 use std::hash::Hash;
@@ -12,6 +12,7 @@ pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) default_expand: DefaultExpand<'a>,
     pub(crate) abbreviate_root: bool,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
+    pub(crate) toggle_buttons_state: ToggleButtonsState,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
@@ -21,6 +22,7 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
             default_expand: Default::default(),
             abbreviate_root: Default::default(),
             renderer: Default::default(),
+            toggle_buttons_state: Default::default(),
         }
     }
 }
@@ -102,6 +104,12 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Otherwise, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
     pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
         self.config.abbreviate_root = abbreviate_root;
+        self
+    }
+
+    /// Override the visibility and interactivity of the toggle buttons for expanding/collapsing objects and arrays.
+    pub fn toggle_buttons_state(mut self, toggle_buttons_state: ToggleButtonsState) -> Self {
+        self.config.toggle_buttons_state = toggle_buttons_state;
         self
     }
 

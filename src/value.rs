@@ -1,9 +1,11 @@
 //! Representation of JSON values for presentation purposes.
 //!
 //! Write your own [`ToJsonTreeValue`] implementation which converts to [`JsonTreeValue`] if you wish to visualise a custom JSON type with a [`JsonTree`](crate::JsonTree),
-//! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`](serde_json) dependency.
+//! and disable default features in your `Cargo.toml` if you do not need the [`serde_json`] dependency.
 //!
-//! See the [`impl ToJsonTreeValue for serde_json::Value `](../../src/egui_json_tree/value.rs.html#43-77) implementation for reference.
+//! For reference, see the provided [`ToJsonTreeValue`] implementations in [`value.rs`](../../src/egui_json_tree/value.rs.html) for the following JSON types:
+//! - `serde_json::Value`
+//! - `simd_json::owned::Value`
 
 use std::fmt::Display;
 

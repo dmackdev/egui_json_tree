@@ -8,7 +8,7 @@
 //! #       DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
 //! #       RenderPropertyContext,
 //! #   },
-//! #   DefaultExpand, JsonTree, JsonTreeStyle
+//! #   DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState
 //! # };
 //! # egui::__run_test_ui(|ui| {
 //! let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
@@ -24,6 +24,7 @@
 //!     })
 //!     .default_expand(DefaultExpand::All)
 //!     .abbreviate_root(true) // Show {...} when the root object is collapsed.
+//!     .toggle_buttons_state(ToggleButtonsState::VisibleDisabled)
 //!     .on_render(|ui, ctx| {
 //!         // Customise rendering of the JsonTree, and/or handle interactions.
 //!         match ctx {
@@ -64,10 +65,10 @@
 //! [`JsonTree`] can visualise any type that implements [`ToJsonTreeValue`](trait@value::ToJsonTreeValue).
 //! See the table of crate features below for provided implementations.
 //!
-//! | Feature      | JSON Type                 | Default |
-//! | ------------ | ------------------------- | ------- |
-//! | `serde_json` | `serde_json::Value`       | Yes     |
-//! | `simd_json`  | `simd_json::owned::Value` | No      |
+//! | Feature/Dependency | JSON Type                 | Default |
+//! | ------------------ | ------------------------- | ------- |
+//! | `serde_json`       | `serde_json::Value`       | Yes     |
+//! | `simd_json`        | `simd_json::owned::Value` | No      |
 //!
 //! If you wish to use a different JSON type, see the [`value`](mod@value) module,
 //! and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
@@ -76,6 +77,7 @@ mod node;
 mod response;
 mod search;
 mod style;
+mod toggle_buttons_state;
 mod tree;
 
 pub mod delimiters;
@@ -86,4 +88,5 @@ pub mod value;
 pub use default_expand::DefaultExpand;
 pub use response::JsonTreeResponse;
 pub use style::JsonTreeStyle;
+pub use toggle_buttons_state::ToggleButtonsState;
 pub use tree::JsonTree;

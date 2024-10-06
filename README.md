@@ -28,6 +28,7 @@ let response = JsonTree::new("customised-tree", &value)
     })
     .default_expand(DefaultExpand::All)
     .abbreviate_root(true) // Show {...} when the root object is collapsed.
+    .toggle_buttons_state(ToggleButtonsState::VisibleDisabled)
     .on_render(|ui, ctx| {
         // Customise rendering of the JsonTree, and/or handle interactions.
         match ctx {
@@ -68,10 +69,10 @@ See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cas
 
 See the table of crate features below for provided implementations.
 
-| Feature      | JSON Type                 | Default |
-| ------------ | ------------------------- | ------- |
-| `serde_json` | `serde_json::Value`       | Yes     |
-| `simd_json`  | `simd_json::owned::Value` | No      |
+| Feature/Dependency | JSON Type                 | Default |
+| ------------------ | ------------------------- | ------- |
+| `serde_json`       | `serde_json::Value`       | Yes     |
+| `simd_json`        | `simd_json::owned::Value` | No      |
 
 If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
 

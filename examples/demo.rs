@@ -664,7 +664,7 @@ impl Show for ToggleButtonsCustomisationDemo {
                 );
             });
 
-            JsonTree::new("show", &self.value)
+            JsonTree::new(self.title(), &self.value)
                 .default_expand(DefaultExpand::All)
                 .toggle_buttons_state(self.toggle_buttons_state)
                 .show(ui);

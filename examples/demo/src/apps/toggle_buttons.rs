@@ -2,7 +2,7 @@ use egui::Ui;
 use egui_json_tree::{DefaultExpand, JsonTree, ToggleButtonsState};
 use serde_json::Value;
 
-use crate::example::Show;
+use super::Show;
 
 pub struct ToggleButtonsCustomisationDemo {
     value: Value,

@@ -2,7 +2,7 @@ use egui::{RichText, Ui};
 use egui_json_tree::JsonTree;
 use serde_json::{json, Value};
 
-use crate::example::Show;
+use super::Show;
 
 pub struct CustomExample {
     title: &'static str,

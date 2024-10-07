@@ -1,17 +1,11 @@
-use copy_to_clipboard::CopyToClipboardExample;
-use custom_input::CustomExample;
-use editor::JsonEditorExample;
-use example::{Example, Show};
-use search::SearchExample;
+use apps::{
+    copy_to_clipboard::CopyToClipboardExample, custom_input::CustomExample,
+    editor::JsonEditorExample, search::SearchExample,
+    toggle_buttons::ToggleButtonsCustomisationDemo, Example, Show,
+};
 use serde_json::json;
-use toggle_buttons::ToggleButtonsCustomisationDemo;
 
-mod copy_to_clipboard;
-mod custom_input;
-mod editor;
-mod example;
-mod search;
-mod toggle_buttons;
+mod apps;
 
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,

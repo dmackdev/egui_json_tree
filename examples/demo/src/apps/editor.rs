@@ -15,7 +15,7 @@ use egui_json_tree::{
 };
 use serde_json::Value;
 
-use crate::example::Show;
+use super::Show;
 
 pub struct JsonEditorExample {
     value: Value,

@@ -2,7 +2,7 @@ use egui::{CursorIcon, Ui};
 use egui_json_tree::{render::DefaultRender, JsonTree};
 use serde_json::Value;
 
-use crate::example::Show;
+use super::Show;
 
 pub struct CopyToClipboardExample {
     title: &'static str,

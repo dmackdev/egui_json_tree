@@ -100,7 +100,7 @@ impl eframe::App for DemoApp {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let _ = eframe::run_native(
-        "egui-json-tree example",
+        "egui JSON Tree Demo",
         eframe::NativeOptions::default(),
         Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );

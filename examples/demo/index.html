@@ -9,78 +9,17 @@
   />
 
   <head>
-    <title>egui json tree</title>
+    <title>egui JSON Tree Demo</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
     <link data-trunk rel="rust" data-wasm-opt="2" />
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base data-trunk-public-url />
 
-    <!-- <link data-trunk rel="icon" href="assets/favicon.ico" /> -->
-
-    <!-- <link data-trunk rel="copy-file" href="assets/sw.js" /> -->
-    <!-- <link
-      data-trunk
-      rel="copy-file"
-      href="assets/manifest.json"
-      data-target-path="assets"
-    />
-    <link
-      data-trunk
-      rel="copy-file"
-      href="assets/icon-1024.png"
-      data-target-path="assets"
-    />
-    <link
-      data-trunk
-      rel="copy-file"
-      href="assets/icon-256.png"
-      data-target-path="assets"
-    />
-    <link
-      data-trunk
-      rel="copy-file"
-      href="assets/icon_ios_touch_192.png"
-      data-target-path="assets"
-    />
-    <link
-      data-trunk
-      rel="copy-file"
-      href="assets/maskable_icon_x512.png"
-      data-target-path="assets"
-    />
-
-    <link rel="manifest" href="assets/manifest.json" />
-    <link rel="apple-touch-icon" href="assets/icon_ios_touch_192.png" /> -->
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: light)"
-      content="white"
-    />
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: dark)"
-      content="#404040"
-    />
-
     <style>
       html {
         /* Remove touch delay: */
         touch-action: manipulation;
-      }
-
-      body {
-        /* Light mode background color for what is not covered by the egui canvas,
-            or where the egui canvas is translucent. */
-        background: #909090;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        body {
-          /* Dark mode background color for what is not covered by the egui canvas,
-                or where the egui canvas is translucent. */
-          background: #404040;
-        }
       }
 
       /* Allow canvas to fill entire web page: */
@@ -91,6 +30,7 @@
         padding: 0 !important;
         height: 100%;
         width: 100%;
+        background: #404040;
       }
 
       /* Make canvas fill entire document: */
@@ -153,7 +93,7 @@
 
   <body>
     <!-- The WASM code will resize the canvas dynamically -->
-    <!-- the id is hardcoded in main.rs . so, make sure both match. -->
+    <!-- the id is hardcoded in main.rs, so make sure both match. -->
     <canvas id="canvas"></canvas>
 
     <!-- the loading spinner will be removed in main.rs -->
@@ -161,18 +101,5 @@
       <p style="font-size: 16px">Loading…</p>
       <div class="lds-dual-ring"></div>
     </div>
-
-    <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
-    <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
-    <!-- <script>
-      // We disable caching during development so that we always view the latest version.
-      if ("serviceWorker" in navigator && window.location.hash !== "#dev") {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("sw.js");
-        });
-      }
-    </script> -->
   </body>
 </html>
-
-<!-- Powered by egui: https://github.com/emilk/egui/ -->

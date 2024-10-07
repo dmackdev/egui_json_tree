@@ -787,6 +787,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "egui_json_tree",
+ "log",
+ "serde_json",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1075,19 +1088,6 @@ checksum = "0f214dc438f977e6d4e3500aaa277f5ad94ca83fbbd9b1a15713ce2344ccc5a1"
 dependencies = [
  "event-listener 5.3.1",
  "pin-project-lite",
-]
-
-[[package]]
-name = "example"
-version = "0.0.0"
-dependencies = [
- "eframe",
- "egui",
- "egui_json_tree",
- "log",
- "serde_json",
- "wasm-bindgen-futures",
- "web-sys",
 ]
 
 [[package]]

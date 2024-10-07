@@ -7,11 +7,13 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.76"
 publish = false
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+[dependencies]
 eframe = "0.29"
 egui = { version = "0.29", default-features = false }
 egui_json_tree = { path = "../../" }
-log = "0.4"
 serde_json = { version = "1" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+log = "0.4"
 wasm-bindgen-futures = "0.4"
-web-sys = "0.3.70"                                    # to access the DOM (to hide the loading text)
+web-sys = "0.3.70"           # to access the DOM (to hide the loading text)

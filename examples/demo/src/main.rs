@@ -47,7 +47,7 @@ impl Default for DemoApp {
 
 impl eframe::App for DemoApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::left("left_panel")
+        egui::SidePanel::left("left-panel")
             .resizable(false)
             .show(ctx, |ui| {
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {

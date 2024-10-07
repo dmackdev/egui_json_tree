@@ -5,26 +5,22 @@ use serde_json::Value;
 use super::Show;
 
 pub struct CopyToClipboardExample {
-    title: &'static str,
     value: Value,
 }
 
 impl CopyToClipboardExample {
     pub fn new(value: Value) -> Self {
-        Self {
-            title: "Copy To Clipboard Example",
-            value,
-        }
+        Self { value }
     }
 }
 
 impl Show for CopyToClipboardExample {
     fn title(&self) -> &'static str {
-        self.title
+        "Copy To Clipboard Example"
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        JsonTree::new(self.title, &self.value)
+        JsonTree::new(self.title(), &self.value)
             .on_render(|ui, context| {
                 context
                     .render_default(ui)

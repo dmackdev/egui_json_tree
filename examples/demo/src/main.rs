@@ -34,7 +34,7 @@ impl Default for DemoApp {
                     json!({"foo": 123, "bar": "Hello world!", "baz": null}),
                 )),
                 Box::new(Example::new("Complex Object", complex_object.clone())),
-                Box::new(CustomExample::new("Custom Input")),
+                Box::new(CustomExample::new()),
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),

@@ -5,7 +5,6 @@ use serde_json::Value;
 use super::Show;
 
 pub struct SearchExample {
-    title: &'static str,
     value: Value,
     search_input: String,
 }
@@ -13,7 +12,6 @@ pub struct SearchExample {
 impl SearchExample {
     pub fn new(value: Value) -> Self {
         Self {
-            title: "Search Example",
             value,
             search_input: "".to_string(),
         }
@@ -22,7 +20,7 @@ impl SearchExample {
 
 impl Show for SearchExample {
     fn title(&self) -> &'static str {
-        self.title
+        "Search Example"
     }
 
     fn show(&mut self, ui: &mut Ui) {
@@ -36,7 +34,7 @@ impl Show for SearchExample {
             })
             .inner;
 
-        let response = JsonTree::new(self.title, &self.value)
+        let response = JsonTree::new(self.title(), &self.value)
             .default_expand(DefaultExpand::SearchResults(&self.search_input))
             .show(ui);
 

@@ -5,14 +5,12 @@ use serde_json::{json, Value};
 use super::Show;
 
 pub struct CustomExample {
-    title: &'static str,
     input: String,
 }
 
 impl CustomExample {
-    pub fn new(title: &'static str) -> Self {
+    pub fn new() -> Self {
         Self {
-            title,
             input: serde_json::to_string_pretty(&json!({"foo": "bar"})).unwrap(),
         }
     }
@@ -20,7 +18,7 @@ impl CustomExample {
 
 impl Show for CustomExample {
     fn title(&self) -> &'static str {
-        self.title
+        "Custom Input"
     }
 
     fn show(&mut self, ui: &mut Ui) {
@@ -52,7 +50,7 @@ impl Show for CustomExample {
 
         match value.as_ref() {
             Ok(value) => {
-                JsonTree::new(self.title, value).show(ui);
+                JsonTree::new(self.title(), value).show(ui);
             }
             Err(err) => {
                 ui.label(RichText::new(err.to_string()).color(ui.visuals().error_fg_color));

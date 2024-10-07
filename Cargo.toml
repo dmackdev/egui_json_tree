@@ -23,3 +23,7 @@ eframe = "0.29"
 default = ["serde_json"]
 serde_json = ["dep:serde_json"]
 simd_json = ["dep:simd-json"]
+
+[[example]]
+name = "demo"
+path = "examples/demo/src/main.rs"

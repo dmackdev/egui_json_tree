@@ -6,11 +6,17 @@
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dmackdev/egui_json_tree/blob/master/LICENSE-MIT)
 [![Apache](https://img.shields.io/badge/license-Apache-blue.svg)](https://github.com/dmackdev/egui_json_tree/blob/master/LICENSE-APACHE)
 
-An interactive JSON tree visualiser for `egui`, with search and highlight functionality.
+An interactive JSON tree visualiser for [`egui`](https://github.com/emilk/egui), with search and highlight functionality.
 
 <p align="center">
   <img src="./media/search_example.gif" alt="Search Example"/>
 </p>
+
+See the demo [source code](./examples/demo) and [webpage](https://dmackdev.github.io/egui_json_tree) for detailed use cases, including:
+
+- Automatic expansion of arrays/objects and highlighting, based on search term matches.
+- Copying JSON paths and values to the clipboard.
+- A JSON editor UI.
 
 ## Usage
 
@@ -56,12 +62,6 @@ let response = JsonTree::new("customised-tree", &value)
 // Reset the expanded state of all arrays/objects to respect the `default_expand` setting.
 response.reset_expanded(ui);
 ```
-
-See [demo.rs](./examples/demo.rs) and run the examples for more detailed use cases, including:
-
-- Automatic expansion of arrays/objects and highlighting, based on search term matches.
-- Copying JSON paths and values to the clipboard.
-- A JSON editor UI.
 
 ## Supported JSON Types
 

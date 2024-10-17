@@ -13,7 +13,7 @@ use crate::{
     pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
-    JsonTreeStyle,
+    JsonTreeStyle, JsonTreeVisuals,
 };
 
 /// A closure for a user-defined custom rendering implementation.
@@ -215,13 +215,13 @@ struct ValueLayoutJobCreator;
 impl ValueLayoutJobCreator {
     fn create(
         &self,
-        style: &JsonTreeStyle,
+        visuals: &JsonTreeVisuals,
         value_str: &str,
         value_type: &BaseValueType,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
     ) -> LayoutJob {
-        let color = style.get_color(value_type);
+        let color = visuals.get_color(value_type);
         let add_quote_if_string = |job: &mut LayoutJob| {
             if *value_type == BaseValueType::String {
                 append(job, "\"", color, None, font_id)
@@ -234,7 +234,7 @@ impl ValueLayoutJobCreator {
             value_str,
             color,
             search_term,
-            style.highlight_color,
+            visuals.highlight_color,
             font_id,
         );
         add_quote_if_string(&mut job);
@@ -245,7 +245,7 @@ impl ValueLayoutJobCreator {
 impl
     ComputerMut<
         (
-            &JsonTreeStyle,
+            &JsonTreeVisuals,
             &str,
             &BaseValueType,
             Option<&SearchTerm>,
@@ -256,15 +256,15 @@ impl
 {
     fn compute(
         &mut self,
-        (style, value_str, value_type, search_term, font_id): (
-            &JsonTreeStyle,
+        (visuals, value_str, value_type, search_term, font_id): (
+            &JsonTreeVisuals,
             &str,
             &BaseValueType,
             Option<&SearchTerm>,
             &FontId,
         ),
     ) -> LayoutJob {
-        self.create(style, value_str, value_type, search_term, font_id)
+        self.create(visuals, value_str, value_type, search_term, font_id)
     }
 }
 
@@ -279,7 +279,7 @@ fn render_value(
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
-            style,
+            style.visuals(ui),
             value_str,
             value_type,
             search_term,
@@ -296,7 +296,7 @@ struct PropertyLayoutJobCreator;
 impl PropertyLayoutJobCreator {
     fn create(
         &self,
-        style: &JsonTreeStyle,
+        visuals: &JsonTreeVisuals,
         property: &JsonPointerSegment,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
@@ -306,15 +306,15 @@ impl PropertyLayoutJobCreator {
             JsonPointerSegment::Index(_) => add_array_idx(
                 &mut job,
                 &property.to_string(),
-                style.array_idx_color,
+                visuals.array_idx_color,
                 font_id,
             ),
             JsonPointerSegment::Key(_) => add_object_key(
                 &mut job,
                 &property.to_string(),
-                style.object_key_color,
+                visuals.object_key_color,
                 search_term,
-                style.highlight_color,
+                visuals.highlight_color,
                 font_id,
             ),
         };
@@ -325,7 +325,7 @@ impl PropertyLayoutJobCreator {
 impl<'a>
     ComputerMut<
         (
-            &JsonTreeStyle,
+            &JsonTreeVisuals,
             &JsonPointerSegment<'a>,
             Option<&SearchTerm>,
             &FontId,
@@ -335,14 +335,14 @@ impl<'a>
 {
     fn compute(
         &mut self,
-        (style, parent, search_term, font_id): (
-            &JsonTreeStyle,
+        (visuals, parent, search_term, font_id): (
+            &JsonTreeVisuals,
             &JsonPointerSegment,
             Option<&SearchTerm>,
             &FontId,
         ),
     ) -> LayoutJob {
-        self.create(style, parent, search_term, font_id)
+        self.create(visuals, parent, search_term, font_id)
     }
 }
 
@@ -356,7 +356,7 @@ fn render_property(
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<PropertyLayoutJobCreatorCache>().get((
-            style,
+            style.visuals(ui),
             property,
             search_term,
             &style.font_id(ui),
@@ -442,7 +442,7 @@ fn render_delimiter(ui: &mut Ui, style: &JsonTreeStyle, delimiter_str: &str) -> 
     append(
         &mut job,
         delimiter_str,
-        style.punctuation_color,
+        style.visuals(ui).punctuation_color,
         None,
         &style.font_id(ui),
     );

@@ -3,6 +3,7 @@ use apps::{
     editor::JsonEditorExample, search::SearchExample,
     toggle_buttons::ToggleButtonsCustomisationDemo, Example, Show,
 };
+use egui::global_theme_preference_buttons;
 use serde_json::json;
 
 mod apps;
@@ -12,10 +13,8 @@ struct DemoApp {
     open_example_idx: Option<usize>,
 }
 
-impl DemoApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_theme(egui::Theme::Dark);
-
+impl Default for DemoApp {
+    fn default() -> Self {
         let complex_object = json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
 
         Self {
@@ -52,6 +51,12 @@ impl eframe::App for DemoApp {
         egui::SidePanel::left("left-panel")
             .resizable(false)
             .show(ctx, |ui| {
+                egui::TopBottomPanel::top("theme-preference-top-panel")
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
+                    .show_inside(ui, |ui| {
+                        global_theme_preference_buttons(ui);
+                    });
+                ui.add_space(10.0);
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     for (idx, example) in self.examples.iter().enumerate() {
                         let is_open = self
@@ -104,7 +109,7 @@ fn main() {
     let _ = eframe::run_native(
         "egui JSON Tree Demo",
         eframe::NativeOptions::default(),
-        Box::new(|cc| Ok(Box::new(DemoApp::new(cc)))),
+        Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );
 }
 
@@ -133,7 +138,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(DemoApp::new(cc)))),
+                Box::new(|_cc| Ok(Box::<DemoApp>::default())),
             )
             .await;
 

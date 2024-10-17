@@ -12,10 +12,8 @@ struct DemoApp {
     open_example_idx: Option<usize>,
 }
 
-impl DemoApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_theme(egui::Theme::Dark);
-
+impl Default for DemoApp {
+    fn default() -> Self {
         let complex_object = json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
 
         Self {
@@ -104,7 +102,7 @@ fn main() {
     let _ = eframe::run_native(
         "egui JSON Tree Demo",
         eframe::NativeOptions::default(),
-        Box::new(|cc| Ok(Box::new(DemoApp::new(cc)))),
+        Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );
 }
 
@@ -133,7 +131,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(DemoApp::new(cc)))),
+                Box::new(|_cc| Ok(Box::<DemoApp>::default())),
             )
             .await;
 

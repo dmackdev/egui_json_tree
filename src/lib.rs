@@ -13,7 +13,7 @@
 //! #       DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
 //! #       RenderPropertyContext,
 //! #   },
-//! #   DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState
+//! #   DefaultExpand, JsonTree, JsonTreeStyle, JsonTreeVisuals, ToggleButtonsState
 //! # };
 //! # egui::__run_test_ui(|ui| {
 //! let value = serde_json::json!({ "foo": "bar", "fizz": [1, 2, 3]});
@@ -24,8 +24,11 @@
 //! // Customised:
 //! let response = JsonTree::new("customised-tree", &value)
 //!     .style(JsonTreeStyle {
-//!         bool_color: Color32::YELLOW,
-//!         ..Default::default()
+//!       visuals: Some(JsonTreeVisuals {
+//!           bool_color: Color32::YELLOW,
+//!           ..Default::default()
+//!       }),
+//!       ..Default::default()
 //!     })
 //!     .default_expand(DefaultExpand::All)
 //!     .abbreviate_root(true) // Show {...} when the root object is collapsed.

@@ -3,6 +3,7 @@ use apps::{
     editor::JsonEditorExample, search::SearchExample,
     toggle_buttons::ToggleButtonsCustomisationDemo, Example, Show,
 };
+use egui::global_theme_preference_buttons;
 use serde_json::json;
 
 mod apps;
@@ -50,6 +51,12 @@ impl eframe::App for DemoApp {
         egui::SidePanel::left("left-panel")
             .resizable(false)
             .show(ctx, |ui| {
+                egui::TopBottomPanel::top("theme-preference-top-panel")
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
+                    .show_inside(ui, |ui| {
+                        global_theme_preference_buttons(ui);
+                    });
+                ui.add_space(10.0);
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     for (idx, example) in self.examples.iter().enumerate() {
                         let is_open = self

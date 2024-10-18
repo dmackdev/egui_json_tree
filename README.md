@@ -29,7 +29,10 @@ JsonTree::new("simple-tree", &value).show(ui);
 // Customised:
 let response = JsonTree::new("customised-tree", &value)
     .style(JsonTreeStyle {
-        bool_color: Color32::YELLOW,
+        visuals: Some(JsonTreeVisuals {
+            bool_color: Color32::YELLOW,
+            ..Default::default()
+        }),
         ..Default::default()
     })
     .default_expand(DefaultExpand::All)

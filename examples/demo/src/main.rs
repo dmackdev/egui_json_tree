@@ -3,7 +3,6 @@ use apps::{
     editor::JsonEditorExample, search::SearchExample,
     toggle_buttons::ToggleButtonsCustomisationDemo, Example, Show,
 };
-use egui::global_theme_preference_buttons;
 use serde_json::json;
 
 mod apps;
@@ -11,6 +10,7 @@ mod apps;
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_idx: Option<usize>,
+    show_left_sidebar: bool,
 }
 
 impl Default for DemoApp {
@@ -42,6 +42,7 @@ impl Default for DemoApp {
                 Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
             ],
             open_example_idx: None,
+            show_left_sidebar: true,
         }
     }
 }
@@ -50,13 +51,16 @@ impl eframe::App for DemoApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("left-panel")
             .resizable(false)
-            .show(ctx, |ui| {
-                egui::TopBottomPanel::top("theme-preference-top-panel")
-                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
-                    .show_inside(ui, |ui| {
-                        global_theme_preference_buttons(ui);
-                    });
+            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
+            .show_animated(ctx, self.show_left_sidebar, |ui| {
+                collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
                 ui.add_space(10.0);
+
+                ui.label(egui::RichText::new("Theme").monospace());
+                egui::global_theme_preference_buttons(ui);
+                ui.add_space(10.0);
+
+                ui.label(egui::RichText::new("Examples").monospace());
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     for (idx, example) in self.examples.iter().enumerate() {
                         let is_open = self
@@ -74,13 +78,20 @@ impl eframe::App for DemoApp {
                 });
             });
 
-        match self.open_example_idx {
-            Some(open_idx) => {
-                let example = &mut self.examples[open_idx];
+        match self
+            .open_example_idx
+            .map(|open_idx| &mut self.examples[open_idx])
+        {
+            Some(example) => {
                 egui::TopBottomPanel::top("top-panel")
                     .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
                     .show(ctx, |ui| {
-                        ui.heading(example.title());
+                        ui.horizontal_centered(|ui| {
+                            if !self.show_left_sidebar {
+                                collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+                            }
+                            ui.heading(example.title());
+                        });
                     });
                 egui::CentralPanel::default().show(ctx, |ui| {
                     example.show(ui);
@@ -88,6 +99,9 @@ impl eframe::App for DemoApp {
             }
             None => {
                 egui::CentralPanel::default().show(ctx, |ui| {
+                    if !self.show_left_sidebar {
+                        collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+                    }
                     ui.with_layout(
                         egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
                         |ui| {
@@ -101,6 +115,12 @@ impl eframe::App for DemoApp {
 
     fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {
         visuals.panel_fill.to_normalized_gamma_f32()
+    }
+}
+
+fn collapsible_sidebar_button_ui(ui: &mut egui::Ui, open: &mut bool) {
+    if ui.button("☰").clicked() {
+        *open = !*open;
     }
 }
 

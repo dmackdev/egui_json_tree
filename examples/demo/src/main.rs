@@ -129,7 +129,7 @@ fn collapsible_sidebar_button_ui(ui: &mut egui::Ui, open: &mut bool) {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let _ = eframe::run_native(
-        "egui JSON Tree Demo",
+        "egui_json_tree Demo",
         eframe::NativeOptions::default(),
         Box::new(|_cc| Ok(Box::<DemoApp>::default())),
     );

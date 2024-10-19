@@ -10,7 +10,7 @@ mod apps;
 struct DemoApp {
     examples: Vec<Box<dyn Show>>,
     open_example_idx: Option<usize>,
-    show_left_sidebar: bool,
+    left_sidebar_expanded: bool,
 }
 
 impl Default for DemoApp {
@@ -42,7 +42,7 @@ impl Default for DemoApp {
                 Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
             ],
             open_example_idx: None,
-            show_left_sidebar: true,
+            left_sidebar_expanded: true,
         }
     }
 }
@@ -52,8 +52,8 @@ impl eframe::App for DemoApp {
         egui::SidePanel::left("left-panel")
             .resizable(false)
             .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
-            .show_animated(ctx, self.show_left_sidebar, |ui| {
-                collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+            .show_animated(ctx, self.left_sidebar_expanded, |ui| {
+                collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
                 ui.add_space(10.0);
 
                 ui.label(egui::RichText::new("Theme").monospace());
@@ -87,8 +87,8 @@ impl eframe::App for DemoApp {
                 .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
                 .show(ctx, |ui| {
                     ui.horizontal_centered(|ui| {
-                        if !self.show_left_sidebar {
-                            collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+                        if !self.left_sidebar_expanded {
+                            collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
                         }
                         ui.heading(example.title());
                     });
@@ -101,8 +101,8 @@ impl eframe::App for DemoApp {
                     example.show(ui);
                 }
                 None => {
-                    if !self.show_left_sidebar {
-                        collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+                    if !self.left_sidebar_expanded {
+                        collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
                     }
                     ui.with_layout(
                         egui::Layout::centered_and_justified(egui::Direction::LeftToRight),

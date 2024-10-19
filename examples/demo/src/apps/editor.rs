@@ -428,7 +428,7 @@ enum EditEvent {
 
 impl Show for JsonEditorExample {
     fn title(&self) -> &'static str {
-        "JSON Editor Example"
+        "JSON Editor"
     }
 
     fn show(&mut self, ui: &mut Ui) {

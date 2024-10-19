@@ -16,7 +16,7 @@ impl CopyToClipboardExample {
 
 impl Show for CopyToClipboardExample {
     fn title(&self) -> &'static str {
-        "Copy To Clipboard Example"
+        "Copy To Clipboard"
     }
 
     fn show(&mut self, ui: &mut Ui) {

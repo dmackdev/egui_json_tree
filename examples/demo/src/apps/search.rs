@@ -20,7 +20,7 @@ impl SearchExample {
 
 impl Show for SearchExample {
     fn title(&self) -> &'static str {
-        "Search Example"
+        "Search"
     }
 
     fn show(&mut self, ui: &mut Ui) {

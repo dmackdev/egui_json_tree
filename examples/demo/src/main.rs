@@ -78,27 +78,29 @@ impl eframe::App for DemoApp {
                 });
             });
 
-        match self
+        let example = self
             .open_example_idx
-            .map(|open_idx| &mut self.examples[open_idx])
-        {
-            Some(example) => {
-                egui::TopBottomPanel::top("top-panel")
-                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
-                    .show(ctx, |ui| {
-                        ui.horizontal_centered(|ui| {
-                            if !self.show_left_sidebar {
-                                collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
-                            }
-                            ui.heading(example.title());
-                        });
+            .map(|open_idx| &mut self.examples[open_idx]);
+
+        if let Some(example) = &example {
+            egui::TopBottomPanel::top("top-panel")
+                .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
+                .show(ctx, |ui| {
+                    ui.horizontal_centered(|ui| {
+                        if !self.show_left_sidebar {
+                            collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
+                        }
+                        ui.heading(example.title());
                     });
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    example.show(ui);
                 });
-            }
-            None => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+        }
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            match example {
+                Some(example) => {
+                    example.show(ui);
+                }
+                None => {
                     if !self.show_left_sidebar {
                         collapsible_sidebar_button_ui(ui, &mut self.show_left_sidebar);
                     }
@@ -108,9 +110,9 @@ impl eframe::App for DemoApp {
                             ui.heading("Select an example.");
                         },
                     );
-                });
-            }
-        }
+                }
+            };
+        });
     }
 
     fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {

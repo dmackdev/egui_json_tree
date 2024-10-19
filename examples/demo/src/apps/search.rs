@@ -24,8 +24,11 @@ impl Show for SearchExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        ui.label("Search:");
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/search.rs");
+        ui.label("Enter a search term to automatically expand the tree to reveal and highlight the matches.");
+        ui.add_space(10.0);
 
+        ui.label("Search:");
         let (text_edit_response, clear_button_response) = ui
             .horizontal(|ui| {
                 let text_edit_response = ui.text_edit_singleline(&mut self.search_input);

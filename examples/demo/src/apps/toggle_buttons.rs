@@ -24,6 +24,9 @@ impl Show for ToggleButtonsCustomisationDemo {
     }
 
     fn show(&mut self, ui: &mut Ui) {
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/toggle_buttons.rs");
+        ui.label("Use the buttons below to control the visibility and interactivity of the toggle buttons.");
+
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.selectable_value(
@@ -42,6 +45,7 @@ impl Show for ToggleButtonsCustomisationDemo {
                     "Hidden",
                 );
             });
+            ui.add_space(10.0);
 
             JsonTree::new(self.title(), &self.value)
                 .default_expand(DefaultExpand::All)

@@ -22,9 +22,10 @@ impl Show for CustomExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/custom_input.rs");
         ui.label("Enter raw JSON in the text box to see the visualisation below.");
+        ui.add_space(10.0);
 
-        ui.add_space(ui.spacing().item_spacing.y);
         ui.add(
             egui::TextEdit::multiline(&mut self.input)
                 .code_editor()

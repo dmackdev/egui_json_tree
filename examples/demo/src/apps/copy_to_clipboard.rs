@@ -20,6 +20,10 @@ impl Show for CopyToClipboardExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/copy_to_clipboard.rs");
+        ui.label("Right click on elements within the tree to copy the JSON pointer string or contents to the clipboard.");
+        ui.add_space(10.0);
+
         JsonTree::new(self.title(), &self.value)
             .on_render(|ui, context| {
                 context

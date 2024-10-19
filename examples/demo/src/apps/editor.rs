@@ -432,6 +432,10 @@ impl Show for JsonEditorExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/editor.rs");
+        ui.label("Right click on elements within the tree to edit values and object keys, and add/remove values.");
+        ui.add_space(10.0);
+
         JsonTree::new(self.title(), &self.value)
             .abbreviate_root(true)
             .default_expand(DefaultExpand::All)

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use egui::{mutex::Mutex, CentralPanel, Context, FontDefinitions, Style};
-use egui_json_tree::{render::RenderContext, DefaultExpand, JsonTree};
+use egui_json_tree::{render::RenderContext, DefaultExpand, JsonTree, JsonTreeStyle};
 #[cfg(feature = "serde_json")]
 use serde_json::{json, Value};
 
@@ -541,7 +541,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::All)
-                .abbreviate_root(true)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());
                 })
@@ -561,7 +561,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
-                .abbreviate_root(true)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());
                 })
@@ -581,7 +581,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
-                .abbreviate_root(true)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());
                 })

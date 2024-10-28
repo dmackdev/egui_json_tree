@@ -45,9 +45,12 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             persistent_id.with(tree_id.with(path_segments))
         };
 
+        let style = config.style.unwrap_or_default();
+        let default_expand = config.default_expand.unwrap_or_default();
+
         let mut path_id_map = HashMap::new();
 
-        let (default_expand, search_term) = match config.default_expand {
+        let (default_expand, search_term) = match default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
@@ -58,7 +61,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 let paths = search_term
                     .as_ref()
                     .map(|search_term| {
-                        search_term.find_matching_paths_in(self.value, config.style.abbreviate_root)
+                        search_term.find_matching_paths_in(self.value, style.abbreviate_root)
                     })
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
@@ -69,7 +72,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
         let node_config = JsonTreeNodeConfig {
             default_expand,
-            style: config.style,
+            style,
             search_term,
         };
 

@@ -8,8 +8,8 @@ use egui::{Id, Ui};
 use std::hash::Hash;
 
 pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
-    pub(crate) style: JsonTreeStyle,
-    pub(crate) default_expand: DefaultExpand<'a>,
+    pub(crate) style: Option<JsonTreeStyle>,
+    pub(crate) default_expand: Option<DefaultExpand<'a>>,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
 }
 
@@ -44,13 +44,13 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     /// Override colors for JSON syntax highlighting, and search match highlighting.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
-        self.config.style = style;
+        self.config.style = Some(style);
         self
     }
 
     /// Override how the [`JsonTree`] expands arrays/objects by default.
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
-        self.config.default_expand = default_expand;
+        self.config.default_expand = Some(default_expand);
         self
     }
 

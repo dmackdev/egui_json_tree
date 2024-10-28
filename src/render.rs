@@ -279,11 +279,11 @@ fn render_value(
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
-            style.visuals(ui),
+            style.resolve_visuals(ui),
             value_str,
             value_type,
             search_term,
-            &style.font_id(ui),
+            &style.resolve_font_id(ui),
         ))
     });
 
@@ -356,10 +356,10 @@ fn render_property(
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<PropertyLayoutJobCreatorCache>().get((
-            style.visuals(ui),
+            style.resolve_visuals(ui),
             property,
             search_term,
-            &style.font_id(ui),
+            &style.resolve_font_id(ui),
         ))
     });
 
@@ -442,9 +442,9 @@ fn render_delimiter(ui: &mut Ui, style: &JsonTreeStyle, delimiter_str: &str) -> 
     append(
         &mut job,
         delimiter_str,
-        style.visuals(ui).punctuation_color,
+        style.resolve_visuals(ui).punctuation_color,
         None,
-        &style.font_id(ui),
+        &style.resolve_font_id(ui),
     );
     render_job(ui, job)
 }

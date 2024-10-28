@@ -1,5 +1,5 @@
 use egui::Ui;
-use egui_json_tree::{DefaultExpand, JsonTree, ToggleButtonsState};
+use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState};
 use serde_json::Value;
 
 use super::Show;
@@ -49,7 +49,7 @@ impl Show for ToggleButtonsCustomisationDemo {
 
             JsonTree::new(self.title(), &self.value)
                 .default_expand(DefaultExpand::All)
-                .toggle_buttons_state(self.toggle_buttons_state)
+                .style(JsonTreeStyle::new().toggle_buttons_state(self.toggle_buttons_state))
                 .show(ui);
         });
     }

@@ -11,7 +11,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree,
+    DefaultExpand, JsonTree, JsonTreeStyle,
 };
 use serde_json::Value;
 
@@ -437,8 +437,8 @@ impl Show for JsonEditorExample {
         ui.add_space(10.0);
 
         JsonTree::new(self.title(), &self.value)
-            .abbreviate_root(true)
             .default_expand(DefaultExpand::All)
+            .style(JsonTreeStyle::new().abbreviate_root(true))
             .on_render(|ui, context| self.editor.show(ui, &self.value, context))
             .show(ui);
 

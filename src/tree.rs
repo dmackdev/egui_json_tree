@@ -2,17 +2,15 @@ use crate::{
     node::JsonTreeNode,
     render::{JsonTreeRenderer, RenderContext},
     value::ToJsonTreeValue,
-    DefaultExpand, JsonTreeResponse, JsonTreeStyle, ToggleButtonsState,
+    DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Ui};
 use std::hash::Hash;
 
 pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
-    pub(crate) style: JsonTreeStyle,
-    pub(crate) default_expand: DefaultExpand<'a>,
-    pub(crate) abbreviate_root: bool,
+    pub(crate) style: Option<JsonTreeStyle>,
+    pub(crate) default_expand: Option<DefaultExpand<'a>>,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
-    pub(crate) toggle_buttons_state: ToggleButtonsState,
 }
 
 impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
@@ -20,9 +18,7 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
         Self {
             style: Default::default(),
             default_expand: Default::default(),
-            abbreviate_root: Default::default(),
             renderer: Default::default(),
-            toggle_buttons_state: Default::default(),
         }
     }
 }
@@ -48,13 +44,13 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     /// Override colors for JSON syntax highlighting, and search match highlighting.
     pub fn style(mut self, style: JsonTreeStyle) -> Self {
-        self.config.style = style;
+        self.config.style = Some(style);
         self
     }
 
     /// Override how the [`JsonTree`] expands arrays/objects by default.
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
-        self.config.default_expand = default_expand;
+        self.config.default_expand = Some(default_expand);
         self
     }
 
@@ -94,22 +90,6 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         render_hook: impl FnMut(&mut Ui, RenderContext<'a, '_, T>) + 'a,
     ) -> Self {
         self.config.renderer.render_hook = Some(Box::new(render_hook));
-        self
-    }
-
-    /// Override whether a root array/object should show direct child elements when collapsed.
-    ///
-    /// If called with `true`, a collapsed root object would render as: `{...}`.
-    ///
-    /// Otherwise, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
-    pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
-        self.config.abbreviate_root = abbreviate_root;
-        self
-    }
-
-    /// Override the visibility and interactivity of the toggle buttons for expanding/collapsing objects and arrays.
-    pub fn toggle_buttons_state(mut self, toggle_buttons_state: ToggleButtonsState) -> Self {
-        self.config.toggle_buttons_state = toggle_buttons_state;
         self
     }
 

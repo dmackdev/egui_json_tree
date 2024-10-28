@@ -1,19 +1,54 @@
 use egui::{Color32, FontId, TextStyle, Ui};
 
-use crate::value::BaseValueType;
+use crate::{value::BaseValueType, ToggleButtonsState};
 
 /// Styling configuration to control the appearance of the [`JsonTree`](crate::JsonTree).
 #[derive(Debug, Clone, Hash, Default)]
 pub struct JsonTreeStyle {
-    /// The colors to use. If not set, defaults to either a dark or light color scheme, depending on [`egui::Visuals::dark_mode`].
     pub visuals: Option<JsonTreeVisuals>,
-    /// The font to use. If not set, defaults to `TextStyle::Monospace.resolve(ui.style())`.
     pub font_id: Option<FontId>,
+    pub abbreviate_root: bool,
+    pub toggle_buttons_state: ToggleButtonsState,
 }
 
 impl JsonTreeStyle {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The colors to use. Defaults to either a dark or light color scheme, depending on [`egui::Visuals::dark_mode`].
+    pub fn visuals(mut self, visuals: JsonTreeVisuals) -> Self {
+        self.visuals = Some(visuals);
+        self
+    }
+
+    /// The font to use. Defaults to `TextStyle::Monospace.resolve(ui.style())`.
+    pub fn font_id(mut self, font_id: FontId) -> Self {
+        self.font_id = Some(font_id);
+        self
+    }
+
+    /// Override whether a root array/object should show direct child elements when collapsed.
+    ///
+    /// If `true`, a collapsed root object would render as: `{...}`.
+    ///
+    /// If `false`, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
+    ///
+    /// Defaults to `false`.
+    pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
+        self.abbreviate_root = abbreviate_root;
+        self
+    }
+
+    /// Override the visibility and interactivity of the toggle buttons for expanding/collapsing objects and arrays.
+    /// Defaults to [`ToggleButtonsState::VisibleEnabled`].
+    pub fn toggle_buttons_state(mut self, toggle_buttons_state: ToggleButtonsState) -> Self {
+        self.toggle_buttons_state = toggle_buttons_state;
+        self
+    }
+
     /// Resolves the [`JsonTreeVisuals`] color scheme to use.
-    pub fn visuals(&self, ui: &Ui) -> &JsonTreeVisuals {
+    pub(crate) fn resolve_visuals(&self, ui: &Ui) -> &JsonTreeVisuals {
         if let Some(visuals) = &self.visuals {
             visuals
         } else if ui.visuals().dark_mode {
@@ -23,7 +58,8 @@ impl JsonTreeStyle {
         }
     }
 
-    pub(crate) fn font_id(&self, ui: &Ui) -> FontId {
+    /// Resolves the [`FontId`] to use.
+    pub(crate) fn resolve_font_id(&self, ui: &Ui) -> FontId {
         if let Some(font_id) = &self.font_id {
             font_id.clone()
         } else {

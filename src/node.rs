@@ -45,9 +45,12 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             persistent_id.with(tree_id.with(path_segments))
         };
 
+        let style = config.style.unwrap_or_default();
+        let default_expand = config.default_expand.unwrap_or_default();
+
         let mut path_id_map = HashMap::new();
 
-        let (default_expand, search_term) = match config.default_expand {
+        let (default_expand, search_term) = match default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
@@ -58,7 +61,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 let paths = search_term
                     .as_ref()
                     .map(|search_term| {
-                        search_term.find_matching_paths_in(self.value, config.abbreviate_root)
+                        search_term.find_matching_paths_in(self.value, style.abbreviate_root)
                     })
                     .unwrap_or_default();
                 (InnerExpand::Paths(paths), search_term)
@@ -69,17 +72,15 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 
         let node_config = JsonTreeNodeConfig {
             default_expand,
-            abbreviate_root: config.abbreviate_root,
-            style: config.style,
+            style,
             search_term,
-            toggle_buttons_state: config.toggle_buttons_state,
         };
 
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
-            ui.spacing_mut().interact_size.y = node_config.style.font_id(ui).size;
+            ui.spacing_mut().interact_size.y = node_config.style.resolve_font_id(ui).size;
 
             self.show_impl(
                 ui,
@@ -176,10 +177,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 ) {
     let JsonTreeNodeConfig {
         default_expand,
-        abbreviate_root,
         style,
         search_term,
-        toggle_buttons_state,
     } = config;
 
     let delimiters = match expandable.expandable_type {
@@ -204,14 +203,14 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     let header_res = ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
 
-        if let Some(enabled) = toggle_buttons_state.enabled() {
+        if let Some(enabled) = style.toggle_buttons_state.enabled() {
             ui.add_enabled_ui(enabled, |ui| {
                 state.show_toggle_button(ui, paint_default_icon)
             });
         }
 
         if path_segments.is_empty() && !is_expanded {
-            if *abbreviate_root {
+            if style.abbreviate_root {
                 renderer.render_expandable_delimiter(
                     ui,
                     RenderExpandableDelimiterContext {
@@ -381,7 +380,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
         }
     });
 
-    let toggle_buttons_hidden = *toggle_buttons_state == ToggleButtonsState::Hidden;
+    let toggle_buttons_hidden = style.toggle_buttons_state == ToggleButtonsState::Hidden;
     if toggle_buttons_hidden {
         ui.visuals_mut().indent_has_left_vline = true;
         ui.spacing_mut().indent = (ui.spacing().icon_width + ui.spacing().icon_spacing) / 2.0;
@@ -450,10 +449,8 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
 
 struct JsonTreeNodeConfig<'a> {
     default_expand: InnerExpand<'a>,
-    abbreviate_root: bool,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
-    toggle_buttons_state: ToggleButtonsState,
 }
 
 #[derive(Debug, Clone)]

@@ -28,16 +28,16 @@ JsonTree::new("simple-tree", &value).show(ui);
 
 // Customised:
 let response = JsonTree::new("customised-tree", &value)
-    .style(JsonTreeStyle {
-        visuals: Some(JsonTreeVisuals {
-            bool_color: Color32::YELLOW,
-            ..Default::default()
-        }),
-        ..Default::default()
-    })
+     .style(
+       JsonTreeStyle::new()
+           .abbreviate_root(true) // Show {...} when the root object is collapsed.
+           .toggle_buttons_state(ToggleButtonsState::VisibleDisabled)
+           .visuals(JsonTreeVisuals {
+               bool_color: Color32::YELLOW,
+               ..Default::default()
+           }),
+     )
     .default_expand(DefaultExpand::All)
-    .abbreviate_root(true) // Show {...} when the root object is collapsed.
-    .toggle_buttons_state(ToggleButtonsState::VisibleDisabled)
     .on_render(|ui, ctx| {
         // Customise rendering of the JsonTree, and/or handle interactions.
         match ctx {

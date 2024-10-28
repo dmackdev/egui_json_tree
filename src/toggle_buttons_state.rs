@@ -1,5 +1,5 @@
 /// Setting for the visibility and interactivity of the toggle buttons for expanding/collapsing objects and arrays.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ToggleButtonsState {
     #[default]
     VisibleEnabled,

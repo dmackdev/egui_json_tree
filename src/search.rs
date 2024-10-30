@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use egui::Id;
+
 use crate::{
     pointer::JsonPointerSegment,
     value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
@@ -33,10 +35,17 @@ impl SearchTerm {
         &self,
         value: &'a T,
         abbreviate_root: bool,
-    ) -> HashSet<Vec<JsonPointerSegment<'a>>> {
+        make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+    ) -> HashSet<Id> {
         let mut matching_paths = HashSet::new();
 
-        search_impl(value, self, &mut vec![], &mut matching_paths);
+        search_impl(
+            value,
+            self,
+            &mut vec![],
+            &mut matching_paths,
+            make_persistent_id,
+        );
 
         if !abbreviate_root && matching_paths.len() == 1 {
             // The only match was a top level key or value - no need to expand anything.
@@ -55,12 +64,13 @@ fn search_impl<'a, T: ToJsonTreeValue>(
     value: &'a T,
     search_term: &SearchTerm,
     path_segments: &mut Vec<JsonPointerSegment<'a>>,
-    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
+    matching_paths: &mut HashSet<Id>,
+    make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {
     match value.to_json_tree_value() {
         JsonTreeValue::Base(_, display_value, _) => {
             if search_term.matches(display_value) {
-                update_matches(path_segments, matching_paths);
+                update_matches(path_segments, matching_paths, make_persistent_id);
             }
         }
         JsonTreeValue::Expandable(entries, expandable_type) => {
@@ -69,10 +79,16 @@ fn search_impl<'a, T: ToJsonTreeValue>(
 
                 // Ignore matches for indices in an array.
                 if expandable_type == ExpandableType::Object && search_term.matches(property) {
-                    update_matches(path_segments, matching_paths);
+                    update_matches(path_segments, matching_paths, make_persistent_id);
                 }
 
-                search_impl(*val, search_term, path_segments, matching_paths);
+                search_impl(
+                    *val,
+                    search_term,
+                    path_segments,
+                    matching_paths,
+                    make_persistent_id,
+                );
                 path_segments.pop();
             }
         }
@@ -81,9 +97,10 @@ fn search_impl<'a, T: ToJsonTreeValue>(
 
 fn update_matches<'a>(
     path_segments: &[JsonPointerSegment<'a>],
-    matching_paths: &mut HashSet<Vec<JsonPointerSegment<'a>>>,
+    matching_paths: &mut HashSet<Id>,
+    make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {
     for i in 0..path_segments.len() {
-        matching_paths.insert(path_segments[0..i].to_vec());
+        matching_paths.insert(make_persistent_id(&path_segments[0..i]));
     }
 }

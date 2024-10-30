@@ -98,3 +98,23 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         JsonTreeNode::new(self.id, self.value).show_with_config(ui, self.config)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::DefaultExpand;
+
+    use super::JsonTree;
+
+    #[test]
+    fn test_search_populates_all_collapsing_state_ids_in_response() {
+        let value = serde_json::json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
+
+        egui::__run_test_ui(|ui| {
+            let response = JsonTree::new("id", &value)
+                .default_expand(DefaultExpand::SearchResults("g"))
+                .show(ui);
+
+            assert_eq!(response.collapsing_state_ids.len(), 7);
+        });
+    }
+}

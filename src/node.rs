@@ -471,10 +471,10 @@ struct Expandable<'a, T: ToJsonTreeValue> {
     parent: Option<JsonPointerSegment<'a>>,
 }
 
-fn populate_path_ids<'b, T: ToJsonTreeValue>(
+fn populate_path_ids<T: ToJsonTreeValue>(
     value: &T,
-    path_ids: &'b mut HashSet<Id>,
-    make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
+    path_ids: &mut HashSet<Id>,
+    make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {
     populate_path_ids_impl(value, &mut vec![], path_ids, make_persistent_id);
 }

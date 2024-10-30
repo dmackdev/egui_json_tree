@@ -31,9 +31,9 @@ impl SearchTerm {
         self.0.len()
     }
 
-    pub(crate) fn find_matching_paths_in<'a, T: ToJsonTreeValue>(
+    pub(crate) fn find_matching_paths_in<T: ToJsonTreeValue>(
         &self,
-        value: &'a T,
+        value: &T,
         abbreviate_root: bool,
         make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
     ) -> HashSet<Id> {
@@ -95,8 +95,8 @@ fn search_impl<'a, T: ToJsonTreeValue>(
     };
 }
 
-fn update_matches<'a>(
-    path_segments: &[JsonPointerSegment<'a>],
+fn update_matches(
+    path_segments: &[JsonPointerSegment],
     matching_paths: &mut HashSet<Id>,
     make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {

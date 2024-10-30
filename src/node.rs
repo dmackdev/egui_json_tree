@@ -47,15 +47,15 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         let style = config.style.unwrap_or_default();
         let default_expand = config.default_expand.unwrap_or_default();
 
-        let mut path_id_map = HashSet::new();
+        let mut path_ids = HashSet::new();
 
         let (default_expand, search_term) = match default_expand {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
             DefaultExpand::SearchResults(search_str) => {
-                // If searching, the entire path_id_map must be populated.
-                populate_path_id_map(self.value, &mut path_id_map, &make_persistent_id);
+                // If searching, path_ids for the entire tree must be populated.
+                populate_path_ids(self.value, &mut path_ids, &make_persistent_id);
                 let search_term = SearchTerm::parse(search_str);
                 let paths = search_term
                     .as_ref()
@@ -88,7 +88,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
             self.show_impl(
                 ui,
                 &mut vec![],
-                &mut path_id_map,
+                &mut path_ids,
                 &make_persistent_id,
                 &node_config,
                 &mut renderer,
@@ -96,7 +96,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         });
 
         JsonTreeResponse {
-            collapsing_state_ids: path_id_map,
+            collapsing_state_ids: path_ids,
         }
     }
 
@@ -104,7 +104,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         self,
         ui: &mut Ui,
         path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-        path_id_map: &'b mut PathIdMap<'a>,
+        path_ids: &'b mut HashSet<Id>,
         make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
         config: &'b JsonTreeNodeConfig,
         renderer: &'b mut JsonTreeRenderer<'a, T>,
@@ -158,7 +158,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 show_expandable(
                     ui,
                     path_segments,
-                    path_id_map,
+                    path_ids,
                     expandable,
                     &make_persistent_id,
                     config,
@@ -172,7 +172,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     ui: &mut Ui,
     path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-    path_id_map: &'b mut PathIdMap<'a>,
+    path_ids: &'b mut HashSet<Id>,
     expandable: Expandable<'a, T>,
     make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
     config: &'b JsonTreeNodeConfig,
@@ -190,7 +190,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     };
 
     let path_id = make_persistent_id(path_segments);
-    path_id_map.insert(path_id);
+    path_ids.insert(path_id);
 
     let default_open = match &default_expand {
         InnerExpand::All => true,
@@ -404,7 +404,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 nested_tree.show_impl(
                     ui,
                     path_segments,
-                    path_id_map,
+                    path_ids,
                     make_persistent_id,
                     config,
                     renderer,
@@ -471,28 +471,26 @@ struct Expandable<'a, T: ToJsonTreeValue> {
     parent: Option<JsonPointerSegment<'a>>,
 }
 
-type PathIdMap<'a> = HashSet<Id>;
-
-fn populate_path_id_map<'a, 'b, T: ToJsonTreeValue>(
-    value: &'a T,
-    path_id_map: &'b mut PathIdMap<'a>,
+fn populate_path_ids<'b, T: ToJsonTreeValue>(
+    value: &T,
+    path_ids: &'b mut HashSet<Id>,
     make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {
-    populate_path_id_map_impl(value, &mut vec![], path_id_map, make_persistent_id);
+    populate_path_ids_impl(value, &mut vec![], path_ids, make_persistent_id);
 }
 
-fn populate_path_id_map_impl<'a, 'b, T: ToJsonTreeValue>(
+fn populate_path_ids_impl<'a, 'b, T: ToJsonTreeValue>(
     value: &'a T,
     path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-    path_id_map: &'b mut PathIdMap<'a>,
+    path_ids: &'b mut HashSet<Id>,
     make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
 ) {
     if let JsonTreeValue::Expandable(entries, _) = value.to_json_tree_value() {
         for (property, val) in entries {
             let id = make_persistent_id(path_segments);
-            path_id_map.insert(id);
+            path_ids.insert(id);
             path_segments.push(property);
-            populate_path_id_map_impl(val, path_segments, path_id_map, make_persistent_id);
+            populate_path_ids_impl(val, path_segments, path_ids, make_persistent_id);
             path_segments.pop();
         }
     }

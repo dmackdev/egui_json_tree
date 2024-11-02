@@ -36,6 +36,7 @@ impl SearchTerm {
         value: &T,
         abbreviate_root: bool,
         make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+        reset_path_ids: &mut HashSet<Id>,
     ) -> HashSet<Id> {
         let mut matching_paths = HashSet::new();
 
@@ -45,6 +46,7 @@ impl SearchTerm {
             &mut vec![],
             &mut matching_paths,
             make_persistent_id,
+            reset_path_ids,
         );
 
         if !abbreviate_root && matching_paths.len() == 1 {
@@ -66,6 +68,7 @@ fn search_impl<'a, T: ToJsonTreeValue>(
     path_segments: &mut Vec<JsonPointerSegment<'a>>,
     matching_paths: &mut HashSet<Id>,
     make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+    reset_path_ids: &mut HashSet<Id>,
 ) {
     match value.to_json_tree_value() {
         JsonTreeValue::Base(_, display_value, _) => {
@@ -76,6 +79,10 @@ fn search_impl<'a, T: ToJsonTreeValue>(
         JsonTreeValue::Expandable(entries, expandable_type) => {
             for (property, val) in entries.iter() {
                 path_segments.push(*property);
+
+                if val.is_expandable() {
+                    reset_path_ids.insert(make_persistent_id(path_segments));
+                }
 
                 // Ignore matches for indices in an array.
                 if expandable_type == ExpandableType::Object && search_term.matches(property) {
@@ -88,6 +95,7 @@ fn search_impl<'a, T: ToJsonTreeValue>(
                     path_segments,
                     matching_paths,
                     make_persistent_id,
+                    reset_path_ids,
                 );
                 path_segments.pop();
             }

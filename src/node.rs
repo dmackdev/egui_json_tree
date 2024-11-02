@@ -103,7 +103,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
         self,
         ui: &mut Ui,
         path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-        path_ids: &'b mut HashSet<Id>,
+        reset_path_ids: &'b mut HashSet<Id>,
         make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
         config: &'b JsonTreeNodeConfig,
         renderer: &'b mut JsonTreeRenderer<'a, T>,
@@ -157,7 +157,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                 show_expandable(
                     ui,
                     path_segments,
-                    path_ids,
+                    reset_path_ids,
                     expandable,
                     &make_persistent_id,
                     config,
@@ -171,7 +171,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
 fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     ui: &mut Ui,
     path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-    path_ids: &'b mut HashSet<Id>,
+    reset_path_ids: &'b mut HashSet<Id>,
     expandable: Expandable<'a, T>,
     make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
     config: &'b JsonTreeNodeConfig,
@@ -189,13 +189,13 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
     };
 
     let path_id = make_persistent_id(path_segments);
-    path_ids.insert(path_id);
+    reset_path_ids.insert(path_id);
 
     let default_open = match &default_expand {
         InnerExpand::All => true,
         InnerExpand::None => false,
         InnerExpand::ToLevel(num_levels_open) => (path_segments.len() as u8) <= *num_levels_open,
-        InnerExpand::Paths(paths) => paths.contains(&path_id),
+        InnerExpand::Paths(search_match_path_ids) => search_match_path_ids.contains(&path_id),
     };
 
     let mut state = CollapsingState::load_with_default_open(ui.ctx(), path_id, default_open);
@@ -403,7 +403,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 nested_tree.show_impl(
                     ui,
                     path_segments,
-                    path_ids,
+                    reset_path_ids,
                     make_persistent_id,
                     config,
                     renderer,

@@ -75,6 +75,8 @@ pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    /// If an array/object is under this property, contains the [`egui::collapsing_header::CollapsingState`] for it.
+    /// This can be used to toggle or check whether the array/object is expanded. Any mutations will be stored after the render hook.
     pub collapsing_state: Option<&'b mut CollapsingState>,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
@@ -122,6 +124,8 @@ pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    /// The [`egui::collapsing_header::CollapsingState`] for the array or object that this delimiter belongs to.
+    /// This can be used to toggle or check whether the array/object is expanded. Any mutations will be stored after the render hook.
     pub collapsing_state: &'b mut CollapsingState,
 }
 

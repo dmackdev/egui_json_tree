@@ -455,9 +455,13 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                 },
             );
         });
-        // show_body_indented will store the CollapsingState,
-        // but since this subsequent render call could also mutate the state, we must store it again.
-        state.store(ui.ctx());
+
+        if renderer.render_hook.is_some() {
+            // show_body_indented will store the CollapsingState,
+            // but since the subsequent render call above could also mutate the state in the render hook,
+            // we must store it again.
+            state.store(ui.ctx());
+        }
     }
 }
 

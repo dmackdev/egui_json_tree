@@ -3,6 +3,7 @@
 use std::fmt::Display;
 
 use egui::{
+    collapsing_header::CollapsingState,
     text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
     Color32, FontId, Label, Response, Sense, TextFormat, Ui,
@@ -74,6 +75,7 @@ pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    pub collapsing_state: Option<&'b mut CollapsingState>,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
@@ -120,6 +122,7 @@ pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    pub collapsing_state: &'b mut CollapsingState,
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterContext<'a, 'b, T> {

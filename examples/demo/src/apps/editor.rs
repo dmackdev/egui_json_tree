@@ -154,7 +154,7 @@ impl Editor {
     fn show_property_context_menu(
         &mut self,
         ui: &mut Ui,
-        context: RenderPropertyContext<'_, '_, Value>,
+        mut context: RenderPropertyContext<'_, '_, Value>,
     ) {
         context
             .render_default(ui)
@@ -164,6 +164,9 @@ impl Editor {
                     self.edit_events.push(EditEvent::AddToObject {
                         pointer: context.pointer.to_json_pointer_string(),
                     });
+                    if let Some(state) = context.collapsing_state.as_mut() {
+                        state.set_open(true);
+                    }
                     ui.close_menu();
                 }
 
@@ -171,6 +174,9 @@ impl Editor {
                     self.edit_events.push(EditEvent::AddToArray {
                         pointer: context.pointer.to_json_pointer_string(),
                     });
+                    if let Some(state) = context.collapsing_state.as_mut() {
+                        state.set_open(true);
+                    }
                     ui.close_menu();
                 }
 
@@ -263,6 +269,7 @@ impl Editor {
                             self.edit_events.push(EditEvent::AddToArray {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
+                            context.collapsing_state.set_open(true);
                             ui.close_menu();
                         }
                     });
@@ -276,6 +283,7 @@ impl Editor {
                             self.edit_events.push(EditEvent::AddToObject {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
+                            context.collapsing_state.set_open(true);
                             ui.close_menu();
                         }
                     });

@@ -260,7 +260,10 @@ impl Editor {
         context: RenderExpandableDelimiterContext<'_, '_, Value>,
     ) {
         match context.delimiter {
-            ExpandableDelimiter::OpeningArray => {
+            ExpandableDelimiter::OpeningArray
+            | ExpandableDelimiter::CollapsedArray
+            | ExpandableDelimiter::CollapsedEmptyArray
+            | ExpandableDelimiter::ClosingArray => {
                 context
                     .render_default(ui)
                     .on_hover_cursor(CursorIcon::ContextMenu)
@@ -274,7 +277,10 @@ impl Editor {
                         }
                     });
             }
-            ExpandableDelimiter::OpeningObject => {
+            ExpandableDelimiter::OpeningObject
+            | ExpandableDelimiter::CollapsedObject
+            | ExpandableDelimiter::CollapsedEmptyObject
+            | ExpandableDelimiter::ClosingObject => {
                 context
                     .render_default(ui)
                     .on_hover_cursor(CursorIcon::ContextMenu)
@@ -287,9 +293,6 @@ impl Editor {
                             ui.close_menu();
                         }
                     });
-            }
-            _ => {
-                context.render_default(ui);
             }
         };
     }

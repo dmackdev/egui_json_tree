@@ -11,7 +11,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree, JsonTreeStyle,
+    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
 };
 use serde_json::Value;
 
@@ -444,9 +444,18 @@ impl Show for JsonEditorExample {
         ui.label("Right click on elements within the tree to edit values and object keys, and add/remove values.");
         ui.add_space(10.0);
 
+        let toggle_buttons_state = match self.editor.state {
+            Some(_) => ToggleButtonsState::VisibleDisabled,
+            None => ToggleButtonsState::VisibleEnabled,
+        };
+
+        let style = JsonTreeStyle::new()
+            .abbreviate_root(true)
+            .toggle_buttons_state(toggle_buttons_state);
+
         JsonTree::new(self.title(), &self.value)
             .default_expand(DefaultExpand::All)
-            .style(JsonTreeStyle::new().abbreviate_root(true))
+            .style(style)
             .on_render(|ui, context| self.editor.show(ui, &self.value, context))
             .show(ui);
 

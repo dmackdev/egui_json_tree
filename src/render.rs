@@ -25,7 +25,6 @@ pub trait DefaultRender {
 }
 
 /// A handle to the information of a render call.
-#[derive(Clone, Copy)]
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     /// A render call for an array index or an object key.
     Property(RenderPropertyContext<'a, 'b, T>),
@@ -66,7 +65,6 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
 }
 
 /// A handle to the information of a render call for an array index or object key.
-#[derive(Clone, Copy)]
 pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     /// The array index or object key being rendered.
     pub property: JsonPointerSegment<'a>,
@@ -86,7 +84,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b,
 }
 
 /// A handle to the information of a render call for a non-recursive JSON value.
-#[derive(Clone, Copy)]
 pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     /// The non-recursive JSON value being rendered.
     pub value: &'a T,
@@ -114,7 +111,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b
 }
 
 /// A handle to the information of a render call for array brackets or object braces.
-#[derive(Clone, Copy)]
 pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     /// The specific token of the array bracket or object brace being rendered.
     pub delimiter: ExpandableDelimiter,
@@ -132,7 +128,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterCont
     }
 }
 
-#[derive(Clone, Copy)]
 pub(crate) struct RenderSpacingDelimiterContext<'b> {
     pub(crate) delimiter: SpacingDelimiter,
     pub(crate) style: &'b JsonTreeStyle,

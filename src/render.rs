@@ -69,7 +69,7 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
 pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     /// The array index or object key being rendered.
     pub property: JsonPointerSegment<'a>,
-    /// The JSON array or object under this property.
+    /// The JSON value under this property.
     pub value: &'a T,
     /// The full JSON pointer to the array or object under this property.
     pub pointer: JsonPointer<'a, 'b>,

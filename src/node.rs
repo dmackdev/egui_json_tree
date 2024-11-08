@@ -122,6 +122,7 @@ impl<'a, T: ToJsonTreeValue> JsonTreeNode<'a, T> {
                                 pointer: JsonPointer(path_segments),
                                 style: &config.style,
                                 search_term: config.search_term.as_ref(),
+                                collapsing_state: None,
                             },
                         );
                         renderer.render_spacing_delimiter(
@@ -219,6 +220,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         value: expandable.value,
                         pointer: JsonPointer(path_segments),
                         style,
+                        collapsing_state: &mut state,
                     },
                 );
                 return;
@@ -231,6 +233,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     value: expandable.value,
                     pointer: JsonPointer(path_segments),
                     style,
+                    collapsing_state: &mut state,
                 },
             );
             renderer.render_spacing_delimiter(
@@ -256,6 +259,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                             pointer: JsonPointer(path_segments),
                             style,
                             search_term: search_term.as_ref(),
+                            collapsing_state: Some(&mut state),
                         },
                     );
                     renderer.render_spacing_delimiter(
@@ -300,6 +304,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                                 value: elem,
                                 pointer: JsonPointer(path_segments),
                                 style,
+                                collapsing_state: &mut state,
                             },
                         );
                     }
@@ -329,6 +334,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     value: expandable.value,
                     pointer: JsonPointer(path_segments),
                     style,
+                    collapsing_state: &mut state,
                 },
             );
         } else {
@@ -341,6 +347,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         pointer: JsonPointer(path_segments),
                         style,
                         search_term: config.search_term.as_ref(),
+                        collapsing_state: Some(&mut state),
                     },
                 );
                 renderer.render_spacing_delimiter(
@@ -360,6 +367,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         value: expandable.value,
                         pointer: JsonPointer(path_segments),
                         style,
+                        collapsing_state: &mut state,
                     },
                 );
             } else {
@@ -375,6 +383,7 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                         value: expandable.value,
                         pointer: JsonPointer(path_segments),
                         style,
+                        collapsing_state: &mut state,
                     },
                 );
             }
@@ -442,9 +451,17 @@ fn show_expandable<'a, 'b, T: ToJsonTreeValue>(
                     value: expandable.value,
                     pointer: JsonPointer(path_segments),
                     style,
+                    collapsing_state: &mut state,
                 },
             );
         });
+
+        if renderer.render_hook.is_some() {
+            // show_body_indented will store the CollapsingState,
+            // but since the subsequent render call above could also mutate the state in the render hook,
+            // we must store it again.
+            state.store(ui.ctx());
+        }
     }
 }
 

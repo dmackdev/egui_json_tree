@@ -3,6 +3,7 @@
 use std::fmt::Display;
 
 use egui::{
+    collapsing_header::CollapsingState,
     text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
     Color32, FontId, Label, Response, Sense, TextFormat, Ui,
@@ -25,7 +26,6 @@ pub trait DefaultRender {
 }
 
 /// A handle to the information of a render call.
-#[derive(Clone, Copy)]
 pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     /// A render call for an array index or an object key.
     Property(RenderPropertyContext<'a, 'b, T>),
@@ -66,16 +66,18 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
 }
 
 /// A handle to the information of a render call for an array index or object key.
-#[derive(Clone, Copy)]
 pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     /// The array index or object key being rendered.
     pub property: JsonPointerSegment<'a>,
-    /// The JSON array or object under this property.
+    /// The JSON value under this property.
     pub value: &'a T,
     /// The full JSON pointer to the array or object under this property.
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    /// If an array/object is under this property, contains the [`egui::collapsing_header::CollapsingState`] for it.
+    /// This can be used to toggle or check whether the array/object is expanded. Any mutations will be stored after the render hook.
+    pub collapsing_state: Option<&'b mut CollapsingState>,
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
@@ -86,7 +88,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b,
 }
 
 /// A handle to the information of a render call for a non-recursive JSON value.
-#[derive(Clone, Copy)]
 pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     /// The non-recursive JSON value being rendered.
     pub value: &'a T,
@@ -114,7 +115,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b
 }
 
 /// A handle to the information of a render call for array brackets or object braces.
-#[derive(Clone, Copy)]
 pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     /// The specific token of the array bracket or object brace being rendered.
     pub delimiter: ExpandableDelimiter,
@@ -124,6 +124,9 @@ pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub pointer: JsonPointer<'a, 'b>,
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
+    /// The [`egui::collapsing_header::CollapsingState`] for the array or object that this delimiter belongs to.
+    /// This can be used to toggle or check whether the array/object is expanded. Any mutations will be stored after the render hook.
+    pub collapsing_state: &'b mut CollapsingState,
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterContext<'a, 'b, T> {
@@ -132,7 +135,6 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterCont
     }
 }
 
-#[derive(Clone, Copy)]
 pub(crate) struct RenderSpacingDelimiterContext<'b> {
     pub(crate) delimiter: SpacingDelimiter,
     pub(crate) style: &'b JsonTreeStyle,

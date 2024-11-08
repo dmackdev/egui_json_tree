@@ -11,7 +11,7 @@ use egui_json_tree::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree, JsonTreeStyle,
+    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
 };
 use serde_json::Value;
 
@@ -154,7 +154,7 @@ impl Editor {
     fn show_property_context_menu(
         &mut self,
         ui: &mut Ui,
-        context: RenderPropertyContext<'_, '_, Value>,
+        mut context: RenderPropertyContext<'_, '_, Value>,
     ) {
         context
             .render_default(ui)
@@ -164,6 +164,9 @@ impl Editor {
                     self.edit_events.push(EditEvent::AddToObject {
                         pointer: context.pointer.to_json_pointer_string(),
                     });
+                    if let Some(state) = context.collapsing_state.as_mut() {
+                        state.set_open(true);
+                    }
                     ui.close_menu();
                 }
 
@@ -171,6 +174,9 @@ impl Editor {
                     self.edit_events.push(EditEvent::AddToArray {
                         pointer: context.pointer.to_json_pointer_string(),
                     });
+                    if let Some(state) = context.collapsing_state.as_mut() {
+                        state.set_open(true);
+                    }
                     ui.close_menu();
                 }
 
@@ -254,7 +260,10 @@ impl Editor {
         context: RenderExpandableDelimiterContext<'_, '_, Value>,
     ) {
         match context.delimiter {
-            ExpandableDelimiter::OpeningArray => {
+            ExpandableDelimiter::OpeningArray
+            | ExpandableDelimiter::CollapsedArray
+            | ExpandableDelimiter::CollapsedEmptyArray
+            | ExpandableDelimiter::ClosingArray => {
                 context
                     .render_default(ui)
                     .on_hover_cursor(CursorIcon::ContextMenu)
@@ -263,11 +272,15 @@ impl Editor {
                             self.edit_events.push(EditEvent::AddToArray {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
+                            context.collapsing_state.set_open(true);
                             ui.close_menu();
                         }
                     });
             }
-            ExpandableDelimiter::OpeningObject => {
+            ExpandableDelimiter::OpeningObject
+            | ExpandableDelimiter::CollapsedObject
+            | ExpandableDelimiter::CollapsedEmptyObject
+            | ExpandableDelimiter::ClosingObject => {
                 context
                     .render_default(ui)
                     .on_hover_cursor(CursorIcon::ContextMenu)
@@ -276,12 +289,10 @@ impl Editor {
                             self.edit_events.push(EditEvent::AddToObject {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
+                            context.collapsing_state.set_open(true);
                             ui.close_menu();
                         }
                     });
-            }
-            _ => {
-                context.render_default(ui);
             }
         };
     }
@@ -436,9 +447,18 @@ impl Show for JsonEditorExample {
         ui.label("Right click on elements within the tree to edit values and object keys, and add/remove values.");
         ui.add_space(10.0);
 
+        let toggle_buttons_state = match self.editor.state {
+            Some(_) => ToggleButtonsState::VisibleDisabled,
+            None => ToggleButtonsState::VisibleEnabled,
+        };
+
+        let style = JsonTreeStyle::new()
+            .abbreviate_root(true)
+            .toggle_buttons_state(toggle_buttons_state);
+
         JsonTree::new(self.title(), &self.value)
             .default_expand(DefaultExpand::All)
-            .style(JsonTreeStyle::new().abbreviate_root(true))
+            .style(style)
             .on_render(|ui, context| self.editor.show(ui, &self.value, context))
             .show(ui);
 

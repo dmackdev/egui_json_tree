@@ -26,9 +26,9 @@ impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
 /// An interactive JSON tree visualiser.
 #[must_use = "You should call .show()"]
 pub struct JsonTree<'a, T: ToJsonTreeValue> {
-    id: Id,
-    value: &'a T,
-    config: JsonTreeConfig<'a, T>,
+    pub(crate) id: Id,
+    pub(crate) value: &'a T,
+    pub(crate) config: JsonTreeConfig<'a, T>,
 }
 
 impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
@@ -95,7 +95,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
 
     /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
-        JsonTreeNode::new(self.id, self.value).show_with_config(ui, self.config)
+        JsonTreeNode::show(self, ui)
     }
 }
 

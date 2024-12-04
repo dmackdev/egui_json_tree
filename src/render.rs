@@ -452,5 +452,6 @@ fn render_delimiter(ui: &mut Ui, style: &JsonTreeStyle, delimiter_str: &str) -> 
 }
 
 fn render_job(ui: &mut Ui, job: LayoutJob) -> Response {
-    ui.add(Label::new(job).sense(Sense::click_and_drag()))
+    let galley = ui.fonts(|f| f.layout_job(job));
+    ui.add(Label::new(galley).sense(Sense::click_and_drag()))
 }

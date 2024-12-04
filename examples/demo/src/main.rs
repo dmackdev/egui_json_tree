@@ -1,7 +1,7 @@
 use apps::{
     copy_to_clipboard::CopyToClipboardExample, custom_input::CustomExample,
     editor::JsonEditorExample, search::SearchExample,
-    toggle_buttons::ToggleButtonsCustomisationDemo, Example, Show,
+    toggle_buttons::ToggleButtonsCustomisationDemo, wrapping::WrappingExample, Example, Show,
 };
 use serde_json::json;
 
@@ -16,6 +16,20 @@ struct DemoApp {
 impl Default for DemoApp {
     fn default() -> Self {
         let complex_object = json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
+        let long_strings_object = json!({
+          "baz": "Ullamco ipsum proident occaecat eiusmod ea aute ex non cupidatat laboris duis amet cupidatat. Ullamco sint do enim consectetur Lorem occaecat mollit. Aliquip voluptate ullamco consectetur adipisicing elit fugiat labore laboris. Occaecat non incididunt duis consectetur aliquip dolore cillum eiusmod. Qui sunt est excepteur laborum.",
+          "bar": [
+            "Laboris id occaecat sit quis aliqua et. Fugiat nisi nulla nostrud voluptate id enim do esse deserunt non culpa incididunt eiusmod. Minim nulla reprehenderit irure duis amet commodo commodo aliquip ut. Lorem amet ipsum excepteur consectetur qui dolore. In occaecat dolor ullamco voluptate dolore qui incididunt occaecat pariatur est qui aliquip labore non.",
+            "Velit ex nisi in et enim veniam ullamco reprehenderit consectetur Lorem. Dolor commodo pariatur Lorem proident. Ad minim aliquip excepteur officia consequat nulla mollit adipisicing ut veniam Lorem. Sint mollit occaecat velit do. Nulla aute Lorem non excepteur.",
+            "Officia culpa in adipisicing sunt qui culpa voluptate ad veniam adipisicing anim ex aute. Laboris ipsum id est cillum minim quis sint ex culpa dolore minim. Lorem excepteur deserunt voluptate minim consequat qui quis enim. Do non irure pariatur exercitation commodo laboris sit. Sunt magna nulla magna Lorem reprehenderit dolore et tempor Lorem esse quis exercitation tempor commodo."
+          ],
+          "qux": {
+            "thud": "Et mollit occaecat et aliqua officia adipisicing adipisicing. Fugiat cillum dolor eu laborum cupidatat aliqua et reprehenderit do laboris velit in. Dolor voluptate Lorem pariatur voluptate enim labore in et pariatur consequat esse elit. Do qui aute proident in aliquip. Ea velit quis ex enim proident tempor laboris exercitation aute consectetur minim.",
+            "fizz": {
+              "buzz": "Sunt Lorem officia reprehenderit ea esse aliqua in veniam. Do irure amet dolore magna amet tempor anim sit irure tempor proident laborum dolore. Aute et ullamco eiusmod culpa et esse. Minim ut elit laboris est. Est mollit et mollit dolore ea adipisicing nostrud excepteur."
+            }
+          }
+        });
 
         Self {
             examples: vec![
@@ -40,6 +54,7 @@ impl Default for DemoApp {
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),
                 Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
+                Box::new(WrappingExample::new(long_strings_object)),
             ],
             open_example_idx: None,
             left_sidebar_expanded: true,

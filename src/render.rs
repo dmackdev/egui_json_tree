@@ -87,6 +87,13 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b,
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ParentStatus {
+    NoParent,
+    ExpandedParent,
+    CollapsedRoot,
+}
+
 /// A handle to the information of a render call for a non-recursive JSON value.
 pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     /// The non-recursive JSON value being rendered.
@@ -100,6 +107,7 @@ pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     /// The [`JsonTreeStyle`] that the [`JsonTree`](crate::JsonTree) was configured with.
     pub style: &'b JsonTreeStyle,
     pub(crate) search_term: Option<&'b SearchTerm>,
+    pub(crate) parent_status: ParentStatus,
 }
 
 impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b, T> {
@@ -110,6 +118,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b
             &self.display_value.to_string(),
             &self.value_type,
             self.search_term,
+            self.parent_status,
         )
     }
 }
@@ -278,8 +287,9 @@ fn render_value(
     value_str: &str,
     value_type: &BaseValueType,
     search_term: Option<&SearchTerm>,
+    parent_status: ParentStatus,
 ) -> Response {
-    let job = ui.ctx().memory_mut(|mem| {
+    let mut job = ui.ctx().memory_mut(|mem| {
         mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
             style.resolve_visuals(ui),
             value_str,
@@ -288,7 +298,7 @@ fn render_value(
             &style.resolve_font_id(ui),
         ))
     });
-
+    job.wrap = style.resolve_value_text_wrapping(parent_status, ui);
     render_job(ui, job)
 }
 

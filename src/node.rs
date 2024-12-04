@@ -9,7 +9,7 @@ use crate::{
     delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
-        JsonTreeRenderer, RenderBaseValueContext, RenderExpandableDelimiterContext,
+        JsonTreeRenderer, ParentStatus, RenderBaseValueContext, RenderExpandableDelimiterContext,
         RenderPropertyContext, RenderSpacingDelimiterContext,
     },
     response::JsonTreeResponse,
@@ -94,7 +94,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
     ) {
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
-                ui.horizontal_wrapped(|ui| {
+                ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 
                     if let Some(property) = self.parent {
@@ -127,6 +127,11 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                             pointer: JsonPointer(path_segments),
                             style: &self.config.style,
                             search_term: self.config.search_term.as_ref(),
+                            parent_status: if self.parent.is_some() {
+                                ParentStatus::ExpandedParent
+                            } else {
+                                ParentStatus::NoParent
+                            },
                         },
                     );
                 });
@@ -259,6 +264,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                                     pointer: JsonPointer(path_segments),
                                     style,
                                     search_term: search_term.as_ref(),
+                                    parent_status: ParentStatus::CollapsedRoot,
                                 },
                             );
                         }

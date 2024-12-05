@@ -77,21 +77,23 @@ impl eframe::App for DemoApp {
 
                 ui.label(egui::RichText::new("Examples").monospace());
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for (idx, example) in self.examples.iter().enumerate() {
-                            let is_open = self
-                                .open_example_idx
-                                .is_some_and(|open_idx| open_idx == idx);
+                    egui::ScrollArea::vertical()
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            for (idx, example) in self.examples.iter().enumerate() {
+                                let is_open = self
+                                    .open_example_idx
+                                    .is_some_and(|open_idx| open_idx == idx);
 
-                            if ui.selectable_label(is_open, example.title()).clicked() {
-                                if is_open {
-                                    self.open_example_idx = None;
-                                } else {
-                                    self.open_example_idx = Some(idx);
+                                if ui.selectable_label(is_open, example.title()).clicked() {
+                                    if is_open {
+                                        self.open_example_idx = None;
+                                    } else {
+                                        self.open_example_idx = Some(idx);
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
                 });
             });
 
@@ -115,9 +117,11 @@ impl eframe::App for DemoApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             match example {
                 Some(example) => {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        example.show(ui);
-                    });
+                    egui::ScrollArea::vertical()
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            example.show(ui);
+                        });
                 }
                 None => {
                     if !self.left_sidebar_expanded {

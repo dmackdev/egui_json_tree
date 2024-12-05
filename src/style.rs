@@ -165,10 +165,11 @@ pub struct JsonTreeWrapping {
 
 impl Default for JsonTreeWrapping {
     fn default() -> Self {
-        // Match defaults of egui::text::TextWrapping.
+        // This disables truncation, makes the text wrap at the UI boundary
+        // and span as many rows as it needs to.
         Self {
             max_rows: usize::MAX,
-            max_width: JsonTreeMaxWidth::Pt(f32::INFINITY),
+            max_width: JsonTreeMaxWidth::UiAvailableWidth,
         }
     }
 }

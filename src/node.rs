@@ -94,6 +94,8 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
     ) {
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
+                // Use horizontal instead of horizontal_wrapped so that the
+                // base value always starts inline with the property and not below it.
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
 

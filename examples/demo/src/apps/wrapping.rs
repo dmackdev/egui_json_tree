@@ -44,7 +44,7 @@ impl Show for WrappingExample {
         ui.horizontal(|ui| {
             if ui
                 .selectable_label(
-                    matches!(self.state.max_width, JsonTreeMaxWidth::Pt(pts) if pts.is_finite()),
+                    matches!(self.state.max_width, JsonTreeMaxWidth::Pt(_)),
                     "Points",
                 )
                 .clicked()
@@ -66,16 +66,6 @@ impl Show for WrappingExample {
             .clicked()
         {
             self.state.max_width = JsonTreeMaxWidth::UiAvailableWidth;
-        }
-
-        if ui
-            .selectable_label(
-                matches!(self.state.max_width, JsonTreeMaxWidth::Pt(pts) if pts.is_infinite()),
-                "Infinite",
-            )
-            .clicked()
-        {
-            self.state.max_width = JsonTreeMaxWidth::Pt(f32::INFINITY);
         }
 
         JsonTree::new(self.title(), &self.value)

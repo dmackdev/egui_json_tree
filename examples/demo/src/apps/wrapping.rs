@@ -52,9 +52,7 @@ impl Show for WrappingExample {
                 self.state.max_width = JsonTreeMaxWidth::Pt(100.0);
             }
             if let JsonTreeMaxWidth::Pt(ref mut pts) = &mut self.state.max_width {
-                if pts.is_finite() {
-                    ui.add(DragValue::new(pts).speed(10.0).range(100.0..=10000.0));
-                }
+                ui.add(DragValue::new(pts).speed(10.0).range(100.0..=10000.0));
             }
         });
 

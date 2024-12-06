@@ -20,6 +20,7 @@ impl WrappingExample {
             wrap: JsonTreeWrapping {
                 max_rows: 1,
                 max_width: JsonTreeMaxWidth::UiAvailableWidth,
+                break_anywhere: true,
             },
             use_maximum_max_rows: false,
         }
@@ -59,6 +60,7 @@ impl Show for WrappingExample {
         {
             self.wrap.max_rows = usize::MAX;
         }
+        ui.add_space(10.0);
 
         ui.label(egui::RichText::new("Max Width:").monospace());
         ui.horizontal(|ui| {
@@ -86,6 +88,13 @@ impl Show for WrappingExample {
         {
             self.wrap.max_width = JsonTreeMaxWidth::UiAvailableWidth;
         }
+        ui.add_space(10.0);
+
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("Break anywhere:").monospace());
+            ui.checkbox(&mut self.wrap.break_anywhere, "");
+        });
+        ui.separator();
 
         JsonTree::new(self.title(), &self.value)
             .style(JsonTreeStyle::new().wrap(JsonTreeWrappingParams {

@@ -92,6 +92,7 @@ impl JsonTreeStyle {
         egui::text::TextWrapping {
             max_width,
             max_rows: wrap.max_rows,
+            break_anywhere: wrap.break_anywhere,
             ..Default::default()
         }
     }
@@ -161,6 +162,7 @@ pub struct JsonTreeWrappingParams {
 pub struct JsonTreeWrapping {
     pub max_rows: usize,
     pub max_width: JsonTreeMaxWidth,
+    pub break_anywhere: bool,
 }
 
 impl Default for JsonTreeWrapping {
@@ -170,6 +172,7 @@ impl Default for JsonTreeWrapping {
         Self {
             max_rows: usize::MAX,
             max_width: JsonTreeMaxWidth::UiAvailableWidth,
+            break_anywhere: false,
         }
     }
 }

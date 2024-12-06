@@ -1,14 +1,15 @@
 use egui::{Color32, FontId, TextStyle, Ui};
 
-use crate::{value::BaseValueType, ToggleButtonsState};
+use crate::{render::ParentStatus, value::BaseValueType, ToggleButtonsState};
 
 /// Styling configuration to control the appearance of the [`JsonTree`](crate::JsonTree).
-#[derive(Debug, Clone, Hash, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct JsonTreeStyle {
     pub visuals: Option<JsonTreeVisuals>,
     pub font_id: Option<FontId>,
     pub abbreviate_root: bool,
     pub toggle_buttons_state: ToggleButtonsState,
+    pub wrap: JsonTreeWrappingParams,
 }
 
 impl JsonTreeStyle {
@@ -47,6 +48,11 @@ impl JsonTreeStyle {
         self
     }
 
+    pub fn wrap(mut self, wrap: JsonTreeWrappingParams) -> Self {
+        self.wrap = wrap;
+        self
+    }
+
     /// Resolves the [`JsonTreeVisuals`] color scheme to use.
     pub(crate) fn resolve_visuals(&self, ui: &Ui) -> &JsonTreeVisuals {
         if let Some(visuals) = &self.visuals {
@@ -64,6 +70,30 @@ impl JsonTreeStyle {
             font_id.clone()
         } else {
             TextStyle::Monospace.resolve(ui.style())
+        }
+    }
+
+    pub(crate) fn resolve_value_text_wrapping(
+        &self,
+        parent_status: ParentStatus,
+        ui: &Ui,
+    ) -> egui::text::TextWrapping {
+        let wrap = match parent_status {
+            ParentStatus::NoParent => self.wrap.value_no_parent,
+            ParentStatus::ExpandedParent => self.wrap.value_expanded_parent,
+            ParentStatus::CollapsedRoot => self.wrap.value_collapsed_root,
+        };
+
+        let max_width = match wrap.max_width {
+            JsonTreeMaxWidth::Pt(max_width) => max_width,
+            JsonTreeMaxWidth::UiAvailableWidth => ui.available_width(),
+        };
+
+        egui::text::TextWrapping {
+            max_width,
+            max_rows: wrap.max_rows,
+            break_anywhere: wrap.break_anywhere,
+            ..Default::default()
         }
     }
 }
@@ -119,4 +149,36 @@ impl JsonTreeVisuals {
             BaseValueType::String => self.string_color,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct JsonTreeWrappingParams {
+    pub value_no_parent: JsonTreeWrapping,
+    pub value_expanded_parent: JsonTreeWrapping,
+    pub value_collapsed_root: JsonTreeWrapping,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct JsonTreeWrapping {
+    pub max_rows: usize,
+    pub max_width: JsonTreeMaxWidth,
+    pub break_anywhere: bool,
+}
+
+impl Default for JsonTreeWrapping {
+    fn default() -> Self {
+        // This disables truncation, makes the text wrap at the UI boundary
+        // and span as many rows as it needs to.
+        Self {
+            max_rows: usize::MAX,
+            max_width: JsonTreeMaxWidth::UiAvailableWidth,
+            break_anywhere: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum JsonTreeMaxWidth {
+    Pt(f32),
+    UiAvailableWidth,
 }

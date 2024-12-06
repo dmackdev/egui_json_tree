@@ -43,7 +43,7 @@ impl Show for WrappingExample {
         ui.label(egui::RichText::new("Max Width:").monospace());
         ui.horizontal(|ui| {
             if ui
-                .selectable_label(
+                .radio(
                     matches!(self.state.max_width, JsonTreeMaxWidth::Pt(_)),
                     "Points",
                 )
@@ -59,7 +59,7 @@ impl Show for WrappingExample {
         });
 
         if ui
-            .selectable_label(
+            .radio(
                 matches!(self.state.max_width, JsonTreeMaxWidth::UiAvailableWidth),
                 "Available Width",
             )

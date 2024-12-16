@@ -9,7 +9,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["json", "egui"]
 categories = ["gui", "visualization"]
 include = ["src/*.rs", "LICENSE-MIT", "LICENSE-APACHE", "Cargo.toml"]
-rust-version = "1.80"
 
 [dependencies]
 egui = { version = "0.30", default-features = false }

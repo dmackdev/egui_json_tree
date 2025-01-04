@@ -90,10 +90,8 @@ impl Show for WrappingExample {
         }
         ui.add_space(10.0);
 
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Break anywhere:").monospace());
-            ui.checkbox(&mut self.wrap.break_anywhere, "");
-        });
+        ui.checkbox(&mut self.wrap.break_anywhere, "Break anywhere");
+
         ui.separator();
 
         JsonTree::new(self.title(), &self.value)

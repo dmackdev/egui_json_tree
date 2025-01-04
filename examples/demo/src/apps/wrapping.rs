@@ -10,7 +10,7 @@ use super::Show;
 pub struct WrappingExample {
     value: Value,
     wrap: JsonTreeWrapping,
-    use_maximum_max_rows: bool,
+    use_custom_max_rows: bool,
 }
 
 impl WrappingExample {
@@ -22,7 +22,7 @@ impl WrappingExample {
                 max_width: JsonTreeMaxWidth::UiAvailableWidth,
                 break_anywhere: true,
             },
-            use_maximum_max_rows: false,
+            use_custom_max_rows: true,
         }
     }
 }
@@ -36,16 +36,39 @@ impl Show for WrappingExample {
         ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/wrapping.rs");
         ui.add_space(10.0);
 
+        self.show_max_rows_controls(ui);
+        ui.add_space(10.0);
+
+        self.show_max_width_controls(ui);
+        ui.add_space(10.0);
+
+        ui.checkbox(&mut self.wrap.break_anywhere, "Break anywhere");
+        ui.separator();
+
+        let wrapping_config = JsonTreeWrappingConfig {
+            value_when_root: self.wrap,
+            value_with_expanded_parent: self.wrap,
+            value_in_collapsed_root: self.wrap,
+        };
+        JsonTree::new(self.title(), &self.value)
+            .style(JsonTreeStyle::new().wrapping_config(wrapping_config))
+            .default_expand(DefaultExpand::All)
+            .show(ui);
+    }
+}
+
+impl WrappingExample {
+    fn show_max_rows_controls(&mut self, ui: &mut Ui) {
         ui.label(egui::RichText::new("Max Rows:").monospace());
         ui.horizontal(|ui| {
             if ui
-                .radio_value(&mut self.use_maximum_max_rows, false, "Custom")
+                .radio_value(&mut self.use_custom_max_rows, true, "Custom")
                 .changed()
             {
                 self.wrap.max_rows = 1;
             }
 
-            if !self.use_maximum_max_rows {
+            if self.use_custom_max_rows {
                 ui.add(
                     DragValue::new(&mut self.wrap.max_rows)
                         .speed(0.1)
@@ -55,13 +78,14 @@ impl Show for WrappingExample {
         });
 
         if ui
-            .radio_value(&mut self.use_maximum_max_rows, true, "usize::MAX")
+            .radio_value(&mut self.use_custom_max_rows, false, "usize::MAX")
             .clicked()
         {
             self.wrap.max_rows = usize::MAX;
         }
-        ui.add_space(10.0);
+    }
 
+    fn show_max_width_controls(&mut self, ui: &mut Ui) {
         ui.label(egui::RichText::new("Max Width:").monospace());
         ui.horizontal(|ui| {
             if ui
@@ -88,21 +112,5 @@ impl Show for WrappingExample {
         {
             self.wrap.max_width = JsonTreeMaxWidth::UiAvailableWidth;
         }
-        ui.add_space(10.0);
-
-        ui.checkbox(&mut self.wrap.break_anywhere, "Break anywhere");
-
-        ui.separator();
-
-        JsonTree::new(self.title(), &self.value)
-            .style(
-                JsonTreeStyle::new().wrapping_config(JsonTreeWrappingConfig {
-                    value_when_root: self.wrap,
-                    value_with_expanded_parent: self.wrap,
-                    value_in_collapsed_root: self.wrap,
-                }),
-            )
-            .default_expand(DefaultExpand::All)
-            .show(ui);
     }
 }

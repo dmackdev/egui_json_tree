@@ -66,15 +66,15 @@ impl Show for WrappingExample {
         ui.horizontal(|ui| {
             if ui
                 .radio(
-                    matches!(self.wrap.max_width, JsonTreeMaxWidth::Pt(_)),
+                    matches!(self.wrap.max_width, JsonTreeMaxWidth::Points(_)),
                     "Points",
                 )
                 .clicked()
-                && !matches!(self.wrap.max_width, JsonTreeMaxWidth::Pt(_))
+                && !matches!(self.wrap.max_width, JsonTreeMaxWidth::Points(_))
             {
-                self.wrap.max_width = JsonTreeMaxWidth::Pt(100.0);
+                self.wrap.max_width = JsonTreeMaxWidth::Points(100.0);
             }
-            if let JsonTreeMaxWidth::Pt(ref mut pts) = &mut self.wrap.max_width {
+            if let JsonTreeMaxWidth::Points(ref mut pts) = &mut self.wrap.max_width {
                 ui.add(DragValue::new(pts).speed(10.0).range(100.0..=10000.0));
             }
         });

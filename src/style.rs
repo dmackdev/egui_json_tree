@@ -85,7 +85,7 @@ impl JsonTreeStyle {
         };
 
         let max_width = match wrap.max_width {
-            JsonTreeMaxWidth::Pt(max_width) => max_width,
+            JsonTreeMaxWidth::Points(max_width) => max_width,
             JsonTreeMaxWidth::UiAvailableWidth => ui.available_width(),
         };
 
@@ -179,6 +179,6 @@ impl Default for JsonTreeWrapping {
 
 #[derive(Debug, Clone, Copy)]
 pub enum JsonTreeMaxWidth {
-    Pt(f32),
+    Points(f32),
     UiAvailableWidth,
 }

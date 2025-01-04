@@ -7,6 +7,7 @@ pub mod custom_input;
 pub mod editor;
 pub mod search;
 pub mod toggle_buttons;
+pub mod wrapping;
 
 pub trait Show {
     fn title(&self) -> &'static str;

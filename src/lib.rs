@@ -89,6 +89,8 @@ pub mod value;
 
 pub use default_expand::DefaultExpand;
 pub use response::JsonTreeResponse;
-pub use style::{JsonTreeStyle, JsonTreeVisuals};
+pub use style::{
+    JsonTreeMaxWidth, JsonTreeStyle, JsonTreeVisuals, JsonTreeWrapping, JsonTreeWrappingConfig,
+};
 pub use toggle_buttons_state::ToggleButtonsState;
 pub use tree::JsonTree;

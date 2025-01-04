@@ -1,7 +1,7 @@
 use egui::{DragValue, Ui};
 use egui_json_tree::{
     DefaultExpand, JsonTree, JsonTreeMaxWidth, JsonTreeStyle, JsonTreeWrapping,
-    JsonTreeWrappingParams,
+    JsonTreeWrappingConfig,
 };
 use serde_json::Value;
 
@@ -95,11 +95,13 @@ impl Show for WrappingExample {
         ui.separator();
 
         JsonTree::new(self.title(), &self.value)
-            .style(JsonTreeStyle::new().wrap(JsonTreeWrappingParams {
-                value_no_parent: self.wrap,
-                value_expanded_parent: self.wrap,
-                value_collapsed_root: self.wrap,
-            }))
+            .style(
+                JsonTreeStyle::new().wrapping_config(JsonTreeWrappingConfig {
+                    value_when_root: self.wrap,
+                    value_with_expanded_parent: self.wrap,
+                    value_in_collapsed_root: self.wrap,
+                }),
+            )
             .default_expand(DefaultExpand::All)
             .show(ui);
     }

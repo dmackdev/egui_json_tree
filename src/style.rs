@@ -9,7 +9,7 @@ pub struct JsonTreeStyle {
     pub font_id: Option<FontId>,
     pub abbreviate_root: bool,
     pub toggle_buttons_state: ToggleButtonsState,
-    pub wrap: JsonTreeWrappingParams,
+    pub wrapping_config: JsonTreeWrappingConfig,
 }
 
 impl JsonTreeStyle {
@@ -48,8 +48,10 @@ impl JsonTreeStyle {
         self
     }
 
-    pub fn wrap(mut self, wrap: JsonTreeWrappingParams) -> Self {
-        self.wrap = wrap;
+    /// Override the text wrapping configurations.
+    /// Default is to wrap text at UI boundaries, spanning as many rows as needed (no truncation).
+    pub fn wrapping_config(mut self, wrapping_config: JsonTreeWrappingConfig) -> Self {
+        self.wrapping_config = wrapping_config;
         self
     }
 
@@ -79,9 +81,9 @@ impl JsonTreeStyle {
         ui: &Ui,
     ) -> egui::text::TextWrapping {
         let wrap = match parent_status {
-            ParentStatus::NoParent => self.wrap.value_no_parent,
-            ParentStatus::ExpandedParent => self.wrap.value_expanded_parent,
-            ParentStatus::CollapsedRoot => self.wrap.value_collapsed_root,
+            ParentStatus::NoParent => self.wrapping_config.value_when_root,
+            ParentStatus::ExpandedParent => self.wrapping_config.value_with_expanded_parent,
+            ParentStatus::CollapsedRoot => self.wrapping_config.value_in_collapsed_root,
         };
 
         let max_width = match wrap.max_width {
@@ -151,13 +153,18 @@ impl JsonTreeVisuals {
     }
 }
 
+/// Container for text wrapping configurations of JSON elements in various scenarios and visual states.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct JsonTreeWrappingParams {
-    pub value_no_parent: JsonTreeWrapping,
-    pub value_expanded_parent: JsonTreeWrapping,
-    pub value_collapsed_root: JsonTreeWrapping,
+pub struct JsonTreeWrappingConfig {
+    /// Text wrapping configuration for when the entire JSON document is a non-recursive JSON value.
+    pub value_when_root: JsonTreeWrapping,
+    /// Text wrapping configuration for a non-recursive JSON value within an expanded parent array/object.
+    pub value_with_expanded_parent: JsonTreeWrapping,
+    /// Text wrapping configuration for a non-recursive JSON value that is a direct child of a collapsed root array/object.
+    pub value_in_collapsed_root: JsonTreeWrapping,
 }
 
+/// Text wrapping configuration. Largely follows the same semantics as [`egui::text::TextWrapping`].
 #[derive(Debug, Clone, Copy)]
 pub struct JsonTreeWrapping {
     pub max_rows: usize,
@@ -177,6 +184,7 @@ impl Default for JsonTreeWrapping {
     }
 }
 
+/// Options for controlling the max width of JSON elements.
 #[derive(Debug, Clone, Copy)]
 pub enum JsonTreeMaxWidth {
     Points(f32),

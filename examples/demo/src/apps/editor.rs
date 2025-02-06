@@ -300,7 +300,7 @@ impl Editor {
     fn show_text_edit_with_focus(ui: &mut Ui, input: &mut String, request_focus: &mut bool) {
         let text_edit_output = TextEdit::singleline(input)
             .code_editor()
-            .margin(Margin::symmetric(2.0, 0.0))
+            .margin(Margin::symmetric(2, 0))
             .clip_text(false)
             .desired_width(0.0)
             .min_size(vec2(10.0, 2.0))

@@ -80,7 +80,7 @@ impl ToJsonTreeValue for serde_json::Value {
 
 #[cfg(feature = "simd_json")]
 impl ToJsonTreeValue for simd_json::owned::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self> {
         match self {
             simd_json::OwnedValue::Static(s) => match s {
                 simd_json::StaticNode::I64(n) => {

@@ -65,7 +65,6 @@ module_name_repetitions = "allow"
 too_many_lines = "allow"
 
 # Additional lints from https://rust-lang.github.io/rust-clippy/master/index.html?groups=restriction
-absolute_paths = "warn"
 allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 assertions_on_result_states = "warn"

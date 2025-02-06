@@ -14,7 +14,7 @@ impl JsonTreeResponse {
     /// Call this whenever the `default_expand` setting changes,
     /// and/or you when wish to reset any manually collapsed/expanded arrays and objects to respect this setting.
     pub fn reset_expanded(&self, ui: &mut Ui) {
-        for id in self.collapsing_state_ids.iter() {
+        for id in &self.collapsing_state_ids {
             if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
                 state.remove(ui.ctx());
             }

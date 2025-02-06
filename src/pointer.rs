@@ -21,22 +21,24 @@ impl<'a, 'b> JsonPointer<'a, 'b> {
             .collect()
     }
 
-    /// Returns the last [JsonPointerSegment] of this pointer, if it exists.
+    /// Returns the last [`JsonPointerSegment`] of this pointer, if it exists.
     ///
     /// This is useful for retrieving the array index or object key that points to a JSON value.
-    pub fn last(&self) -> Option<&JsonPointerSegment<'a>> {
+    #[must_use]
+    pub const fn last(&self) -> Option<&JsonPointerSegment<'a>> {
         self.0.last()
     }
 
-    /// Returns a [JsonPointer] to the parent of this pointer, if it exists.
+    /// Returns a [`JsonPointer`] to the parent of this pointer, if it exists.
     ///
     /// This is useful for retrieving a pointer to the enclosing array or object of a JSON value.
-    pub fn parent(&self) -> Option<JsonPointer> {
+    #[must_use]
+    pub fn parent(&self) -> Option<JsonPointer<'_, '_>> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
     }
 }
 
-/// An individual segment of a [JsonPointer] - either an array index or object key.
+/// An individual segment of a [`JsonPointer`] - either an array index or object key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonPointerSegment<'a> {
     Index(usize),
@@ -46,32 +48,34 @@ pub enum JsonPointerSegment<'a> {
 impl<'a> fmt::Display for JsonPointerSegment<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            JsonPointerSegment::Key(key) => write!(f, "{}", key),
-            JsonPointerSegment::Index(idx) => write!(f, "{}", idx),
+            JsonPointerSegment::Key(key) => write!(f, "{key}"),
+            JsonPointerSegment::Index(idx) => write!(f, "{idx}"),
         }
     }
 }
 
 impl<'a> JsonPointerSegment<'a> {
+    #[must_use]
     pub fn to_json_pointer_segment_string(&self) -> String {
         match self {
             JsonPointerSegment::Key(key) => {
                 format!("/{}", key.replace('~', "~0").replace('/', "~1"))
             }
-            JsonPointerSegment::Index(idx) => format!("/{}", idx),
+            JsonPointerSegment::Index(idx) => format!("/{idx}"),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::unwrap_used, reason = "this is a test function")]
     use super::*;
 
     #[test]
     fn pointer_empty_path_segments() {
         let path = [];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), String::new());
         assert!(pointer.parent().is_none());
     }
 
@@ -79,10 +83,10 @@ mod tests {
     fn pointer_one_path_segment() {
         let path = [JsonPointerSegment::Key("foo")];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "/foo".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo".to_owned());
         assert_eq!(
             pointer.parent().unwrap().to_json_pointer_string(),
-            "".to_string()
+            String::new()
         );
     }
 
@@ -95,10 +99,10 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "/foo/0/bar/1".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo/0/bar/1".to_owned());
         assert_eq!(
             pointer.parent().unwrap().to_json_pointer_string(),
-            "/foo/0/bar".to_string()
+            "/foo/0/bar".to_owned()
         );
     }
 
@@ -109,10 +113,10 @@ mod tests {
             JsonPointerSegment::Key("m~n"),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "/a~1b/m~0n".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/a~1b/m~0n".to_owned());
         assert_eq!(
             pointer.parent().unwrap().to_json_pointer_string(),
-            "/a~1b".to_string()
+            "/a~1b".to_owned()
         );
     }
 
@@ -125,10 +129,10 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "/foo/0//1".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/foo/0//1".to_owned());
         assert_eq!(
             pointer.parent().unwrap().to_json_pointer_string(),
-            "/foo/0/".to_string()
+            "/foo/0/".to_owned()
         );
     }
 
@@ -141,10 +145,10 @@ mod tests {
             JsonPointerSegment::Index(1),
         ];
         let pointer = JsonPointer(&path);
-        assert_eq!(pointer.to_json_pointer_string(), "/ /0/  /1".to_string());
+        assert_eq!(pointer.to_json_pointer_string(), "/ /0/  /1".to_owned());
         assert_eq!(
             pointer.parent().unwrap().to_json_pointer_string(),
-            "/ /0/  ".to_string()
+            "/ /0/  ".to_owned()
         );
     }
 }

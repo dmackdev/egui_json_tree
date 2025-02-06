@@ -26,7 +26,7 @@ impl JsonEditorExample {
     pub fn new(value: Value) -> Self {
         Self {
             value,
-            editor: Default::default(),
+            editor: Editor::default(),
         }
     }
 }
@@ -41,10 +41,10 @@ impl Editor {
     fn show(&mut self, ui: &mut Ui, document: &Value, context: RenderContext<'_, '_, Value>) {
         match self.state.as_mut() {
             Some(EditState::EditObjectKey(state)) => {
-                Self::show_edit_object_key(ui, document, context, state, &mut self.edit_events)
+                Self::show_edit_object_key(ui, document, &context, state, &mut self.edit_events);
             }
             Some(EditState::EditValue(state)) => {
-                Self::show_edit_value(ui, context, state, &mut self.edit_events);
+                Self::show_edit_value(ui, &context, state, &mut self.edit_events);
             }
             None => {
                 self.show_with_context_menus(ui, context);
@@ -55,7 +55,7 @@ impl Editor {
     fn show_edit_object_key(
         ui: &mut Ui,
         document: &Value,
-        context: RenderContext<Value>,
+        context: &RenderContext<'_, '_, Value>,
         state: &mut EditObjectKeyState,
         edit_events: &mut Vec<EditEvent>,
     ) {
@@ -94,7 +94,7 @@ impl Editor {
                         if state.is_new_key {
                             edit_events.push(EditEvent::DeleteFromObject {
                                 object_pointer: state.object_pointer.to_string(),
-                                key: key.to_string(),
+                                key: key.to_owned(),
                             });
                         }
                         edit_events.push(EditEvent::CloseObjectKeyEdit);
@@ -108,7 +108,7 @@ impl Editor {
 
     fn show_edit_value(
         ui: &mut Ui,
-        context: RenderContext<Value>,
+        context: &RenderContext<'_, '_, Value>,
         state: &mut EditValueState,
         edit_events: &mut Vec<EditEvent>,
     ) {
@@ -137,16 +137,16 @@ impl Editor {
         context.render_default(ui);
     }
 
-    fn show_with_context_menus(&mut self, ui: &mut Ui, context: RenderContext<Value>) {
+    fn show_with_context_menus(&mut self, ui: &mut Ui, context: RenderContext<'_, '_, Value>) {
         match context {
             RenderContext::Property(context) => {
                 self.show_property_context_menu(ui, context);
             }
             RenderContext::BaseValue(context) => {
-                self.show_value_context_menu(ui, context);
+                self.show_value_context_menu(ui, &context);
             }
-            RenderContext::ExpandableDelimiter(context) => {
-                self.show_expandable_delimiter_context_menu(ui, context);
+            RenderContext::ExpandableDelimiter(mut context) => {
+                self.show_expandable_delimiter_context_menu(ui, &mut context);
             }
         };
     }
@@ -184,13 +184,13 @@ impl Editor {
                     if let JsonPointerSegment::Key(key) = &context.property {
                         if ui.button("Edit key").clicked() {
                             self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
-                                key: key.to_string(),
+                                key: (*key).to_owned(),
                                 object_pointer: parent.to_json_pointer_string(),
-                                new_key_input: key.to_string(),
+                                new_key_input: (*key).to_owned(),
                                 request_focus: true,
                                 is_new_key: false,
                             }));
-                            ui.close_menu()
+                            ui.close_menu();
                         }
                     }
 
@@ -198,7 +198,7 @@ impl Editor {
                         let event = match context.property {
                             JsonPointerSegment::Key(key) => EditEvent::DeleteFromObject {
                                 object_pointer: parent.to_json_pointer_string(),
-                                key: key.to_string(),
+                                key: key.to_owned(),
                             },
                             JsonPointerSegment::Index(idx) => EditEvent::DeleteFromArray {
                                 array_pointer: parent.to_json_pointer_string(),
@@ -215,7 +215,7 @@ impl Editor {
     fn show_value_context_menu(
         &mut self,
         ui: &mut Ui,
-        context: RenderBaseValueContext<'_, '_, Value>,
+        context: &RenderBaseValueContext<'_, '_, Value>,
     ) {
         context
             .render_default(ui)
@@ -235,7 +235,7 @@ impl Editor {
                         if ui.button("Delete").clicked() {
                             self.edit_events.push(EditEvent::DeleteFromObject {
                                 object_pointer: parent.to_json_pointer_string(),
-                                key: key.to_string(),
+                                key: (*key).to_owned(),
                             });
                             ui.close_menu();
                         }
@@ -257,7 +257,7 @@ impl Editor {
     fn show_expandable_delimiter_context_menu(
         &mut self,
         ui: &mut Ui,
-        context: RenderExpandableDelimiterContext<'_, '_, Value>,
+        context: &mut RenderExpandableDelimiterContext<'_, '_, Value>,
     ) {
         match context.delimiter {
             ExpandableDelimiter::OpeningArray
@@ -350,7 +350,7 @@ impl Editor {
                         .and_then(|value| value.as_object_mut())
                     {
                         let mut counter = 0;
-                        let mut new_key = "new_key".to_string();
+                        let mut new_key = "new_key".to_owned();
 
                         while obj.contains_key(&new_key) {
                             counter += 1;

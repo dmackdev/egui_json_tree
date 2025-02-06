@@ -7,7 +7,7 @@ use crate::{
 use egui::{Id, Ui};
 use std::hash::Hash;
 
-pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
+pub struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: Option<JsonTreeStyle>,
     pub(crate) default_expand: Option<DefaultExpand<'a>>,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
@@ -16,9 +16,9 @@ pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
 impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
     fn default() -> Self {
         Self {
-            style: Default::default(),
-            default_expand: Default::default(),
-            renderer: Default::default(),
+            style: Option::default(),
+            default_expand: Option::default(),
+            renderer: JsonTreeRenderer::default(),
         }
     }
 }
@@ -49,7 +49,7 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     }
 
     /// Override how the [`JsonTree`] expands arrays/objects by default.
-    pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
+    pub const fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
         self.config.default_expand = Some(default_expand);
         self
     }

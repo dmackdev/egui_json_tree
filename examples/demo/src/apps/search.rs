@@ -10,10 +10,10 @@ pub struct SearchExample {
 }
 
 impl SearchExample {
-    pub fn new(value: Value) -> Self {
+    pub const fn new(value: Value) -> Self {
         Self {
             value,
-            search_input: "".to_string(),
+            search_input: String::new(),
         }
     }
 }

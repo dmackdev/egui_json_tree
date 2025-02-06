@@ -9,6 +9,7 @@ pub struct CustomExample {
 }
 
 impl CustomExample {
+    #[expect(clippy::unwrap_used, reason = "this is an example function")]
     pub fn new() -> Self {
         Self {
             input: serde_json::to_string_pretty(&json!({"foo": "bar"})).unwrap(),
@@ -21,6 +22,7 @@ impl Show for CustomExample {
         "Custom Input"
     }
 
+    #[expect(clippy::unwrap_used, reason = "this is an example function")]
     fn show(&mut self, ui: &mut Ui) {
         ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/custom_input.rs");
         ui.label("Enter raw JSON in the text box to see the visualisation below.");

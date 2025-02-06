@@ -20,7 +20,7 @@ pub struct Example {
 }
 
 impl Example {
-    pub fn new(title: &'static str, value: Value) -> Self {
+    pub const fn new(title: &'static str, value: Value) -> Self {
         Self { title, value }
     }
 }

@@ -3,6 +3,7 @@ use apps::{
     editor::JsonEditorExample, search::SearchExample,
     toggle_buttons::ToggleButtonsCustomisationDemo, wrapping::WrappingExample, Example, Show,
 };
+use egui::Direction;
 use serde_json::json;
 
 mod apps;
@@ -115,25 +116,22 @@ impl eframe::App for DemoApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            match example {
-                Some(example) => {
-                    egui::ScrollArea::vertical()
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            example.show(ui);
-                        });
+            if let Some(example) = example {
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        example.show(ui);
+                    });
+            } else {
+                if !self.left_sidebar_expanded {
+                    collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
                 }
-                None => {
-                    if !self.left_sidebar_expanded {
-                        collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
-                    }
-                    ui.with_layout(
-                        egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                        |ui| {
-                            ui.heading("Select an example.");
-                        },
-                    );
-                }
+                ui.with_layout(
+                    egui::Layout::centered_and_justified(Direction::LeftToRight),
+                    |ui| {
+                        ui.heading("Select an example.");
+                    },
+                );
             };
         });
     }

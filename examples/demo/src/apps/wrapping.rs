@@ -14,7 +14,7 @@ pub struct WrappingExample {
 }
 
 impl WrappingExample {
-    pub fn new(value: Value) -> Self {
+    pub const fn new(value: Value) -> Self {
         Self {
             value,
             wrap: JsonTreeWrapping {

@@ -31,9 +31,9 @@ pub(crate) enum SpacingDelimiter {
 impl AsRef<str> for SpacingDelimiter {
     fn as_ref(&self) -> &str {
         match self {
-            SpacingDelimiter::Empty => " ",
-            SpacingDelimiter::Comma => ", ",
-            SpacingDelimiter::Colon => ": ",
+            Self::Empty => " ",
+            Self::Comma => ", ",
+            Self::Colon => ": ",
         }
     }
 }
@@ -54,14 +54,14 @@ pub enum ExpandableDelimiter {
 impl AsRef<str> for ExpandableDelimiter {
     fn as_ref(&self) -> &str {
         match self {
-            ExpandableDelimiter::CollapsedArray => "[...]",
-            ExpandableDelimiter::CollapsedEmptyArray => "[]",
-            ExpandableDelimiter::OpeningArray => "[",
-            ExpandableDelimiter::ClosingArray => "]",
-            ExpandableDelimiter::CollapsedObject => "{...}",
-            ExpandableDelimiter::CollapsedEmptyObject => "{}",
-            ExpandableDelimiter::OpeningObject => "{",
-            ExpandableDelimiter::ClosingObject => "}",
+            Self::CollapsedArray => "[...]",
+            Self::CollapsedEmptyArray => "[]",
+            Self::OpeningArray => "[",
+            Self::ClosingArray => "]",
+            Self::CollapsedObject => "{...}",
+            Self::CollapsedEmptyObject => "{}",
+            Self::OpeningObject => "{",
+            Self::ClosingObject => "}",
         }
     }
 }

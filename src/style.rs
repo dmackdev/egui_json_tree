@@ -1,4 +1,4 @@
-use egui::{Color32, FontId, TextStyle, Ui};
+use egui::{text::TextWrapping, Color32, FontId, TextStyle, Ui};
 
 use crate::{render::ParentStatus, value::BaseValueType, ToggleButtonsState};
 
@@ -13,17 +13,20 @@ pub struct JsonTreeStyle {
 }
 
 impl JsonTreeStyle {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// The colors to use. Defaults to either a dark or light color scheme, depending on [`egui::Visuals::dark_mode`].
-    pub fn visuals(mut self, visuals: JsonTreeVisuals) -> Self {
+    #[must_use]
+    pub const fn visuals(mut self, visuals: JsonTreeVisuals) -> Self {
         self.visuals = Some(visuals);
         self
     }
 
     /// The font to use. Defaults to `TextStyle::Monospace.resolve(ui.style())`.
+    #[must_use]
     pub fn font_id(mut self, font_id: FontId) -> Self {
         self.font_id = Some(font_id);
         self
@@ -36,21 +39,24 @@ impl JsonTreeStyle {
     /// If `false`, a collapsed root object would render as: `{ "foo": "bar", "baz": {...} }`.
     ///
     /// Defaults to `false`.
-    pub fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
+    #[must_use]
+    pub const fn abbreviate_root(mut self, abbreviate_root: bool) -> Self {
         self.abbreviate_root = abbreviate_root;
         self
     }
 
     /// Override the visibility and interactivity of the toggle buttons for expanding/collapsing objects and arrays.
     /// Defaults to [`ToggleButtonsState::VisibleEnabled`].
-    pub fn toggle_buttons_state(mut self, toggle_buttons_state: ToggleButtonsState) -> Self {
+    #[must_use]
+    pub const fn toggle_buttons_state(mut self, toggle_buttons_state: ToggleButtonsState) -> Self {
         self.toggle_buttons_state = toggle_buttons_state;
         self
     }
 
     /// Override the text wrapping configurations.
     /// Default is to wrap text at UI boundaries, spanning as many rows as needed (no truncation).
-    pub fn wrapping_config(mut self, wrapping_config: JsonTreeWrappingConfig) -> Self {
+    #[must_use]
+    pub const fn wrapping_config(mut self, wrapping_config: JsonTreeWrappingConfig) -> Self {
         self.wrapping_config = wrapping_config;
         self
     }
@@ -79,7 +85,7 @@ impl JsonTreeStyle {
         &self,
         parent_status: ParentStatus,
         ui: &Ui,
-    ) -> egui::text::TextWrapping {
+    ) -> TextWrapping {
         let wrap = match parent_status {
             ParentStatus::NoParent => self.wrapping_config.value_when_root,
             ParentStatus::ExpandedParent => self.wrapping_config.value_with_expanded_parent,
@@ -91,7 +97,7 @@ impl JsonTreeStyle {
             JsonTreeMaxWidth::UiAvailableWidth => ui.available_width(),
         };
 
-        egui::text::TextWrapping {
+        TextWrapping {
             max_width,
             max_rows: wrap.max_rows,
             break_anywhere: wrap.break_anywhere,
@@ -143,7 +149,8 @@ impl JsonTreeVisuals {
         punctuation_color: Color32::from_gray(70),
     };
 
-    pub fn get_color(&self, base_value_type: &BaseValueType) -> Color32 {
+    #[must_use]
+    pub const fn get_color(&self, base_value_type: &BaseValueType) -> Color32 {
         match base_value_type {
             BaseValueType::Null => self.null_color,
             BaseValueType::Bool => self.bool_color,

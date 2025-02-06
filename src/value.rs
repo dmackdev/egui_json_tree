@@ -41,30 +41,30 @@ pub enum ExpandableType {
     Object,
 }
 
-/// A trait for types that can be converted to a [JsonTreeValue].
+/// A trait for types that can be converted to a [`JsonTreeValue`].
 pub trait ToJsonTreeValue {
-    /// Converts this JSON value to a [JsonTreeValue].
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
+    /// Converts this JSON value to a [`JsonTreeValue`].
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self>;
     /// Returns whether this JSON value is expandable, i.e. whether it is an object or an array.
     fn is_expandable(&self) -> bool;
 }
 
 #[cfg(feature = "serde_json")]
 impl ToJsonTreeValue for serde_json::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self> {
         match self {
-            serde_json::Value::Null => JsonTreeValue::Base(self, self, BaseValueType::Null),
-            serde_json::Value::Bool(b) => JsonTreeValue::Base(self, b, BaseValueType::Bool),
-            serde_json::Value::Number(n) => JsonTreeValue::Base(self, n, BaseValueType::Number),
-            serde_json::Value::String(s) => JsonTreeValue::Base(self, s, BaseValueType::String),
-            serde_json::Value::Array(arr) => JsonTreeValue::Expandable(
+            Self::Null => JsonTreeValue::Base(self, self, BaseValueType::Null),
+            Self::Bool(b) => JsonTreeValue::Base(self, b, BaseValueType::Bool),
+            Self::Number(n) => JsonTreeValue::Base(self, n, BaseValueType::Number),
+            Self::String(s) => JsonTreeValue::Base(self, s, BaseValueType::String),
+            Self::Array(arr) => JsonTreeValue::Expandable(
                 arr.iter()
                     .enumerate()
                     .map(|(idx, elem)| (JsonPointerSegment::Index(idx), elem))
                     .collect(),
                 ExpandableType::Array,
             ),
-            serde_json::Value::Object(obj) => JsonTreeValue::Expandable(
+            Self::Object(obj) => JsonTreeValue::Expandable(
                 obj.iter()
                     .map(|(key, val)| (JsonPointerSegment::Key(key), val))
                     .collect(),
@@ -74,10 +74,7 @@ impl ToJsonTreeValue for serde_json::Value {
     }
 
     fn is_expandable(&self) -> bool {
-        matches!(
-            self,
-            serde_json::Value::Array(_) | serde_json::Value::Object(_)
-        )
+        matches!(self, Self::Array(_) | Self::Object(_))
     }
 }
 

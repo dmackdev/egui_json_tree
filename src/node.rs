@@ -18,10 +18,10 @@ use crate::{
     DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
 };
 
-pub(crate) struct JsonTreeNode<'a, 'b, T: ToJsonTreeValue> {
+pub struct JsonTreeNode<'a, 'b, T: ToJsonTreeValue> {
     value: &'a T,
     parent: Option<JsonPointerSegment<'a>>,
-    make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
+    make_persistent_id: &'b dyn Fn(&[JsonPointerSegment<'_>]) -> Id,
     config: &'b JsonTreeNodeConfig,
 }
 
@@ -29,8 +29,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
     pub(crate) fn show(tree: JsonTree<'a, T>, ui: &mut Ui) -> JsonTreeResponse {
         let persistent_id = ui.id();
         let tree_id = tree.id;
-        let make_persistent_id =
-            |path_segments: &[JsonPointerSegment]| persistent_id.with(tree_id.with(path_segments));
+        let make_persistent_id = |path_segments: &[JsonPointerSegment<'_>]| {
+            persistent_id.with(tree_id.with(path_segments))
+        };
 
         let style = tree.config.style.unwrap_or_default();
         let default_expand = tree.config.default_expand.unwrap_or_default();

@@ -47,7 +47,8 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
 
 impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     /// Convenience method to access the JSON value involved in this render call.
-    pub fn value(&self) -> &'a T {
+    #[must_use]
+    pub const fn value(&self) -> &'a T {
         match self {
             RenderContext::Property(context) => context.value,
             RenderContext::BaseValue(context) => context.value,
@@ -56,7 +57,8 @@ impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
     }
 
     /// Convenience method to access the full JSON pointer to the JSON value involved in this render call.
-    pub fn pointer(&self) -> JsonPointer {
+    #[must_use]
+    pub const fn pointer(&self) -> JsonPointer<'_, '_> {
         match self {
             RenderContext::Property(context) => context.pointer,
             RenderContext::BaseValue(context) => context.pointer,
@@ -211,10 +213,16 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
         };
     }
 
+    #[expect(
+        clippy::unused_self,
+        clippy::needless_pass_by_value,
+        clippy::needless_pass_by_ref_mut,
+        reason = "needs refactoring"
+    )]
     pub(crate) fn render_spacing_delimiter(
         &mut self,
         ui: &mut Ui,
-        context: RenderSpacingDelimiterContext,
+        context: RenderSpacingDelimiterContext<'_>,
     ) {
         context.render_default(ui);
     }
@@ -224,6 +232,11 @@ impl<'a, T: ToJsonTreeValue> JsonTreeRenderer<'a, T> {
 struct ValueLayoutJobCreator;
 
 impl ValueLayoutJobCreator {
+    #[expect(
+        clippy::unused_self,
+        clippy::trivially_copy_pass_by_ref,
+        reason = "needs refactoring"
+    )]
     fn create(
         &self,
         visuals: &JsonTreeVisuals,
@@ -235,7 +248,7 @@ impl ValueLayoutJobCreator {
         let color = visuals.get_color(value_type);
         let add_quote_if_string = |job: &mut LayoutJob| {
             if *value_type == BaseValueType::String {
-                append(job, "\"", color, None, font_id)
+                append(job, "\"", color, None, font_id);
             };
         };
         let mut job = LayoutJob::default();
@@ -281,6 +294,7 @@ impl
 
 type ValueLayoutJobCreatorCache = FrameCache<LayoutJob, ValueLayoutJobCreator>;
 
+#[expect(clippy::trivially_copy_pass_by_ref, reason = "needs refactoring")]
 fn render_value(
     ui: &mut Ui,
     style: &JsonTreeStyle,
@@ -306,10 +320,11 @@ fn render_value(
 struct PropertyLayoutJobCreator;
 
 impl PropertyLayoutJobCreator {
+    #[expect(clippy::unused_self, reason = "needs refactoring")]
     fn create(
         &self,
         visuals: &JsonTreeVisuals,
-        property: &JsonPointerSegment,
+        property: &JsonPointerSegment<'_>,
         search_term: Option<&SearchTerm>,
         font_id: &FontId,
     ) -> LayoutJob {
@@ -349,7 +364,7 @@ impl<'a>
         &mut self,
         (visuals, parent, search_term, font_id): (
             &JsonTreeVisuals,
-            &JsonPointerSegment,
+            &JsonPointerSegment<'_>,
             Option<&SearchTerm>,
             &FontId,
         ),
@@ -363,7 +378,7 @@ type PropertyLayoutJobCreatorCache = FrameCache<LayoutJob, PropertyLayoutJobCrea
 fn render_property(
     ui: &mut Ui,
     style: &JsonTreeStyle,
-    property: &JsonPointerSegment,
+    property: &JsonPointerSegment<'_>,
     search_term: Option<&SearchTerm>,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {

@@ -13,7 +13,7 @@ impl ToggleButtonsCustomisationDemo {
     pub fn new(value: Value) -> Self {
         Self {
             value,
-            toggle_buttons_state: Default::default(),
+            toggle_buttons_state: ToggleButtonsState::default(),
         }
     }
 }

@@ -12,10 +12,10 @@ pub struct SearchTerm(String);
 
 impl SearchTerm {
     pub(crate) fn parse(search_str: &str) -> Option<Self> {
-        SearchTerm::is_valid(search_str).then_some(Self(search_str.to_ascii_lowercase()))
+        Self::is_valid(search_str).then_some(Self(search_str.to_ascii_lowercase()))
     }
 
-    fn is_valid(search_str: &str) -> bool {
+    const fn is_valid(search_str: &str) -> bool {
         !search_str.is_empty()
     }
 
@@ -35,7 +35,7 @@ impl SearchTerm {
         &self,
         value: &T,
         abbreviate_root: bool,
-        make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+        make_persistent_id: &dyn Fn(&[JsonPointerSegment<'_>]) -> Id,
         reset_path_ids: &mut HashSet<Id>,
     ) -> HashSet<Id> {
         let mut search_match_path_ids = HashSet::new();
@@ -67,7 +67,7 @@ fn search_impl<'a, T: ToJsonTreeValue>(
     search_term: &SearchTerm,
     path_segments: &mut Vec<JsonPointerSegment<'a>>,
     search_match_path_ids: &mut HashSet<Id>,
-    make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+    make_persistent_id: &dyn Fn(&[JsonPointerSegment<'_>]) -> Id,
     reset_path_ids: &mut HashSet<Id>,
 ) {
     match value.to_json_tree_value() {
@@ -77,7 +77,7 @@ fn search_impl<'a, T: ToJsonTreeValue>(
             }
         }
         JsonTreeValue::Expandable(entries, expandable_type) => {
-            for (property, val) in entries.iter() {
+            for (property, val) in &entries {
                 path_segments.push(*property);
 
                 if val.is_expandable() {
@@ -104,9 +104,9 @@ fn search_impl<'a, T: ToJsonTreeValue>(
 }
 
 fn update_matches(
-    path_segments: &[JsonPointerSegment],
+    path_segments: &[JsonPointerSegment<'_>],
     search_match_path_ids: &mut HashSet<Id>,
-    make_persistent_id: &dyn Fn(&[JsonPointerSegment]) -> Id,
+    make_persistent_id: &dyn Fn(&[JsonPointerSegment<'_>]) -> Id,
 ) {
     for i in 0..path_segments.len() {
         search_match_path_ids.insert(make_persistent_id(&path_segments[0..i]));

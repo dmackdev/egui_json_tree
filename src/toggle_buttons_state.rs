@@ -8,11 +8,12 @@ pub enum ToggleButtonsState {
 }
 
 impl ToggleButtonsState {
-    pub(crate) fn enabled(&self) -> Option<bool> {
+    #[expect(clippy::trivially_copy_pass_by_ref, reason = "needs refactoring")]
+    pub(crate) const fn enabled(&self) -> Option<bool> {
         match self {
-            ToggleButtonsState::VisibleEnabled => Some(true),
-            ToggleButtonsState::VisibleDisabled => Some(false),
-            ToggleButtonsState::Hidden => None,
+            Self::VisibleEnabled => Some(true),
+            Self::VisibleDisabled => Some(false),
+            Self::Hidden => None,
         }
     }
 }

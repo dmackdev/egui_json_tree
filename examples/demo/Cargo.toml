@@ -7,8 +7,8 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-eframe = "0.30"
-egui = { version = "0.30", default-features = false }
+eframe = "0.31"
+egui = { version = "0.31", default-features = false }
 egui_json_tree = { path = "../../" }
 serde_json = { version = "1" }
 

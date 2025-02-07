@@ -2,3 +2,4 @@
 Cargo.lock
 .vscode
 dist
+.DS_Store

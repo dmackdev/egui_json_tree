@@ -1,5 +1,5 @@
 use egui::{CursorIcon, Ui};
-use egui_json_tree::{render::DefaultRender, JsonTree};
+use egui_json_tree::{JsonTree, render::DefaultRender};
 use serde_json::Value;
 
 use super::Show;
@@ -34,7 +34,6 @@ impl Show for CopyToClipboardExample {
                         if !pointer.is_empty() && ui.button("Copy path").clicked() {
                             println!("{}", pointer);
                             ui.ctx().copy_text(pointer);
-                            ui.close_menu();
                         }
 
                         if ui.button("Copy contents").clicked() {
@@ -42,7 +41,6 @@ impl Show for CopyToClipboardExample {
                                 println!("{}", pretty_str);
                                 ui.ctx().copy_text(pretty_str);
                             }
-                            ui.close_menu();
                         }
                     });
             })

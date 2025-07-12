@@ -1,17 +1,18 @@
 use std::str::FromStr;
 
 use egui::{
+    CursorIcon, Margin, TextEdit, Ui,
     text::{CCursor, CCursorRange},
-    vec2, CursorIcon, Margin, TextEdit, Ui,
+    vec2,
 };
 use egui_json_tree::{
+    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
     delimiters::ExpandableDelimiter,
     pointer::JsonPointerSegment,
     render::{
         DefaultRender, RenderBaseValueContext, RenderContext, RenderExpandableDelimiterContext,
         RenderPropertyContext,
     },
-    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
 };
 use serde_json::Value;
 
@@ -167,7 +168,6 @@ impl Editor {
                     if let Some(state) = context.collapsing_state.as_mut() {
                         state.set_open(true);
                     }
-                    ui.close_menu();
                 }
 
                 if context.value.is_array() && ui.button("Add to array").clicked() {
@@ -177,7 +177,6 @@ impl Editor {
                     if let Some(state) = context.collapsing_state.as_mut() {
                         state.set_open(true);
                     }
-                    ui.close_menu();
                 }
 
                 if let Some(parent) = context.pointer.parent() {
@@ -190,7 +189,6 @@ impl Editor {
                                 request_focus: true,
                                 is_new_key: false,
                             }));
-                            ui.close_menu()
                         }
                     }
 
@@ -206,7 +204,6 @@ impl Editor {
                             },
                         };
                         self.edit_events.push(event);
-                        ui.close_menu();
                     }
                 }
             });
@@ -227,7 +224,6 @@ impl Editor {
                         new_value_input: context.value.to_string(),
                         request_focus: true,
                     }));
-                    ui.close_menu();
                 }
 
                 match (context.pointer.parent(), context.pointer.last()) {
@@ -237,7 +233,6 @@ impl Editor {
                                 object_pointer: parent.to_json_pointer_string(),
                                 key: key.to_string(),
                             });
-                            ui.close_menu();
                         }
                     }
                     (Some(parent), Some(JsonPointerSegment::Index(idx))) => {
@@ -246,7 +241,6 @@ impl Editor {
                                 array_pointer: parent.to_json_pointer_string(),
                                 idx: *idx,
                             });
-                            ui.close_menu();
                         }
                     }
                     _ => {}
@@ -273,7 +267,6 @@ impl Editor {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
                             context.collapsing_state.set_open(true);
-                            ui.close_menu();
                         }
                     });
             }
@@ -290,7 +283,6 @@ impl Editor {
                                 pointer: context.pointer.to_json_pointer_string(),
                             });
                             context.collapsing_state.set_open(true);
-                            ui.close_menu();
                         }
                     });
             }

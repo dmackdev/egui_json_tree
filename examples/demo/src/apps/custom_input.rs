@@ -1,6 +1,6 @@
 use egui::{RichText, Ui};
 use egui_json_tree::JsonTree;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::Show;
 

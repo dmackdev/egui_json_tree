@@ -41,7 +41,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
-            DefaultExpand::SearchResults(search_str) => {
+            DefaultExpand::SearchResultsOrAll("") => (InnerExpand::All, None),
+            DefaultExpand::SearchResults(search_str)
+            | DefaultExpand::SearchResultsOrAll(search_str) => {
                 let search_term = SearchTerm::parse(search_str);
                 let search_match_path_ids = search_term
                     .as_ref()

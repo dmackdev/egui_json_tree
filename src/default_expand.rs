@@ -17,4 +17,6 @@ pub enum DefaultExpand<'a> {
     /// and array elements, that match the search term. Letter case is ignored. The matches are highlighted.
     /// If the search term is empty, nothing will be expanded by default.
     SearchResults(&'a str),
+    /// Similar to `SearchResults`, but expands all arrays and objects if the search term is empty.
+    SearchResultsOrAll(&'a str),
 }

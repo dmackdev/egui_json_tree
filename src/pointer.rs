@@ -6,7 +6,7 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonPointer<'a, 'b>(pub(crate) &'b [JsonPointerSegment<'a>]);
 
-impl<'a, 'b> JsonPointer<'a, 'b> {
+impl<'a> JsonPointer<'a, '_> {
     /// Returns a JSON Pointer string that can be used to look up specific values within a JSON document, where:
     /// - The whole document is identified by the empty string `""`.
     /// - A pointer string to a value within the document starts with `/`.
@@ -43,7 +43,7 @@ pub enum JsonPointerSegment<'a> {
     Key(&'a str),
 }
 
-impl<'a> fmt::Display for JsonPointerSegment<'a> {
+impl fmt::Display for JsonPointerSegment<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             JsonPointerSegment::Key(key) => write!(f, "{}", key),
@@ -52,7 +52,7 @@ impl<'a> fmt::Display for JsonPointerSegment<'a> {
     }
 }
 
-impl<'a> JsonPointerSegment<'a> {
+impl JsonPointerSegment<'_> {
     pub fn to_json_pointer_segment_string(&self) -> String {
         match self {
             JsonPointerSegment::Key(key) => {

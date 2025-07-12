@@ -1,6 +1,6 @@
 use egui::{Color32, FontId, TextStyle, Ui};
 
-use crate::{render::ParentStatus, value::BaseValueType, ToggleButtonsState};
+use crate::{ToggleButtonsState, render::ParentStatus, value::BaseValueType};
 
 /// Styling configuration to control the appearance of the [`JsonTree`](crate::JsonTree).
 #[derive(Debug, Clone, Default)]

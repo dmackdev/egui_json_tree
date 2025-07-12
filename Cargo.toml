@@ -2,7 +2,8 @@
 name = "egui_json_tree"
 version = "0.11.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 description = "An interactive JSON tree visualiser for egui, with search and highlight functionality."
 repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT OR Apache-2.0"
@@ -11,12 +12,12 @@ categories = ["gui", "visualization"]
 include = ["src/*.rs", "LICENSE-MIT", "LICENSE-APACHE", "Cargo.toml"]
 
 [dependencies]
-egui = { version = "0.31", default-features = false }
+egui = { version = "0.32", default-features = false }
 serde_json = { version = "1", optional = true }
 simd-json = { version = "0.13", optional = true }
 
 [dev-dependencies]
-eframe = "0.31"
+eframe = "0.32"
 
 [features]
 default = ["serde_json"]

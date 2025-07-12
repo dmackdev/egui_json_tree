@@ -2,13 +2,14 @@
 name = "demo"
 version = "0.1.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-eframe = "0.31"
-egui = { version = "0.31", default-features = false }
+eframe = "0.32"
+egui = { version = "0.32", default-features = false }
 egui_json_tree = { path = "../../" }
 serde_json = { version = "1" }
 

@@ -3,18 +3,18 @@
 use std::fmt::Display;
 
 use egui::{
+    Color32, FontId, Label, Response, Sense, TextFormat, Ui,
     collapsing_header::CollapsingState,
     text::LayoutJob,
     util::cache::{ComputerMut, FrameCache},
-    Color32, FontId, Label, Response, Sense, TextFormat, Ui,
 };
 
 use crate::{
+    JsonTreeStyle, JsonTreeVisuals,
     delimiters::{ExpandableDelimiter, SpacingDelimiter},
     pointer::{JsonPointer, JsonPointerSegment},
     search::SearchTerm,
     value::{BaseValueType, ToJsonTreeValue},
-    JsonTreeStyle, JsonTreeVisuals,
 };
 
 /// A closure for a user-defined custom rendering implementation.
@@ -35,7 +35,7 @@ pub enum RenderContext<'a, 'b, T: ToJsonTreeValue> {
     ExpandableDelimiter(RenderExpandableDelimiterContext<'a, 'b, T>),
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
+impl<T: ToJsonTreeValue> DefaultRender for RenderContext<'_, '_, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         match self {
             RenderContext::Property(context) => context.render_default(ui),
@@ -45,7 +45,7 @@ impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderContext<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> RenderContext<'a, 'b, T> {
+impl<'a, T: ToJsonTreeValue> RenderContext<'a, '_, T> {
     /// Convenience method to access the JSON value involved in this render call.
     pub fn value(&self) -> &'a T {
         match self {
@@ -81,7 +81,7 @@ pub struct RenderPropertyContext<'a, 'b, T: ToJsonTreeValue> {
     pub(crate) search_term: Option<&'b SearchTerm>,
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'a, 'b, T> {
+impl<T: ToJsonTreeValue> DefaultRender for RenderPropertyContext<'_, '_, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_property(ui, self.style, &self.property, self.search_term)
     }
@@ -110,7 +110,7 @@ pub struct RenderBaseValueContext<'a, 'b, T: ToJsonTreeValue> {
     pub(crate) parent_status: ParentStatus,
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'a, 'b, T> {
+impl<T: ToJsonTreeValue> DefaultRender for RenderBaseValueContext<'_, '_, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_value(
             ui,
@@ -138,7 +138,7 @@ pub struct RenderExpandableDelimiterContext<'a, 'b, T: ToJsonTreeValue> {
     pub collapsing_state: &'b mut CollapsingState,
 }
 
-impl<'a, 'b, T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterContext<'a, 'b, T> {
+impl<T: ToJsonTreeValue> DefaultRender for RenderExpandableDelimiterContext<'_, '_, T> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_delimiter(ui, self.style, self.delimiter.as_ref())
     }
@@ -149,7 +149,7 @@ pub(crate) struct RenderSpacingDelimiterContext<'b> {
     pub(crate) style: &'b JsonTreeStyle,
 }
 
-impl<'b> DefaultRender for RenderSpacingDelimiterContext<'b> {
+impl DefaultRender for RenderSpacingDelimiterContext<'_> {
     fn render_default(&self, ui: &mut Ui) -> Response {
         render_delimiter(ui, self.style, self.delimiter.as_ref())
     }
@@ -159,7 +159,7 @@ pub(crate) struct JsonTreeRenderer<'a, T: ToJsonTreeValue> {
     pub(crate) render_hook: Option<Box<RenderHook<'a, T>>>,
 }
 
-impl<'a, T: ToJsonTreeValue> Default for JsonTreeRenderer<'a, T> {
+impl<T: ToJsonTreeValue> Default for JsonTreeRenderer<'_, T> {
     fn default() -> Self {
         Self { render_hook: None }
     }
@@ -334,11 +334,11 @@ impl PropertyLayoutJobCreator {
     }
 }
 
-impl<'a>
+impl
     ComputerMut<
         (
             &JsonTreeVisuals,
-            &JsonPointerSegment<'a>,
+            &JsonPointerSegment<'_>,
             Option<&SearchTerm>,
             &FontId,
         ),

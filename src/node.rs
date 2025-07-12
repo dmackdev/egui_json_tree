@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use egui::{
-    collapsing_header::{paint_default_icon, CollapsingState},
     Id, Ui,
+    collapsing_header::{CollapsingState, paint_default_icon},
 };
 
 use crate::{
-    delimiters::{SpacingDelimiter, ARRAY_DELIMITERS, OBJECT_DELIMITERS},
+    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
+    delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS, SpacingDelimiter},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
         JsonTreeRenderer, ParentStatus, RenderBaseValueContext, RenderExpandableDelimiterContext,
@@ -15,7 +16,6 @@ use crate::{
     response::JsonTreeResponse,
     search::SearchTerm,
     value::{ExpandableType, JsonTreeValue, ToJsonTreeValue},
-    DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
 };
 
 pub(crate) struct JsonTreeNode<'a, 'b, T: ToJsonTreeValue> {

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use egui::{mutex::Mutex, CentralPanel, Context, FontDefinitions, Style};
-use egui_json_tree::{render::RenderContext, DefaultExpand, JsonTree, JsonTreeStyle};
+use egui::{CentralPanel, Context, FontDefinitions, Style, mutex::Mutex};
+use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle, render::RenderContext};
 #[cfg(feature = "serde_json")]
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[cfg(all(feature = "simd_json", not(feature = "serde_json")))]
 use simd_json::{json, owned::Value};

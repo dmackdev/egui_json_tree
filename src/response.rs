@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use egui::{collapsing_header::CollapsingState, Id, Ui};
+use egui::{Id, Ui, collapsing_header::CollapsingState};
 
 /// The response from showing a [`JsonTree`](crate::JsonTree).
 pub struct JsonTreeResponse {

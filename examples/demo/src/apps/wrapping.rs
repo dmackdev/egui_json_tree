@@ -100,7 +100,7 @@ impl WrappingExample {
             {
                 self.wrap.max_width = JsonTreeMaxWidth::Points(100.0);
             }
-            if let JsonTreeMaxWidth::Points(ref mut pts) = &mut self.wrap.max_width {
+            if let JsonTreeMaxWidth::Points(pts) = &mut self.wrap.max_width {
                 ui.add(DragValue::new(pts).speed(10.0).range(100.0..=10000.0));
             }
         });

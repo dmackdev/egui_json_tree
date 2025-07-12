@@ -1,7 +1,7 @@
 use apps::{
-    copy_to_clipboard::CopyToClipboardExample, custom_input::CustomExample,
+    Example, Show, copy_to_clipboard::CopyToClipboardExample, custom_input::CustomExample,
     editor::JsonEditorExample, search::SearchExample,
-    toggle_buttons::ToggleButtonsCustomisationDemo, wrapping::WrappingExample, Example, Show,
+    toggle_buttons::ToggleButtonsCustomisationDemo, wrapping::WrappingExample,
 };
 use serde_json::json;
 

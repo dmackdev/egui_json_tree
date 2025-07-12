@@ -1,8 +1,8 @@
 use crate::{
+    DefaultExpand, JsonTreeResponse, JsonTreeStyle,
     node::JsonTreeNode,
     render::{JsonTreeRenderer, RenderContext},
     value::ToJsonTreeValue,
-    DefaultExpand, JsonTreeResponse, JsonTreeStyle,
 };
 use egui::{Id, Ui};
 use std::hash::Hash;
@@ -13,7 +13,7 @@ pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
 }
 
-impl<'a, T: ToJsonTreeValue> Default for JsonTreeConfig<'a, T> {
+impl<T: ToJsonTreeValue> Default for JsonTreeConfig<'_, T> {
     fn default() -> Self {
         Self {
             style: Default::default(),

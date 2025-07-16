@@ -11,12 +11,8 @@ use crate::{
 pub struct SearchTerm(String);
 
 impl SearchTerm {
-    pub(crate) fn parse(search_str: &str) -> Option<Self> {
-        SearchTerm::is_valid(search_str).then_some(Self(search_str.to_ascii_lowercase()))
-    }
-
-    fn is_valid(search_str: &str) -> bool {
-        !search_str.is_empty()
+    pub(crate) fn new(search_str: &str) -> Self {
+        Self(search_str.to_ascii_lowercase())
     }
 
     pub(crate) fn find_match_indices_in(&self, other: &str) -> Vec<usize> {
@@ -58,7 +54,7 @@ impl SearchTerm {
     }
 
     fn matches<V: ToString + ?Sized>(&self, other: &V) -> bool {
-        other.to_string().to_ascii_lowercase().contains(&self.0)
+        !&self.0.is_empty() && other.to_string().to_ascii_lowercase().contains(&self.0)
     }
 }
 

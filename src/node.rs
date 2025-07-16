@@ -41,22 +41,24 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             DefaultExpand::All => (InnerExpand::All, None),
             DefaultExpand::None => (InnerExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
-            DefaultExpand::SearchResultsOrAll("") => (InnerExpand::All, None),
             DefaultExpand::SearchResults(search_str)
             | DefaultExpand::SearchResultsOrAll(search_str) => {
-                let search_term = SearchTerm::parse(search_str);
-                let search_match_path_ids = search_term
-                    .as_ref()
-                    .map(|search_term| {
-                        search_term.find_matching_paths_in(
-                            tree.value,
-                            style.abbreviate_root,
-                            &make_persistent_id,
-                            &mut reset_path_ids,
-                        )
-                    })
-                    .unwrap_or_default();
-                (InnerExpand::Paths(search_match_path_ids), search_term)
+                // Important: when searching for anything (even an empty string), we must always traverse the entire JSON value to
+                // capture all reset_path_ids so all the open/closed states can be reset to respect the new search term when it changes.
+                let search_term = SearchTerm::new(search_str);
+                let search_match_path_ids = search_term.find_matching_paths_in(
+                    tree.value,
+                    style.abbreviate_root,
+                    &make_persistent_id,
+                    &mut reset_path_ids,
+                );
+                let inner_expand =
+                    if matches!(default_expand, DefaultExpand::SearchResultsOrAll("")) {
+                        InnerExpand::All
+                    } else {
+                        InnerExpand::Paths(search_match_path_ids)
+                    };
+                (inner_expand, Some(search_term))
             }
         };
 

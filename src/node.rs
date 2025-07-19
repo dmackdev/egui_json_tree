@@ -37,10 +37,10 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 
         let mut reset_path_ids = HashSet::new();
 
-        let (default_expand, search_term) = match default_expand {
-            DefaultExpand::All => (InnerExpand::All, None),
-            DefaultExpand::None => (InnerExpand::None, None),
-            DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
+        let (inner_default_expand, search_term) = match default_expand {
+            DefaultExpand::All => (InnerDefaultExpand::All, None),
+            DefaultExpand::None => (InnerDefaultExpand::None, None),
+            DefaultExpand::ToLevel(l) => (InnerDefaultExpand::ToLevel(l), None),
             DefaultExpand::SearchResults(search_str)
             | DefaultExpand::SearchResultsOrAll(search_str) => {
                 // Important: when searching for anything (even an empty string), we must always traverse the entire JSON value to
@@ -54,9 +54,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                 );
                 let inner_expand =
                     if matches!(default_expand, DefaultExpand::SearchResultsOrAll("")) {
-                        InnerExpand::All
+                        InnerDefaultExpand::All
                     } else {
-                        InnerExpand::Paths(search_match_path_ids)
+                        InnerDefaultExpand::Paths(search_match_path_ids)
                     };
                 (inner_expand, Some(search_term))
             }
@@ -69,7 +69,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             parent: None,
             make_persistent_id: &make_persistent_id,
             config: &JsonTreeNodeConfig {
-                default_expand,
+                inner_default_expand,
                 style,
                 search_term,
             },
@@ -165,7 +165,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         expandable_type: ExpandableType,
     ) {
         let JsonTreeNodeConfig {
-            default_expand,
+            inner_default_expand,
             style,
             search_term,
         } = self.config;
@@ -178,13 +178,15 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         let path_id = (self.make_persistent_id)(path_segments);
         reset_path_ids.insert(path_id);
 
-        let default_open = match &default_expand {
-            InnerExpand::All => true,
-            InnerExpand::None => false,
-            InnerExpand::ToLevel(num_levels_open) => {
+        let default_open = match &inner_default_expand {
+            InnerDefaultExpand::All => true,
+            InnerDefaultExpand::None => false,
+            InnerDefaultExpand::ToLevel(num_levels_open) => {
                 (path_segments.len() as u8) <= *num_levels_open
             }
-            InnerExpand::Paths(search_match_path_ids) => search_match_path_ids.contains(&path_id),
+            InnerDefaultExpand::Paths(search_match_path_ids) => {
+                search_match_path_ids.contains(&path_id)
+            }
         };
 
         let mut state = CollapsingState::load_with_default_open(ui.ctx(), path_id, default_open);
@@ -451,13 +453,13 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 }
 
 struct JsonTreeNodeConfig {
-    default_expand: InnerExpand,
+    inner_default_expand: InnerDefaultExpand,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
 }
 
 #[derive(Debug, Clone)]
-enum InnerExpand {
+enum InnerDefaultExpand {
     All,
     None,
     ToLevel(u8),

@@ -1,3 +1,7 @@
+use std::collections::HashSet;
+
+use egui::Id;
+
 #[derive(Debug, Clone, Copy, Default)]
 /// Configuration for how a [`JsonTree`](crate::JsonTree) should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
@@ -19,4 +23,14 @@ pub enum DefaultExpand<'a> {
     SearchResults(&'a str),
     /// Similar to `SearchResults`, but expands all arrays and objects if the search term is empty.
     SearchResultsOrAll(&'a str),
+}
+
+#[derive(Debug, Clone)]
+/// Internal representation for the [`DefaultExpand`] setting.
+pub(crate) enum InnerDefaultExpand {
+    All,
+    None,
+    ToLevel(u8),
+    /// Specifies which arrays/objects should be expanded by default, based on its hashed JSON pointer.
+    Paths(HashSet<Id>),
 }

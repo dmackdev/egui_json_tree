@@ -7,6 +7,7 @@ use egui::{
 
 use crate::{
     DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
+    default_expand::InnerDefaultExpand,
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS, SpacingDelimiter},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
@@ -456,12 +457,4 @@ struct JsonTreeNodeConfig {
     inner_default_expand: InnerDefaultExpand,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
-}
-
-#[derive(Debug, Clone)]
-enum InnerDefaultExpand {
-    All,
-    None,
-    ToLevel(u8),
-    Paths(HashSet<Id>),
 }

@@ -10,6 +10,7 @@ use std::hash::Hash;
 pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: Option<JsonTreeStyle>,
     pub(crate) default_expand: Option<DefaultExpand<'a>>,
+    pub(crate) auto_reset_expanded: bool,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
 }
 
@@ -18,6 +19,7 @@ impl<T: ToJsonTreeValue> Default for JsonTreeConfig<'_, T> {
         Self {
             style: Default::default(),
             default_expand: Default::default(),
+            auto_reset_expanded: false,
             renderer: Default::default(),
         }
     }
@@ -51,6 +53,12 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Override how the [`JsonTree`] expands arrays/objects by default.
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
         self.config.default_expand = Some(default_expand);
+        self
+    }
+
+    /// Automatically reset expanded arrays/objects to respect the [`DefaultExpand`] setting when it changes.
+    pub fn auto_reset_expanded(mut self, auto_reset_expanded: bool) -> Self {
+        self.config.auto_reset_expanded = auto_reset_expanded;
         self
     }
 

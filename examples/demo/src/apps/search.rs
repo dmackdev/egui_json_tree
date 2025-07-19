@@ -29,26 +29,17 @@ impl Show for SearchExample {
         ui.add_space(10.0);
 
         ui.label("Search:");
-        let (text_edit_response, clear_button_response) = ui
-            .horizontal(|ui| {
-                let text_edit_response = ui.text_edit_singleline(&mut self.search_input);
-                let clear_button_response = ui.button("Clear");
-                (text_edit_response, clear_button_response)
-            })
-            .inner;
+        ui.horizontal(|ui| {
+            ui.text_edit_singleline(&mut self.search_input);
+            if ui.button("Clear").clicked() {
+                self.search_input.clear();
+            }
+        });
 
         let response = JsonTree::new(self.title(), &self.value)
             .default_expand(DefaultExpand::SearchResults(&self.search_input))
+            .auto_reset_expanded(true)
             .show(ui);
-
-        if text_edit_response.changed() {
-            response.reset_expanded(ui);
-        }
-
-        if clear_button_response.clicked() {
-            self.search_input.clear();
-            response.reset_expanded(ui);
-        }
 
         if ui.button("Reset expanded").clicked() {
             response.reset_expanded(ui);

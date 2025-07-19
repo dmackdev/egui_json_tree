@@ -7,6 +7,7 @@ use egui::{
 
 use crate::{
     DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState,
+    default_expand::InnerDefaultExpand,
     delimiters::{ARRAY_DELIMITERS, OBJECT_DELIMITERS, SpacingDelimiter},
     pointer::{JsonPointer, JsonPointerSegment},
     render::{
@@ -37,10 +38,10 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 
         let mut reset_path_ids = HashSet::new();
 
-        let (default_expand, search_term) = match default_expand {
-            DefaultExpand::All => (InnerExpand::All, None),
-            DefaultExpand::None => (InnerExpand::None, None),
-            DefaultExpand::ToLevel(l) => (InnerExpand::ToLevel(l), None),
+        let (inner_default_expand, search_term) = match default_expand {
+            DefaultExpand::All => (InnerDefaultExpand::All, None),
+            DefaultExpand::None => (InnerDefaultExpand::None, None),
+            DefaultExpand::ToLevel(l) => (InnerDefaultExpand::ToLevel(l), None),
             DefaultExpand::SearchResults(search_str)
             | DefaultExpand::SearchResultsOrAll(search_str) => {
                 // Important: when searching for anything (even an empty string), we must always traverse the entire JSON value to
@@ -54,9 +55,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                 );
                 let inner_expand =
                     if matches!(default_expand, DefaultExpand::SearchResultsOrAll("")) {
-                        InnerExpand::All
+                        InnerDefaultExpand::All
                     } else {
-                        InnerExpand::Paths(search_match_path_ids)
+                        InnerDefaultExpand::Paths(search_match_path_ids)
                     };
                 (inner_expand, Some(search_term))
             }
@@ -69,7 +70,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             parent: None,
             make_persistent_id: &make_persistent_id,
             config: &JsonTreeNodeConfig {
-                default_expand,
+                inner_default_expand,
                 style,
                 search_term,
             },
@@ -84,9 +85,30 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             node.show_impl(ui, &mut vec![], &mut reset_path_ids, &mut renderer);
         });
 
-        JsonTreeResponse {
+        let should_reset_expanded = if tree.config.auto_reset_expanded {
+            let default_expand_hash_id = ResetExpandedHashId(egui::util::hash(default_expand));
+            let default_expand_changed = ui.ctx().data_mut(|d| {
+                let default_expand_changed =
+                    d.get_temp::<ResetExpandedHashId>(tree.id) != Some(default_expand_hash_id);
+                if default_expand_changed {
+                    d.insert_temp(tree.id, default_expand_hash_id);
+                }
+                default_expand_changed
+            });
+            default_expand_changed
+        } else {
+            false
+        };
+
+        let response = JsonTreeResponse {
             collapsing_state_ids: reset_path_ids,
+        };
+
+        if should_reset_expanded {
+            response.reset_expanded(ui);
         }
+
+        response
     }
 
     fn show_impl(
@@ -165,7 +187,7 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         expandable_type: ExpandableType,
     ) {
         let JsonTreeNodeConfig {
-            default_expand,
+            inner_default_expand,
             style,
             search_term,
         } = self.config;
@@ -178,13 +200,15 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         let path_id = (self.make_persistent_id)(path_segments);
         reset_path_ids.insert(path_id);
 
-        let default_open = match &default_expand {
-            InnerExpand::All => true,
-            InnerExpand::None => false,
-            InnerExpand::ToLevel(num_levels_open) => {
+        let default_open = match &inner_default_expand {
+            InnerDefaultExpand::All => true,
+            InnerDefaultExpand::None => false,
+            InnerDefaultExpand::ToLevel(num_levels_open) => {
                 (path_segments.len() as u8) <= *num_levels_open
             }
-            InnerExpand::Paths(search_match_path_ids) => search_match_path_ids.contains(&path_id),
+            InnerDefaultExpand::Paths(search_match_path_ids) => {
+                search_match_path_ids.contains(&path_id)
+            }
         };
 
         let mut state = CollapsingState::load_with_default_open(ui.ctx(), path_id, default_open);
@@ -451,15 +475,12 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 }
 
 struct JsonTreeNodeConfig {
-    default_expand: InnerExpand,
+    inner_default_expand: InnerDefaultExpand,
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
 }
 
-#[derive(Debug, Clone)]
-enum InnerExpand {
-    All,
-    None,
-    ToLevel(u8),
-    Paths(HashSet<Id>),
-}
+/// Stored in `egui`'s `IdTypeMap` to represent a hashed value to indicate whether to reset expanded arrays/objects when this changes for a particular tree Id.
+/// Avoids potential conflicts in case a `u64` happened to be stored against the same tree Id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ResetExpandedHashId(u64);

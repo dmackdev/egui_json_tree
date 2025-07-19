@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use egui::Id;
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 /// Configuration for how a [`JsonTree`](crate::JsonTree) should expand arrays and objects by default.
 pub enum DefaultExpand<'a> {
     /// Expand all arrays and objects.
@@ -25,7 +25,7 @@ pub enum DefaultExpand<'a> {
     SearchResultsOrAll(&'a str),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 /// Internal representation for the [`DefaultExpand`] setting.
 pub(crate) enum InnerDefaultExpand {
     All,

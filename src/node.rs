@@ -85,9 +85,30 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             node.show_impl(ui, &mut vec![], &mut reset_path_ids, &mut renderer);
         });
 
-        JsonTreeResponse {
+        let should_reset_expanded = if tree.config.auto_reset_expanded {
+            let default_expand_hash_id = ResetExpandedHashId(egui::util::hash(default_expand));
+            let default_expand_changed = ui.ctx().data_mut(|d| {
+                let default_expand_changed =
+                    d.get_temp::<ResetExpandedHashId>(tree.id) != Some(default_expand_hash_id);
+                if default_expand_changed {
+                    d.insert_temp(tree.id, default_expand_hash_id);
+                }
+                default_expand_changed
+            });
+            default_expand_changed
+        } else {
+            false
+        };
+
+        let response = JsonTreeResponse {
             collapsing_state_ids: reset_path_ids,
+        };
+
+        if should_reset_expanded {
+            response.reset_expanded(ui);
         }
+
+        response
     }
 
     fn show_impl(
@@ -458,3 +479,8 @@ struct JsonTreeNodeConfig {
     style: JsonTreeStyle,
     search_term: Option<SearchTerm>,
 }
+
+/// Stored in `egui`'s `IdTypeMap` to represent a hashed value to indicate whether to reset expanded arrays/objects when this changes for a particular tree Id.
+/// Avoids potential conflicts in case a `u64` happened to be stored against the same tree Id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ResetExpandedHashId(u64);

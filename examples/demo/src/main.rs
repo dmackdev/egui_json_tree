@@ -5,6 +5,8 @@ use apps::{
 };
 use serde_json::json;
 
+use crate::apps::default_expand::DefaultExpandExample;
+
 mod apps;
 
 struct DemoApp {
@@ -53,6 +55,7 @@ impl Default for DemoApp {
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),
+                Box::new(DefaultExpandExample::new(complex_object.clone())),
                 Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
                 Box::new(WrappingExample::new(long_strings_object)),
             ],

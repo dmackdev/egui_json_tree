@@ -4,6 +4,7 @@ use serde_json::Value;
 
 pub mod copy_to_clipboard;
 pub mod custom_input;
+pub mod default_expand;
 pub mod editor;
 pub mod search;
 pub mod toggle_buttons;

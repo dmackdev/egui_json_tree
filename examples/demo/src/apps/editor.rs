@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use egui::{
-    CursorIcon, Margin, TextEdit, Ui,
+    CursorIcon, Key, Margin, TextEdit, Ui,
     text::{CCursor, CCursorRange},
     vec2,
 };
@@ -69,7 +69,7 @@ impl Editor {
                         .map(|parent| parent.to_json_pointer_string())
                         .is_some_and(|object_pointer| object_pointer == state.object_pointer)
                 {
-                    Self::show_text_edit_with_focus(
+                    let enter_was_pressed_with_focus = Self::show_text_edit(
                         ui,
                         &mut state.new_key_input,
                         &mut state.request_focus,
@@ -84,7 +84,7 @@ impl Editor {
                             .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
 
                     ui.add_enabled_ui(valid_key, |ui| {
-                        if ui.small_button("✅").clicked() {
+                        if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
                             edit_events.push(EditEvent::SaveObjectKeyEdit);
                         }
                     });
@@ -115,15 +115,12 @@ impl Editor {
     ) {
         if let RenderContext::BaseValue(context) = &context {
             if state.pointer == context.pointer.to_json_pointer_string() {
-                Self::show_text_edit_with_focus(
-                    ui,
-                    &mut state.new_value_input,
-                    &mut state.request_focus,
-                );
+                let enter_was_pressed_with_focus =
+                    Self::show_text_edit(ui, &mut state.new_value_input, &mut state.request_focus);
 
                 ui.add_space(5.0);
 
-                if ui.small_button("✅").clicked() {
+                if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
                     edit_events.push(EditEvent::SaveValueEdit);
                 }
 
@@ -289,14 +286,21 @@ impl Editor {
         };
     }
 
-    fn show_text_edit_with_focus(ui: &mut Ui, input: &mut String, request_focus: &mut bool) {
-        let text_edit_output = TextEdit::singleline(input)
-            .code_editor()
-            .margin(Margin::symmetric(2, 0))
-            .clip_text(false)
-            .desired_width(0.0)
-            .min_size(vec2(10.0, 2.0))
-            .show(ui);
+    /// Returns `bool` indicating whether the Enter key was pressed whilst the text edit had focus.
+    fn show_text_edit(ui: &mut Ui, input: &mut String, request_focus: &mut bool) -> bool {
+        // Wrap in horizontal to prevent jitters when typing when children are expanded (due to use of horizontal_wrapped when rendering properties).
+        let text_edit_output = ui
+            .horizontal(|ui| {
+                TextEdit::singleline(input)
+                    .code_editor()
+                    .margin(Margin::symmetric(2, 0))
+                    .clip_text(false)
+                    .desired_width(0.0)
+                    .min_size(vec2(10.0, 2.0))
+                    .return_key(None) // Disable return key so we can capture Enter key press for submission.
+                    .show(ui)
+            })
+            .inner;
 
         if *request_focus {
             *request_focus = false;
@@ -312,6 +316,8 @@ impl Editor {
                 ui.ctx().memory_mut(|mem| mem.request_focus(text_edit_id));
             }
         }
+
+        text_edit_output.response.has_focus() && ui.input(|i| i.key_pressed(Key::Enter))
     }
 
     fn apply_events(&mut self, document: &mut Value) {

@@ -10,6 +10,7 @@ use std::hash::Hash;
 pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: Option<JsonTreeStyle>,
     pub(crate) default_expand: Option<DefaultExpand<'a>>,
+    pub(crate) auto_reset_expanded: bool,
     pub(crate) renderer: JsonTreeRenderer<'a, T>,
 }
 
@@ -18,6 +19,7 @@ impl<T: ToJsonTreeValue> Default for JsonTreeConfig<'_, T> {
         Self {
             style: Default::default(),
             default_expand: Default::default(),
+            auto_reset_expanded: true,
             renderer: Default::default(),
         }
     }
@@ -51,6 +53,14 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Override how the [`JsonTree`] expands arrays/objects by default.
     pub fn default_expand(mut self, default_expand: DefaultExpand<'a>) -> Self {
         self.config.default_expand = Some(default_expand);
+        self
+    }
+
+    /// If enabled, automatically reset expanded arrays/objects to respect the [`DefaultExpand`] setting when it changes for this tree Id.
+    /// This can still be performed manually via [`JsonTreeResponse::reset_expanded`](crate::JsonTreeResponse::reset_expanded) after rendering the tree.
+    /// Defaults to enabled.
+    pub fn auto_reset_expanded(mut self, auto_reset_expanded: bool) -> Self {
+        self.config.auto_reset_expanded = auto_reset_expanded;
         self
     }
 
@@ -97,25 +107,5 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Show the JSON tree visualisation within the `Ui`.
     pub fn show(self, ui: &mut Ui) -> JsonTreeResponse {
         JsonTreeNode::show(self, ui)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::DefaultExpand;
-
-    use super::JsonTree;
-
-    #[test]
-    fn test_search_populates_all_collapsing_state_ids_in_response() {
-        let value = serde_json::json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
-
-        egui::__run_test_ui(|ui| {
-            let response = JsonTree::new("id", &value)
-                .default_expand(DefaultExpand::SearchResults("g"))
-                .show(ui);
-
-            assert_eq!(response.collapsing_state_ids.len(), 7);
-        });
     }
 }

@@ -5,6 +5,8 @@ use apps::{
 };
 use serde_json::json;
 
+use crate::apps::default_expand::DefaultExpandExample;
+
 mod apps;
 
 struct DemoApp {
@@ -15,7 +17,7 @@ struct DemoApp {
 
 impl Default for DemoApp {
     fn default() -> Self {
-        let complex_object = json!({"foo": [1, 2, [3]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
+        let complex_object = json!({"foo": [1, 2, ["grep"]], "bar": { "qux" : false, "thud": { "a/b": [4, 5, { "m~n": "Greetings!" }]}, "grep": 21}, "baz": null});
         let long_strings_object = json!({
           "baz": "Ullamco ipsum proident occaecat eiusmod ea aute ex non cupidatat laboris duis amet cupidatat. Ullamco sint do enim consectetur Lorem occaecat mollit. Aliquip voluptate ullamco consectetur adipisicing elit fugiat labore laboris. Occaecat non incididunt duis consectetur aliquip dolore cillum eiusmod. Qui sunt est excepteur laborum.",
           "bar": [
@@ -53,6 +55,7 @@ impl Default for DemoApp {
                 Box::new(SearchExample::new(complex_object.clone())),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),
+                Box::new(DefaultExpandExample::new(complex_object.clone())),
                 Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
                 Box::new(WrappingExample::new(long_strings_object)),
             ],

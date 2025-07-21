@@ -1,10 +1,10 @@
-use std::collections::HashSet;
+use egui::{Id, Ui};
 
-use egui::{Id, Ui, collapsing_header::CollapsingState};
+use crate::node::ShouldResetExpanded;
 
 /// The response from showing a [`JsonTree`](crate::JsonTree).
 pub struct JsonTreeResponse {
-    pub(crate) collapsing_state_ids: HashSet<Id>,
+    pub(crate) tree_id: Id,
 }
 
 impl JsonTreeResponse {
@@ -14,10 +14,7 @@ impl JsonTreeResponse {
     /// Call this whenever the `default_expand` setting changes,
     /// and/or you when wish to reset any manually collapsed/expanded arrays and objects to respect this setting.
     pub fn reset_expanded(&self, ui: &mut Ui) {
-        for id in self.collapsing_state_ids.iter() {
-            if let Some(state) = CollapsingState::load(ui.ctx(), *id) {
-                state.remove(ui.ctx());
-            }
-        }
+        ui.ctx()
+            .data_mut(|d| d.insert_temp(self.tree_id, ShouldResetExpanded))
     }
 }

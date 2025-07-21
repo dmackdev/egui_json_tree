@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use egui::{
     Id, Ui,
     collapsing_header::{CollapsingState, paint_default_icon},
@@ -20,6 +18,8 @@ use crate::{
 };
 
 pub(crate) struct JsonTreeNode<'a, 'b, T: ToJsonTreeValue> {
+    /// The Id of the entire tree that this node is part of.
+    tree_id: Id,
     value: &'a T,
     parent: Option<JsonPointerSegment<'a>>,
     make_persistent_id: &'b dyn Fn(&[JsonPointerSegment]) -> Id,
@@ -36,36 +36,29 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         let style = tree.config.style.unwrap_or_default();
         let default_expand = tree.config.default_expand.unwrap_or_default();
 
-        let mut reset_path_ids = HashSet::new();
-
         let (inner_default_expand, search_term) = match default_expand {
             DefaultExpand::All => (InnerDefaultExpand::All, None),
             DefaultExpand::None => (InnerDefaultExpand::None, None),
             DefaultExpand::ToLevel(l) => (InnerDefaultExpand::ToLevel(l), None),
+            DefaultExpand::SearchResults("") => (InnerDefaultExpand::None, None),
+            DefaultExpand::SearchResultsOrAll("") => (InnerDefaultExpand::All, None),
             DefaultExpand::SearchResults(search_str)
             | DefaultExpand::SearchResultsOrAll(search_str) => {
-                // Important: when searching for anything (even an empty string), we must always traverse the entire JSON value to
-                // capture all reset_path_ids so all the open/closed states can be reset to respect the new search term when it changes.
                 let search_term = SearchTerm::new(search_str);
                 let search_match_path_ids = search_term.find_matching_paths_in(
                     tree.value,
                     style.abbreviate_root,
                     &make_persistent_id,
-                    &mut reset_path_ids,
                 );
-                let inner_expand =
-                    if matches!(default_expand, DefaultExpand::SearchResultsOrAll("")) {
-                        InnerDefaultExpand::All
-                    } else {
-                        InnerDefaultExpand::Paths(search_match_path_ids)
-                    };
-                (inner_expand, Some(search_term))
+                (
+                    InnerDefaultExpand::Paths(search_match_path_ids),
+                    Some(search_term),
+                )
             }
         };
 
-        let mut renderer = tree.config.renderer;
-
         let node = JsonTreeNode {
+            tree_id,
             value: tree.value,
             parent: None,
             make_persistent_id: &make_persistent_id,
@@ -76,47 +69,39 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
             },
         };
 
+        let should_reset_expanded = ui.ctx().data_mut(|d| {
+            if tree.config.auto_reset_expanded {
+                let default_expand_hash_id = ResetExpandedHashId(egui::util::hash(default_expand));
+                let default_expand_changed =
+                    d.get_temp::<ResetExpandedHashId>(tree.id) != Some(default_expand_hash_id);
+                if default_expand_changed {
+                    d.insert_temp(tree.id, default_expand_hash_id);
+                    d.insert_temp(tree.id, ShouldResetExpanded);
+                }
+            }
+            d.remove_temp::<ShouldResetExpanded>(tree_id).is_some()
+        });
+
+        let mut renderer = tree.config.renderer;
+
         // Wrap in a vertical layout in case this tree is placed directly in a horizontal layout,
         // which does not allow indent layouts as direct children.
         ui.vertical(|ui| {
             // Centres the collapsing header icon.
             ui.spacing_mut().interact_size.y = node.config.style.resolve_font_id(ui).size;
 
-            node.show_impl(ui, &mut vec![], &mut reset_path_ids, &mut renderer);
+            node.show_impl(ui, &mut vec![], &mut renderer, should_reset_expanded);
         });
 
-        let should_reset_expanded = if tree.config.auto_reset_expanded {
-            let default_expand_hash_id = ResetExpandedHashId(egui::util::hash(default_expand));
-            let default_expand_changed = ui.ctx().data_mut(|d| {
-                let default_expand_changed =
-                    d.get_temp::<ResetExpandedHashId>(tree.id) != Some(default_expand_hash_id);
-                if default_expand_changed {
-                    d.insert_temp(tree.id, default_expand_hash_id);
-                }
-                default_expand_changed
-            });
-            default_expand_changed
-        } else {
-            false
-        };
-
-        let response = JsonTreeResponse {
-            collapsing_state_ids: reset_path_ids,
-        };
-
-        if should_reset_expanded {
-            response.reset_expanded(ui);
-        }
-
-        response
+        JsonTreeResponse { tree_id }
     }
 
     fn show_impl(
         self,
         ui: &mut Ui,
         path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-        reset_path_ids: &'b mut HashSet<Id>,
         renderer: &'b mut JsonTreeRenderer<'a, T>,
+        should_reset_expanded: bool,
     ) {
         match self.value.to_json_tree_value() {
             JsonTreeValue::Base(value, display_value, value_type) => {
@@ -168,10 +153,10 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                 self.show_expandable(
                     ui,
                     path_segments,
-                    reset_path_ids,
                     renderer,
                     entries,
                     expandable_type,
+                    should_reset_expanded,
                 );
             }
         };
@@ -181,10 +166,10 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         self,
         ui: &mut Ui,
         path_segments: &'b mut Vec<JsonPointerSegment<'a>>,
-        reset_path_ids: &'b mut HashSet<Id>,
         renderer: &'b mut JsonTreeRenderer<'a, T>,
         entries: Vec<(JsonPointerSegment<'a>, &'a T)>,
         expandable_type: ExpandableType,
+        should_reset_expanded: bool,
     ) {
         let JsonTreeNodeConfig {
             inner_default_expand,
@@ -198,7 +183,6 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         };
 
         let path_id = (self.make_persistent_id)(path_segments);
-        reset_path_ids.insert(path_id);
 
         let default_open = match &inner_default_expand {
             InnerDefaultExpand::All => true,
@@ -212,6 +196,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
         };
 
         let mut state = CollapsingState::load_with_default_open(ui.ctx(), path_id, default_open);
+        if should_reset_expanded {
+            state.set_open(default_open);
+        }
         let is_expanded = state.is_open();
 
         let header_res = ui.horizontal_wrapped(|ui| {
@@ -417,13 +404,14 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 
                 let mut add_nested_tree = |ui: &mut Ui| {
                     let nested_tree = JsonTreeNode {
+                        tree_id: self.tree_id,
                         value: elem,
                         parent: Some(property),
                         make_persistent_id: self.make_persistent_id,
                         config: self.config,
                     };
 
-                    nested_tree.show_impl(ui, path_segments, reset_path_ids, renderer);
+                    nested_tree.show_impl(ui, path_segments, renderer, should_reset_expanded);
                 };
 
                 if is_expandable && !toggle_buttons_hidden {
@@ -463,14 +451,9 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                     },
                 );
             });
-
-            if renderer.render_hook.is_some() {
-                // show_body_indented will store the CollapsingState,
-                // but since the subsequent render call above could also mutate the state in the render hook,
-                // we must store it again.
-                state.store(ui.ctx());
-            }
         }
+        // Ensure we store any change to the state if we reset expanded or if the render hook mutated it.
+        state.store(ui.ctx());
     }
 }
 
@@ -484,3 +467,8 @@ struct JsonTreeNodeConfig {
 /// Avoids potential conflicts in case a `u64` happened to be stored against the same tree Id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ResetExpandedHashId(u64);
+
+/// Stored in `egui`'s `IdTypeMap` to indicate that the tree should reset its expanded arrays/objects before rendering on a given frame.
+/// Avoids potential conflicts in case a `bool` happened to be stored against the same tree Id.
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct ShouldResetExpanded;

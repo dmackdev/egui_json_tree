@@ -50,8 +50,8 @@ impl Show for DefaultExpandExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        ui.hyperlink_to("Source", "TODO");
-        ui.label("TODO");
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/default_expand.rs");
+        ui.label("A showcase of the different options to configure how the tree expands arrays and objects by default.");
         ui.add_space(10.0);
 
         if ui

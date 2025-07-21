@@ -126,7 +126,6 @@ impl Show for DefaultExpandExample {
 
         let response = JsonTree::new(self.title(), &self.value)
             .default_expand((&self.state_default_expand).into())
-            .auto_reset_expanded(true)
             .show(ui);
 
         if ui.button("Reset expanded").clicked() {

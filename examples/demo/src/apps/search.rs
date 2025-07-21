@@ -38,7 +38,6 @@ impl Show for SearchExample {
 
         let response = JsonTree::new(self.title(), &self.value)
             .default_expand(DefaultExpand::SearchResults(&self.search_input))
-            .auto_reset_expanded(true)
             .show(ui);
 
         if ui.button("Reset expanded").clicked() {

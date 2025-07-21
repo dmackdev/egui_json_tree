@@ -19,7 +19,7 @@ impl<T: ToJsonTreeValue> Default for JsonTreeConfig<'_, T> {
         Self {
             style: Default::default(),
             default_expand: Default::default(),
-            auto_reset_expanded: false,
+            auto_reset_expanded: true,
             renderer: Default::default(),
         }
     }
@@ -56,7 +56,9 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         self
     }
 
-    /// Automatically reset expanded arrays/objects to respect the [`DefaultExpand`] setting when it changes.
+    /// If enabled, automatically reset expanded arrays/objects to respect the [`DefaultExpand`] setting when it changes for this tree Id.
+    /// This can still be performed manually via [`JsonTreeResponse::reset_expanded`](crate::JsonTreeResponse::reset_expanded) after rendering the tree.
+    /// Defaults to enabled.
     pub fn auto_reset_expanded(mut self, auto_reset_expanded: bool) -> Self {
         self.config.auto_reset_expanded = auto_reset_expanded;
         self

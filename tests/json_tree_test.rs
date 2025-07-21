@@ -541,6 +541,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::All)
+                .auto_reset_expanded(false)
                 .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());
@@ -561,6 +562,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
+                .auto_reset_expanded(false)
                 .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());
@@ -581,6 +583,7 @@ fn json_tree_reset_expanded() {
         CentralPanel::default().show(ctx, |ui| {
             JsonTree::new(id, &value)
                 .default_expand(DefaultExpand::None)
+                .auto_reset_expanded(false)
                 .style(JsonTreeStyle::new().abbreviate_root(true))
                 .on_render(|_, render_ctx| {
                     actual.push(render_ctx.into());

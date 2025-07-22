@@ -7,7 +7,7 @@ rust-version = "1.85"
 description = "An interactive JSON tree visualiser for egui, with search and highlight functionality."
 repository = "https://github.com/dmackdev/egui_json_tree"
 license = "MIT OR Apache-2.0"
-keywords = ["json", "egui"]
+keywords = ["json", "egui", "gui", "ui", "widget"]
 categories = ["gui", "visualization"]
 include = ["src/*.rs", "LICENSE-MIT", "LICENSE-APACHE", "Cargo.toml"]
 

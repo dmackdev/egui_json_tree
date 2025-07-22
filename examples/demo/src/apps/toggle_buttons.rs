@@ -24,7 +24,7 @@ impl Show for ToggleButtonsCustomisationDemo {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/toggle_buttons.rs");
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/toggle_buttons.rs");
         ui.label("Use the buttons below to control the visibility and interactivity of the toggle buttons.");
 
         ui.vertical(|ui| {

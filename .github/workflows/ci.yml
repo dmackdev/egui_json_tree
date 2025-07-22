@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
         working-directory: examples/demo
         run: trunk build --release --public-url /egui_json_tree
       - name: Maybe deploy web demo
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: crazy-max/ghaction-github-pages@v2
         with:
           build_dir: examples/demo/dist

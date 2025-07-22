@@ -1,6 +1,6 @@
 //! An interactive JSON tree visualiser for [`egui`](https://github.com/emilk/egui), with search and highlight functionality.
 //!
-//! See the demo [source code](https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo) and [webpage](https://dmackdev.github.io/egui_json_tree) for detailed use cases, including:
+//! See the demo [source code](https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo) and [webpage](https://dmackdev.github.io/egui_json_tree) for detailed use cases, including:
 //! - Automatic expansion of arrays/objects and highlighting, based on search term matches.
 //! - Copying JSON paths and values to the clipboard.
 //! - A JSON editor UI.

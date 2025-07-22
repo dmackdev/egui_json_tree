@@ -33,7 +33,7 @@ impl Show for WrappingExample {
     }
 
     fn show(&mut self, ui: &mut Ui) {
-        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/master/examples/demo/src/apps/wrapping.rs");
+        ui.hyperlink_to("Source", "https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/wrapping.rs");
         ui.label("Use the controls below to configure the text wrapping options for primitive JSON values within the visualisation.");
         ui.label("Text is truncated when it cannot fit in the specified width and number of rows.");
         ui.add_space(10.0);

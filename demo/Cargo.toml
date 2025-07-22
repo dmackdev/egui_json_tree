@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 eframe = "0.32"
 egui = { version = "0.32", default-features = false }
-egui_json_tree = { path = "../../" }
+egui_json_tree = { path = "../egui_json_tree" }
 serde_json = { version = "1" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

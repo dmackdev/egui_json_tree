@@ -1,16 +1,17 @@
 [package]
 name = "egui_json_tree"
 version = "0.13.0"
-authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
-edition = "2024"
-rust-version = "1.85"
 description = "An interactive JSON tree visualiser for egui, with search and highlight functionality."
-repository = "https://github.com/dmackdev/egui_json_tree"
-license = "MIT OR Apache-2.0"
 keywords = ["json", "egui", "gui", "ui", "widget"]
 categories = ["gui", "visualization"]
 include = ["src/*.rs", "../LICENSE-MIT", "../LICENSE-APACHE", "Cargo.toml"]
 publish = true
+
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 egui = { workspace = true, default-features = false }

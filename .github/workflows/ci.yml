@@ -13,11 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Build
-        run: cargo build --workspace
+        run: cargo build --locked --workspace
       - name: Test
-        run: cargo test
+        run: cargo test --locked
       - name: Test json_tree_test for simd_json feature
-        run: cargo test --features=simd_json --no-default-features --test json_tree_test
+        run: cargo test --locked --features=simd_json --no-default-features --test json_tree_test
       - name: Clippy
         run: cargo clippy
       - name: Format
@@ -35,7 +35,7 @@ jobs:
           version: "v0.20.3"
       - name: Trunk build
         working-directory: demo
-        run: trunk build --release --public-url /egui_json_tree
+        run: trunk build --locked --release --public-url /egui_json_tree
       - name: Maybe deploy web demo
         if: github.ref == 'refs/heads/main'
         uses: crazy-max/ghaction-github-pages@v2

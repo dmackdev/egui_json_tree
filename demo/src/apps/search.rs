@@ -26,7 +26,7 @@ impl Show for SearchExample {
     fn show(&mut self, ui: &mut Ui) {
         ui.hyperlink_to(
             "Source",
-            "https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/search.rs",
+            "https://github.com/dmackdev/egui_json_tree/blob/main/demo/src/apps/search.rs",
         );
         ui.label("Enter a search term to automatically expand the tree to reveal and highlight the matches.");
         ui.add_space(10.0);

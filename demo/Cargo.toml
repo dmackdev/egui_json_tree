@@ -8,10 +8,10 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-eframe = "0.32"
-egui = { version = "0.32", default-features = false }
+eframe = { workspace = true }
+egui = { workspace = true, default-features = false }
 egui_json_tree = { path = "../egui_json_tree" }
-serde_json = { version = "1" }
+serde_json = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 log = "0.4"

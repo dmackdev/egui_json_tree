@@ -37,7 +37,7 @@ let response = JsonTree::new("customised-tree", &value)
                ..Default::default()
            }),
      )
-    .default_expand(DefaultExpand::All)
+    .default_expand(DefaultExpand::All) // Expand all arrays/object by default.
     .on_render(|ui, ctx| {
         // Customise rendering of the JsonTree, and/or handle interactions.
         match ctx {
@@ -62,8 +62,12 @@ let response = JsonTree::new("customised-tree", &value)
     })
     .show(ui);
 
-// Reset the expanded state of all arrays/objects to respect the `default_expand` setting.
-response.reset_expanded(ui);
+// By default, the tree will expand/collapse all arrays/objects 
+// to respect the `default_expand` setting when it changes.
+// If required, you can manually trigger this reset, e.g. after a button press:
+if ui.button("Reset").clicked() {
+  response.reset_expanded(ui);
+}
 ```
 
 ## Supported JSON Types

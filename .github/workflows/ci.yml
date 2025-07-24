@@ -24,6 +24,7 @@ jobs:
         run: cargo fmt --all -- --check
 
   web-demo:
+    needs: build
     permissions:
       contents: write
     runs-on: ubuntu-latest

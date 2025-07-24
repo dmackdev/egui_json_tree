@@ -12,7 +12,7 @@ An interactive JSON tree visualiser for [`egui`](https://github.com/emilk/egui),
   <img src="./media/search_example.gif" alt="Search Example"/>
 </p>
 
-See the demo [source code](./examples/demo) and [webpage](https://dmackdev.github.io/egui_json_tree) for detailed use cases, including:
+See the demo [source code](./demo) and [webpage](https://dmackdev.github.io/egui_json_tree) for detailed use cases, including:
 
 - Automatic expansion of arrays/objects and highlighting, based on search term matches.
 - Copying JSON paths and values to the clipboard.
@@ -79,8 +79,8 @@ See the table of crate features below for provided implementations.
 
 If you wish to use a different JSON type, see the `value` module, and disable default features in your `Cargo.toml` if you do not need the `serde_json` dependency.
 
-## Run Examples
+## Run Demo App
 
 ```bash
-cargo run --example=demo
+cargo run -p demo
 ```

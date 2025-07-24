@@ -443,7 +443,7 @@ impl Show for JsonEditorExample {
     fn show(&mut self, ui: &mut Ui) {
         ui.hyperlink_to(
             "Source",
-            "https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/editor.rs",
+            "https://github.com/dmackdev/egui_json_tree/blob/main/demo/src/apps/editor.rs",
         );
         ui.label("Right click on elements within the tree to edit values and object keys, and add/remove values.");
         ui.add_space(10.0);

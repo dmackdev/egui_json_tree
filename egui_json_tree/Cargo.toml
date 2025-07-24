@@ -1,0 +1,24 @@
+[package]
+name = "egui_json_tree"
+version = "0.13.0"
+description = "An interactive JSON tree visualiser for egui, with search and highlight functionality."
+keywords = ["json", "egui", "gui", "ui", "widget"]
+categories = ["gui", "visualization"]
+include = ["src/*.rs", "../LICENSE-MIT", "../LICENSE-APACHE", "Cargo.toml"]
+publish = true
+
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+egui = { workspace = true, default-features = false }
+serde_json = { workspace = true, optional = true }
+simd-json = { version = "0.13", optional = true }
+
+[features]
+default = ["serde_json"]
+serde_json = ["dep:serde_json"]
+simd_json = ["dep:simd-json"]

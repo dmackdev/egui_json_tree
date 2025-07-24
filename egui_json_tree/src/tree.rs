@@ -93,8 +93,8 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// You may also call [`render_ctx.render_default(ui)`](crate::render::DefaultRender) on this argument
     /// (or on any of the render contexts contained within its enum variants) to render as normal.
     ///
-    /// See [`copy_to_clipboard.rs`](https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/copy_to_clipboard.rs)
-    /// and [`editor.rs`](https://github.com/dmackdev/egui_json_tree/blob/main/examples/demo/src/apps/editor.rs)
+    /// See [`copy_to_clipboard.rs`](https://github.com/dmackdev/egui_json_tree/blob/main/demo/src/apps/copy_to_clipboard.rs)
+    /// and [`editor.rs`](https://github.com/dmackdev/egui_json_tree/blob/main/demo/src/apps/editor.rs)
     /// from the demo for detailed examples and usage.
     pub fn on_render(
         mut self,

@@ -1,11 +1,11 @@
 use apps::{
-    Example, Show, copy_to_clipboard::CopyToClipboardExample, custom_input::CustomExample,
-    editor::JsonEditorExample, search::SearchExample,
-    toggle_buttons::ToggleButtonsCustomisationDemo, wrapping::WrappingExample,
+    Show, copy_to_clipboard::CopyToClipboardExample, custom_input::CustomInputExample,
+    editor::JsonEditorExample, search::SearchExample, toggle_buttons::ToggleButtonsExample,
+    wrapping::WrappingExample,
 };
 use serde_json::json;
 
-use crate::apps::default_expand::DefaultExpandExample;
+use crate::apps::{Example, default_expand::DefaultExpandExample};
 
 mod apps;
 
@@ -35,28 +35,13 @@ impl Default for DemoApp {
 
         Self {
             examples: vec![
-                Box::new(Example::new("Null", json!(null))),
-                Box::new(Example::new("Bool", json!(true))),
-                Box::new(Example::new("Number (int)", json!(42))),
-                Box::new(Example::new("Number (neg int)", json!(-273))),
-                Box::new(Example::new("Number (float)", json!(13.37))),
-                Box::new(Example::new("String", json!("This is a string!"))),
-                Box::new(Example::new("Array", json!([1, 2, 3]))),
-                Box::new(Example::new(
-                    "Nested Arrays",
-                    json!([1, [2, 3, 4], [5, 6, [7], 8], [9, [[], 10]]]),
-                )),
-                Box::new(Example::new(
-                    "Object",
-                    json!({"foo": 123, "bar": "Hello world!", "baz": null}),
-                )),
-                Box::new(Example::new("Complex Object", complex_object.clone())),
-                Box::new(CustomExample::new()),
+                Box::new(Example::new("Object", complex_object.clone())),
+                Box::new(DefaultExpandExample::new(complex_object.clone())),
                 Box::new(SearchExample::new(complex_object.clone())),
+                Box::new(CustomInputExample::new()),
                 Box::new(CopyToClipboardExample::new(complex_object.clone())),
                 Box::new(JsonEditorExample::new(complex_object.clone())),
-                Box::new(DefaultExpandExample::new(complex_object.clone())),
-                Box::new(ToggleButtonsCustomisationDemo::new(complex_object)),
+                Box::new(ToggleButtonsExample::new(complex_object)),
                 Box::new(WrappingExample::new(long_strings_object)),
             ],
             open_example_idx: None,

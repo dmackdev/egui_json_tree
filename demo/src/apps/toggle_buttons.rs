@@ -4,12 +4,12 @@ use serde_json::Value;
 
 use super::Show;
 
-pub struct ToggleButtonsCustomisationDemo {
+pub struct ToggleButtonsExample {
     value: Value,
     toggle_buttons_state: ToggleButtonsState,
 }
 
-impl ToggleButtonsCustomisationDemo {
+impl ToggleButtonsExample {
     pub fn new(value: Value) -> Self {
         Self {
             value,
@@ -18,7 +18,7 @@ impl ToggleButtonsCustomisationDemo {
     }
 }
 
-impl Show for ToggleButtonsCustomisationDemo {
+impl Show for ToggleButtonsExample {
     fn title(&self) -> &'static str {
         "Toggle Buttons Customisation"
     }

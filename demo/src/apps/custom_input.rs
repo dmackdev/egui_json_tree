@@ -4,11 +4,11 @@ use serde_json::{Value, json};
 
 use super::Show;
 
-pub struct CustomExample {
+pub struct CustomInputExample {
     input: String,
 }
 
-impl CustomExample {
+impl CustomInputExample {
     pub fn new() -> Self {
         Self {
             input: serde_json::to_string_pretty(&json!({"foo": "bar"})).unwrap(),
@@ -16,7 +16,7 @@ impl CustomExample {
     }
 }
 
-impl Show for CustomExample {
+impl Show for CustomInputExample {
     fn title(&self) -> &'static str {
         "Custom Input"
     }

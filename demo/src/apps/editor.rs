@@ -84,7 +84,9 @@ impl Editor {
                             .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
 
                     ui.add_enabled_ui(valid_key, |ui| {
-                        if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
+                        if ui.small_button("✅").clicked()
+                            || (valid_key && enter_was_pressed_with_focus)
+                        {
                             edit_events.push(EditEvent::SaveObjectKeyEdit);
                         }
                     });

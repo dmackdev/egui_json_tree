@@ -727,6 +727,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_json_tree",
+ "egui_kittest",
  "log",
  "serde_json",
  "wasm-bindgen-futures",

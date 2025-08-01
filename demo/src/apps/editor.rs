@@ -468,3 +468,174 @@ impl Show for JsonEditorExample {
         self.editor.apply_events(&mut self.value);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use egui::accesskit::Role;
+    use egui_kittest::{Harness, kittest::Queryable};
+    use serde_json::json;
+
+    use crate::apps::{Show, editor::JsonEditorExample};
+
+    #[test]
+    fn add_to_array() {
+        let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let array_node = harness.query_by_label_contains("def").unwrap();
+        array_node.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Add to array")
+            .click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(app.value, json!({ "abc": 123, "def": [5, 6, 7, null] }))
+    }
+
+    #[test]
+    fn delete_from_array() {
+        let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let array_element_to_delete = harness.query_by_label_contains("6").unwrap();
+        array_element_to_delete.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Delete")
+            .click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(app.value, json!({ "abc": 123, "def": [5, 7] }))
+    }
+
+    #[test]
+    fn edit_array_element() {
+        let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let array_element_to_edit = harness.query_by_label_contains("6").unwrap();
+        array_element_to_edit.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Edit value")
+            .click();
+        harness.run();
+
+        assert!(harness.get_by_role(Role::TextInput).is_focused());
+
+        // Text input is focussed and we can trigger text input event via any node.
+        harness.root().type_text("foo");
+        harness.run();
+
+        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(app.value, json!({ "abc": 123, "def": [5, "foo", 7] }))
+    }
+
+    #[test]
+    fn add_to_object() {
+        let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let object_node = harness.get_by_label_contains("abc");
+        object_node.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Add to object")
+            .click();
+        harness.run();
+
+        assert!(harness.get_by_role(Role::TextInput).is_focused());
+
+        // Text input is focussed and we can trigger text input event via any node.
+        harness.root().type_text("foo");
+        harness.run();
+
+        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(
+            app.value,
+            json!({ "abc": { "baz": "qux", "foo": null }, "def": [5, 6, 7] })
+        )
+    }
+
+    #[test]
+    fn edit_object_key() {
+        let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let object_node = harness.get_by_label_contains("abc");
+        object_node.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Edit key")
+            .click();
+        harness.run();
+
+        assert!(harness.get_by_role(Role::TextInput).is_focused());
+
+        // Text input is focussed and we can trigger text input event via any node.
+        harness.root().type_text("foo");
+        harness.run();
+
+        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(
+            app.value,
+            json!({ "foo": { "baz": "qux" }, "def": [5, 6, 7] })
+        )
+    }
+
+    #[test]
+    fn delete_from_object() {
+        let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
+        let mut harness = Harness::new_ui(|ui| {
+            app.show(ui);
+        });
+
+        let element_to_delete = harness.get_by_label_contains("qux");
+        element_to_delete.click_secondary();
+        harness.run();
+
+        harness
+            .get_by_role_and_label(Role::Button, "Delete")
+            .click();
+        harness.run();
+
+        drop(harness);
+
+        assert_eq!(app.value, json!({ "abc": {}, "def": [5, 6, 7] }))
+    }
+}
+
+// let nodes: Vec<_> = harness.query_all(By::new()).collect();
+// println!("{:#?}", nodes);

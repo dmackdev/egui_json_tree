@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeStyle};
+use egui_json_tree::{DefaultExpand, JsonTree};
 use egui_kittest::Harness;
 
 #[cfg(feature = "serde_json")]
@@ -56,30 +56,6 @@ fn render_object_with_default_expand_none() {
     });
     harness.fit_contents();
     harness.snapshot("render_object_with_default_expand_none");
-}
-
-#[test]
-fn render_object_with_abbreviated_root() {
-    let mut harness = Harness::new_ui(|ui| {
-        JsonTree::new("id", &*OBJECT)
-            .default_expand(DefaultExpand::None)
-            .style(JsonTreeStyle::new().abbreviate_root(true))
-            .show(ui);
-    });
-    harness.fit_contents();
-    harness.snapshot("render_object_with_abbreviated_root");
-}
-
-#[test]
-fn render_array_with_abbreviated_root() {
-    let mut harness = Harness::new_ui(|ui| {
-        JsonTree::new("id", &json!([1, 2, 3]))
-            .default_expand(DefaultExpand::None)
-            .style(JsonTreeStyle::new().abbreviate_root(true))
-            .show(ui);
-    });
-    harness.fit_contents();
-    harness.snapshot("render_array_with_abbreviated_root");
 }
 
 #[test]

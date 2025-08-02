@@ -222,6 +222,30 @@ mod tests {
         assert_eq!(harness.query_all_by_role(Role::Label).count(), 1);
     }
 
+    #[test]
+    fn render_object_with_default_expand_none_and_abbreviated_root() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::None)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.get_by_role(Role::Label).value().unwrap(), "{...}");
+    }
+
+    #[test]
+    fn render_array_with_default_expand_none_and_abbreviated_root() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &json!([1, 2, 3]))
+                .default_expand(DefaultExpand::None)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.get_by_role(Role::Label).value().unwrap(), "[...]");
+    }
+
     fn query_all_collapsing_headers<'a, S>(
         harness: &'a Harness<'_, S>,
     ) -> impl Iterator<Item = Node<'a>> {

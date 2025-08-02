@@ -36,7 +36,7 @@ jobs:
       - name: Test
         run: cargo test --locked
       - name: Test for simd_json feature
-        run: cargo test --locked --features=simd_json --no-default-features --test image_snapshot_tests
+        run: cargo test --locked --package egui_json_tree --test image_snapshot_tests --features simd_json --no-default-features
 
   web-demo:
     needs: test

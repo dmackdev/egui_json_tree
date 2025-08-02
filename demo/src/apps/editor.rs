@@ -484,7 +484,7 @@ mod tests {
             app.show(ui);
         });
 
-        let array_node = harness.query_by_label_contains("def").unwrap();
+        let array_node = harness.get_by_label_contains("def");
         array_node.click_secondary();
         harness.run();
 
@@ -505,7 +505,7 @@ mod tests {
             app.show(ui);
         });
 
-        let array_element_to_delete = harness.query_by_label_contains("6").unwrap();
+        let array_element_to_delete = harness.get_by_label_contains("6");
         array_element_to_delete.click_secondary();
         harness.run();
 
@@ -526,7 +526,7 @@ mod tests {
             app.show(ui);
         });
 
-        let array_element_to_edit = harness.query_by_label_contains("6").unwrap();
+        let array_element_to_edit = harness.get_by_label_contains("6");
         array_element_to_edit.click_secondary();
         harness.run();
 

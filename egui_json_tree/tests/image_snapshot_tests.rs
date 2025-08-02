@@ -59,6 +59,43 @@ fn render_object_with_default_expand_none() {
 }
 
 #[test]
+fn render_object_search_results() {
+    // Harness::fit_contents seems to cause the tree to wrap, so set a fixed size here.
+    let mut harness = Harness::builder().with_size([350., 400.]).build_ui_state(
+        |ui, default_expand| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(*default_expand)
+                .show(ui);
+        },
+        DefaultExpand::SearchResults(""),
+    );
+
+    let mut snapshot_errors = vec![];
+
+    for (idx, search_default_expand) in [
+        DefaultExpand::SearchResults(""),
+        DefaultExpand::SearchResults("g"),
+        DefaultExpand::SearchResults("gr"),
+        DefaultExpand::SearchResults("gre"),
+        DefaultExpand::SearchResults("gree"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        *harness.state_mut() = search_default_expand;
+        harness.run();
+        if let Err(err) = harness.try_snapshot(format!(
+            "default_expand_search_results/{}_{:?}",
+            idx, search_default_expand
+        )) {
+            snapshot_errors.push(err);
+        }
+    }
+
+    assert!(snapshot_errors.is_empty());
+}
+
+#[test]
 fn render_object_with_changing_default_expand_automatically_resets_expanded() {
     // Harness::fit_contents seems to cause the tree to wrap, so set a fixed size here.
     let mut harness = Harness::builder().with_size([350., 400.]).build_ui_state(
@@ -74,12 +111,9 @@ fn render_object_with_changing_default_expand_automatically_resets_expanded() {
 
     for (idx, default_expand) in [
         DefaultExpand::None,
-        DefaultExpand::All,
-        DefaultExpand::SearchResults("g"),
-        DefaultExpand::SearchResults("gr"),
         DefaultExpand::ToLevel(2),
-        DefaultExpand::SearchResults("gre"),
         DefaultExpand::SearchResults("gree"),
+        DefaultExpand::All,
         DefaultExpand::SearchResultsOrAll("null"),
     ]
     .into_iter()

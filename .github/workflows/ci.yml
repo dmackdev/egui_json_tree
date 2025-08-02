@@ -30,7 +30,7 @@ jobs:
       - name: Test
         run: cargo test --locked
       - name: Test for simd_json feature
-        run: cargo test --locked --features=simd_json --no-default-features snapshot_tests
+        run: cargo test --locked --features=simd_json --no-default-features --test image_snapshot_tests
 
   web-demo:
     needs: test

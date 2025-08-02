@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +19,8 @@ jobs:
       - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0 
       - name: Format
         run: cargo fmt --all -- --check
+      - name: Docs
+        run: cargo doc --lib --no-deps --all-features
       - name: Clippy
         run: cargo clippy
       - name: Build

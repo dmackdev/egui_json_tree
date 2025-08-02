@@ -123,17 +123,6 @@ fn render_object_with_default_expand_to_levels() {
 }
 
 #[test]
-fn render_object_with_default_expand_search_results_or_all_with_empty_string_expands_everything() {
-    let mut harness = Harness::new_ui(|ui| {
-        JsonTree::new("id", &*OBJECT)
-            .default_expand(DefaultExpand::SearchResultsOrAll(""))
-            .show(ui);
-    });
-    harness.fit_contents();
-    harness.snapshot("search_results_or_all_empty_string");
-}
-
-#[test]
 fn render_object_with_egui_light_theme_should_style_tree_with_light_theme() {
     let mut harness = Harness::new_ui(|ui| {
         ui.ctx().set_theme(egui::Theme::Light);

@@ -246,6 +246,18 @@ mod tests {
         assert_eq!(harness.get_by_role(Role::Label).value().unwrap(), "[...]");
     }
 
+    #[test]
+    fn render_object_with_default_expand_search_results_or_all_when_empty_string_expands_everything()
+     {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::SearchResultsOrAll(""))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 3);
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 25);
+    }
+
     fn query_all_collapsing_headers<'a, S>(
         harness: &'a Harness<'_, S>,
     ) -> impl Iterator<Item = Node<'a>> {

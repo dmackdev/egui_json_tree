@@ -6,31 +6,47 @@ on:
       - main
   pull_request:
 
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48 # v1.13.0
-      - name: Build
-        run: cargo build --locked --workspace
-      - name: Test
-        run: cargo test --locked
-      - name: Test json_tree_test for simd_json feature
-        run: cargo test --locked --features=simd_json --no-default-features --test json_tree_test
-      - name: Clippy
-        run: cargo clippy
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0 
       - name: Format
         run: cargo fmt --all -- --check
+      - name: Docs
+        run: cargo doc --lib --no-deps --all-features
+      - name: Clippy
+        run: cargo clippy
+      - name: Build
+        run: cargo build --locked --workspace
+
+  test:
+    needs: build
+    runs-on: macos-15 # For snapshot testing.
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48 # v1.13.0
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0 
+      - name: Test
+        run: cargo test --locked
+      - name: Test for simd_json feature
+        run: cargo test --locked --package egui_json_tree --test image_snapshot_tests --features simd_json --no-default-features
 
   web-demo:
-    needs: build
+    needs: test
     permissions:
       contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions-rust-lang/setup-rust-toolchain@fb51252c7ba57d633bc668f941da052e410add48 # v1.13.0
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0 
       - uses: jetli/trunk-action@1346cc09eace4beb84e403e199a471346d4684c9 # v0.5.1
         with:
           version: "v0.21.14"

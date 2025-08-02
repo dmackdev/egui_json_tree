@@ -19,3 +19,6 @@ serde_json = { workspace = true }
 log = "0.4"
 wasm-bindgen-futures = "0.4"
 web-sys = "0.3.70"           # to access the DOM (to hide the loading text)
+
+[dev-dependencies]
+egui_kittest = { workspace = true }

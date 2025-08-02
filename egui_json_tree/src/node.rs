@@ -206,7 +206,15 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
 
             if let Some(enabled) = style.toggle_buttons_state.enabled() {
                 ui.add_enabled_ui(enabled, |ui| {
-                    state.show_toggle_button(ui, paint_default_icon)
+                    let _response = state.show_toggle_button(ui, paint_default_icon);
+                    #[cfg(test)]
+                    _response.widget_info(|| {
+                        egui::WidgetInfo::labeled(
+                            egui::WidgetType::CollapsingHeader,
+                            ui.is_enabled(),
+                            JsonPointer(path_segments).to_json_pointer_string(),
+                        )
+                    });
                 });
             }
 

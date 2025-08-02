@@ -109,3 +109,165 @@ impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
         JsonTreeNode::show(self, ui)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::LazyLock;
+
+    use egui::accesskit::Role;
+    use egui_kittest::Node;
+    use egui_kittest::kittest::NodeT;
+    use egui_kittest::{Harness, kittest::Queryable};
+    use serde_json::{Value, json};
+
+    use crate::{DefaultExpand, JsonTree, JsonTreeStyle, ToggleButtonsState};
+
+    static OBJECT: LazyLock<Value> = LazyLock::new(|| {
+        json!({
+          "bar": {
+            "grep": 21,
+            "qux": false,
+          },
+          "baz": null,
+          "foo": [
+            1,
+            "two"
+          ]
+        })
+    });
+
+    #[test]
+    fn render_object_with_toggle_buttons_visible_disabled() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::All)
+                .style(
+                    JsonTreeStyle::new().toggle_buttons_state(ToggleButtonsState::VisibleDisabled),
+                )
+                .show(ui);
+        });
+
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 3);
+        assert!(
+            query_all_collapsing_headers(&harness).all(|node| node.accesskit_node().is_disabled())
+        )
+    }
+
+    #[test]
+    fn render_object_with_toggle_buttons_visible_enabled() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::All)
+                .style(
+                    JsonTreeStyle::new().toggle_buttons_state(ToggleButtonsState::VisibleEnabled),
+                )
+                .show(ui);
+        });
+
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 3);
+        assert!(
+            query_all_collapsing_headers(&harness).all(|node| !node.accesskit_node().is_disabled())
+        )
+    }
+
+    #[test]
+    fn render_object_with_toggle_buttons_hidden() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::All)
+                .style(JsonTreeStyle::new().toggle_buttons_state(ToggleButtonsState::Hidden))
+                .show(ui);
+        });
+
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 0);
+    }
+
+    #[test]
+    fn render_object_with_interaction_and_manual_reset_expanded() {
+        let mut harness = Harness::new_ui_state(
+            |ui, should_reset_expanded| {
+                let response = JsonTree::new("id", &*OBJECT)
+                    .default_expand(DefaultExpand::None)
+                    .style(JsonTreeStyle::new().abbreviate_root(true))
+                    .show(ui);
+
+                if *should_reset_expanded {
+                    response.reset_expanded(ui);
+                }
+            },
+            false,
+        );
+
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 1);
+
+        get_collapsing_header_node(&harness, "").click();
+        harness.run();
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 3);
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 11);
+
+        get_collapsing_header_node(&harness, "/bar").click();
+        harness.run();
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 18);
+        assert!(harness.query_by_label("\"grep\"").is_some());
+        assert!(harness.query_by_label("21").is_some());
+        assert!(harness.query_by_label("\"qux\"").is_some());
+        assert!(harness.query_by_label("false").is_some());
+
+        *harness.state_mut() = true;
+        // Resetting expanded manually has a one frame delay, since the reset call happens after the tree renders, hence two runs.
+        harness.run();
+        harness.run();
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 1);
+    }
+
+    #[test]
+    fn render_object_with_default_expand_none_and_abbreviated_root() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::None)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.get_by_role(Role::Label).value().unwrap(), "{...}");
+    }
+
+    #[test]
+    fn render_array_with_default_expand_none_and_abbreviated_root() {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &json!([1, 2, 3]))
+                .default_expand(DefaultExpand::None)
+                .style(JsonTreeStyle::new().abbreviate_root(true))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 1);
+        assert_eq!(harness.get_by_role(Role::Label).value().unwrap(), "[...]");
+    }
+
+    #[test]
+    fn render_object_with_default_expand_search_results_or_all_when_empty_string_expands_everything()
+     {
+        let harness = Harness::new_ui(|ui| {
+            JsonTree::new("id", &*OBJECT)
+                .default_expand(DefaultExpand::SearchResultsOrAll(""))
+                .show(ui);
+        });
+        assert_eq!(query_all_collapsing_headers(&harness).count(), 3);
+        assert_eq!(harness.query_all_by_role(Role::Label).count(), 25);
+    }
+
+    fn query_all_collapsing_headers<'a, S>(
+        harness: &'a Harness<'_, S>,
+    ) -> impl Iterator<Item = Node<'a>> {
+        harness.query_all_by_role(Role::Button)
+    }
+
+    fn get_collapsing_header_node<'a, S>(
+        harness: &'a Harness<'_, S>,
+        pointer: &'a str,
+    ) -> Node<'a> {
+        harness.get_by_role_and_label(Role::Button, pointer)
+    }
+}

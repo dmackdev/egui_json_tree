@@ -22,3 +22,7 @@ simd-json = { version = "0.13", optional = true }
 default = ["serde_json"]
 serde_json = ["dep:serde_json"]
 simd_json = ["dep:simd-json"]
+
+[dev-dependencies]
+egui = { workspace = true, default-features = true }                 # egui_kittest snapshot testing needs default features
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }

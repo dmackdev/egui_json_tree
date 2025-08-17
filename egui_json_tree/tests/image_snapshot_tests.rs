@@ -84,10 +84,12 @@ fn render_object_search_results() {
     {
         *harness.state_mut() = search_default_expand;
         harness.run();
-        if let Err(err) = harness.try_snapshot(format!(
+        let filename = format!(
             "default_expand_search_results/{}_{:?}",
             idx, search_default_expand
-        )) {
+        )
+        .replace("\"", "");
+        if let Err(err) = harness.try_snapshot(filename) {
             snapshot_errors.push(err);
         }
     }
@@ -121,10 +123,9 @@ fn render_object_with_changing_default_expand_automatically_resets_expanded() {
     {
         *harness.state_mut() = default_expand;
         harness.run();
-        if let Err(err) = harness.try_snapshot(format!(
-            "changing_default_expand/{}_{:?}",
-            idx, default_expand
-        )) {
+        let filename =
+            format!("changing_default_expand/{}_{:?}", idx, default_expand).replace("\"", "");
+        if let Err(err) = harness.try_snapshot(filename) {
             snapshot_errors.push(err);
         }
     }

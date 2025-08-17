@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  <!-- Disable zooming: -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no"
+  />
+
+  <head>
+    <title>egui_json_tree Demo</title>
+
+    <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
+    
+<script type="module">
+import init, * as bindings from '/egui_json_tree/demo-5bd0c244b48d8488.js';
+const wasm = await init({ module_or_path: '/egui_json_tree/demo-5bd0c244b48d8488_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
+    <base href="/egui_json_tree/" />
+
+    <style>
+      html {
+        /* Remove touch delay: */
+        touch-action: manipulation;
+      }
+
+      /* Allow canvas to fill entire web page: */
+      html,
+      body {
+        overflow: hidden;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100%;
+        width: 100%;
+        background: #404040;
+      }
+
+      /* Make canvas fill entire document: */
+      canvas {
+        margin-right: auto;
+        margin-left: auto;
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .centered {
+        margin-right: auto;
+        margin-left: auto;
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #f0f0f0;
+        font-size: 24px;
+        font-family: Ubuntu-Light, Helvetica, sans-serif;
+        text-align: center;
+      }
+
+      /* ---------------------------------------------- */
+      /* Loading animation from https://loading.io/css/ */
+      .lds-dual-ring {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+      }
+
+      .lds-dual-ring:after {
+        content: " ";
+        display: block;
+        width: 24px;
+        height: 24px;
+        margin: 0px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        border-color: #fff transparent #fff transparent;
+        animation: lds-dual-ring 1.2s linear infinite;
+      }
+
+      @keyframes lds-dual-ring {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  <link rel="modulepreload" href="/egui_json_tree/demo-5bd0c244b48d8488.js" crossorigin="anonymous" integrity="sha384-bcHNrl8TudzZQFCHq7OjutS790CqQP94awDO8qAeoiKv1nskSkaBCpH1G7G6FxPs"><link rel="preload" href="/egui_json_tree/demo-5bd0c244b48d8488_bg.wasm" crossorigin="anonymous" integrity="sha384-78pxcwUrDVVN7Pz3b+AU2hcmmsfyWLEpOr4lQ/9HVAMl1eWc2oOxhjt87Z1lKDT/" as="fetch" type="application/wasm"></head>
+
+  <body>
+    <!-- The WASM code will resize the canvas dynamically -->
+    <!-- the id is hardcoded in main.rs, so make sure both match. -->
+    <canvas id="canvas"></canvas>
+
+    <!-- the loading spinner will be removed in main.rs -->
+    <div class="centered" id="loading_text">
+      <p style="font-size: 16px">Loading…</p>
+      <div class="lds-dual-ring"></div>
+    </div>
+  </body>
+</html>

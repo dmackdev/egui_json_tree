@@ -1,5 +1,5 @@
 test:
-  cargo test
+  cargo test --workspace
   cargo test --package egui_json_tree --test image_snapshot_tests --features simd_json --no-default-features
 
 update_snapshots:

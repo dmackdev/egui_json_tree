@@ -61,7 +61,7 @@ fn render_object_with_default_expand_none() {
 #[test]
 fn render_object_search_results() {
     // Harness::fit_contents seems to cause the tree to wrap, so set a fixed size here.
-    let mut harness = Harness::builder().with_size([350., 400.]).build_ui_state(
+    let mut harness = Harness::builder().with_size([400., 400.]).build_ui_state(
         |ui, default_expand| {
             JsonTree::new("id", &*OBJECT)
                 .default_expand(*default_expand)
@@ -100,7 +100,7 @@ fn render_object_search_results() {
 #[test]
 fn render_object_with_changing_default_expand_automatically_resets_expanded() {
     // Harness::fit_contents seems to cause the tree to wrap, so set a fixed size here.
-    let mut harness = Harness::builder().with_size([350., 400.]).build_ui_state(
+    let mut harness = Harness::builder().with_size([400., 400.]).build_ui_state(
         |ui, default_expand| {
             JsonTree::new("id", &*OBJECT)
                 .default_expand(*default_expand)
@@ -136,7 +136,7 @@ fn render_object_with_changing_default_expand_automatically_resets_expanded() {
 #[test]
 fn render_object_with_default_expand_to_levels() {
     // Harness::fit_contents seems to cause the tree to wrap, so set a fixed size here.
-    let mut harness = Harness::builder().with_size([350., 400.]).build_ui_state(
+    let mut harness = Harness::builder().with_size([400., 400.]).build_ui_state(
         |ui, level| {
             JsonTree::new("id", &*OBJECT)
                 .default_expand(DefaultExpand::ToLevel(*level))

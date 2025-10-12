@@ -46,8 +46,8 @@ pub enum JsonPointerSegment<'a> {
 impl fmt::Display for JsonPointerSegment<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            JsonPointerSegment::Key(key) => write!(f, "{}", key),
-            JsonPointerSegment::Index(idx) => write!(f, "{}", idx),
+            JsonPointerSegment::Key(key) => write!(f, "{key}"),
+            JsonPointerSegment::Index(idx) => write!(f, "{idx}"),
         }
     }
 }
@@ -58,7 +58,7 @@ impl JsonPointerSegment<'_> {
             JsonPointerSegment::Key(key) => {
                 format!("/{}", key.replace('~', "~0").replace('/', "~1"))
             }
-            JsonPointerSegment::Index(idx) => format!("/{}", idx),
+            JsonPointerSegment::Index(idx) => format!("/{idx}"),
         }
     }
 }

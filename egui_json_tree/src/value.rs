@@ -44,14 +44,14 @@ pub enum ExpandableType {
 /// A trait for types that can be converted to a [JsonTreeValue].
 pub trait ToJsonTreeValue {
     /// Converts this JSON value to a [JsonTreeValue].
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self>;
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self>;
     /// Returns whether this JSON value is expandable, i.e. whether it is an object or an array.
     fn is_expandable(&self) -> bool;
 }
 
 #[cfg(feature = "serde_json")]
 impl ToJsonTreeValue for serde_json::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self> {
         match self {
             serde_json::Value::Null => JsonTreeValue::Base(self, self, BaseValueType::Null),
             serde_json::Value::Bool(b) => JsonTreeValue::Base(self, b, BaseValueType::Bool),
@@ -83,7 +83,7 @@ impl ToJsonTreeValue for serde_json::Value {
 
 #[cfg(feature = "simd_json")]
 impl ToJsonTreeValue for simd_json::owned::Value {
-    fn to_json_tree_value(&self) -> JsonTreeValue<Self> {
+    fn to_json_tree_value(&self) -> JsonTreeValue<'_, Self> {
         match self {
             simd_json::OwnedValue::Static(s) => match s {
                 simd_json::StaticNode::I64(n) => {

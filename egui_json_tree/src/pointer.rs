@@ -31,7 +31,7 @@ impl<'a> JsonPointer<'a, '_> {
     /// Returns a [JsonPointer] to the parent of this pointer, if it exists.
     ///
     /// This is useful for retrieving a pointer to the enclosing array or object of a JSON value.
-    pub fn parent(&self) -> Option<JsonPointer> {
+    pub fn parent(&self) -> Option<JsonPointer<'a, '_>> {
         self.0.split_last().map(|(_, init)| JsonPointer(init))
     }
 }

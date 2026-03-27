@@ -946,7 +946,7 @@ dependencies = [
 
 [[package]]
 name = "egui_json_tree"
-version = "0.14.2"
+version = "0.15.0"
 dependencies = [
  "egui",
  "egui_kittest",

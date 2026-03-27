@@ -290,13 +290,16 @@ fn render_value(
     parent_status: ParentStatus,
 ) -> Response {
     let mut job = ui.ctx().memory_mut(|mem| {
-        mem.caches.cache::<ValueLayoutJobCreatorCache>().get((
-            style.resolve_visuals(ui),
-            value_str,
-            value_type,
-            search_term,
-            &style.resolve_font_id(ui),
-        ))
+        mem.caches
+            .cache::<ValueLayoutJobCreatorCache>()
+            .get((
+                style.resolve_visuals(ui),
+                value_str,
+                value_type,
+                search_term,
+                &style.resolve_font_id(ui),
+            ))
+            .clone()
     });
     job.wrap = style.resolve_value_text_wrapping(parent_status, ui);
     render_job(ui, job)
@@ -367,12 +370,15 @@ fn render_property(
     search_term: Option<&SearchTerm>,
 ) -> Response {
     let job = ui.ctx().memory_mut(|mem| {
-        mem.caches.cache::<PropertyLayoutJobCreatorCache>().get((
-            style.resolve_visuals(ui),
-            property,
-            search_term,
-            &style.resolve_font_id(ui),
-        ))
+        mem.caches
+            .cache::<PropertyLayoutJobCreatorCache>()
+            .get((
+                style.resolve_visuals(ui),
+                property,
+                search_term,
+                &style.resolve_font_id(ui),
+            ))
+            .clone()
     });
 
     render_job(ui, job)

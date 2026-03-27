@@ -51,11 +51,11 @@ impl Default for DemoApp {
 }
 
 impl eframe::App for DemoApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::SidePanel::left("left-panel")
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::Panel::left("left-panel")
             .resizable(false)
-            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
-            .show_animated(ctx, self.left_sidebar_expanded, |ui| {
+            .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(10.0))
+            .show_animated_inside(ui, self.left_sidebar_expanded, |ui| {
                 collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
                 ui.add_space(10.0);
 
@@ -90,9 +90,9 @@ impl eframe::App for DemoApp {
             .map(|open_idx| &mut self.examples[open_idx]);
 
         if let Some(example) = &example {
-            egui::TopBottomPanel::top("top-panel")
-                .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(10.0))
-                .show(ctx, |ui| {
+            egui::Panel::top("top-panel")
+                .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(10.0))
+                .show_inside(ui, |ui| {
                     ui.horizontal_centered(|ui| {
                         if !self.left_sidebar_expanded {
                             collapsible_sidebar_button_ui(ui, &mut self.left_sidebar_expanded);
@@ -102,7 +102,7 @@ impl eframe::App for DemoApp {
                 });
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show_inside(ui, |ui| {
             match example {
                 Some(example) => {
                     egui::ScrollArea::vertical()

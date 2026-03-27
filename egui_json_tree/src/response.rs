@@ -15,6 +15,6 @@ impl JsonTreeResponse {
     /// and/or you when wish to reset any manually collapsed/expanded arrays and objects to respect this setting.
     pub fn reset_expanded(&self, ui: &mut Ui) {
         ui.ctx()
-            .data_mut(|d| d.insert_temp(self.tree_id, ShouldResetExpanded))
+            .data_mut(|d| d.insert_temp(self.tree_id, ShouldResetExpanded));
     }
 }

@@ -56,7 +56,7 @@ impl<'a, T: ToJsonTreeValue> RenderContext<'a, '_, T> {
     }
 
     /// Convenience method to access the full JSON pointer to the JSON value involved in this render call.
-    pub fn pointer(&self) -> JsonPointer {
+    pub fn pointer(&self) -> JsonPointer<'a, '_> {
         match self {
             RenderContext::Property(context) => context.pointer,
             RenderContext::BaseValue(context) => context.pointer,

@@ -60,51 +60,44 @@ impl Editor {
         state: &mut EditObjectKeyState,
         edit_events: &mut Vec<EditEvent>,
     ) {
-        if let RenderContext::Property(context) = &context {
-            if let JsonPointerSegment::Key(key) = context.property {
-                if key == state.key
-                    && context
-                        .pointer
-                        .parent()
-                        .map(|parent| parent.to_json_pointer_string())
-                        .is_some_and(|object_pointer| object_pointer == state.object_pointer)
-                {
-                    let enter_was_pressed_with_focus = Self::show_text_edit(
-                        ui,
-                        &mut state.new_key_input,
-                        &mut state.request_focus,
-                    );
+        if let RenderContext::Property(context) = &context
+            && let JsonPointerSegment::Key(key) = context.property
+            && key == state.key
+            && context
+                .pointer
+                .parent()
+                .map(|parent| parent.to_json_pointer_string())
+                .is_some_and(|object_pointer| object_pointer == state.object_pointer)
+        {
+            let enter_was_pressed_with_focus =
+                Self::show_text_edit(ui, &mut state.new_key_input, &mut state.request_focus);
 
-                    ui.add_space(5.0);
+            ui.add_space(5.0);
 
-                    let valid_key = state.key == state.new_key_input
-                        || document
-                            .pointer(&state.object_pointer)
-                            .and_then(|v| v.as_object())
-                            .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
+            let valid_key = state.key == state.new_key_input
+                || document
+                    .pointer(&state.object_pointer)
+                    .and_then(|v| v.as_object())
+                    .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
 
-                    ui.add_enabled_ui(valid_key, |ui| {
-                        if ui.small_button("✅").clicked()
-                            || (valid_key && enter_was_pressed_with_focus)
-                        {
-                            edit_events.push(EditEvent::SaveObjectKeyEdit);
-                        }
-                    });
-
-                    ui.add_space(5.0);
-
-                    if ui.small_button("❌").clicked() {
-                        if state.is_new_key {
-                            edit_events.push(EditEvent::DeleteFromObject {
-                                object_pointer: state.object_pointer.to_string(),
-                                key: key.to_string(),
-                            });
-                        }
-                        edit_events.push(EditEvent::CloseObjectKeyEdit);
-                    }
-                    return;
+            ui.add_enabled_ui(valid_key, |ui| {
+                if ui.small_button("✅").clicked() || (valid_key && enter_was_pressed_with_focus) {
+                    edit_events.push(EditEvent::SaveObjectKeyEdit);
                 }
+            });
+
+            ui.add_space(5.0);
+
+            if ui.small_button("❌").clicked() {
+                if state.is_new_key {
+                    edit_events.push(EditEvent::DeleteFromObject {
+                        object_pointer: state.object_pointer.to_string(),
+                        key: key.to_string(),
+                    });
+                }
+                edit_events.push(EditEvent::CloseObjectKeyEdit);
             }
+            return;
         }
         context.render_default(ui);
     }
@@ -115,24 +108,24 @@ impl Editor {
         state: &mut EditValueState,
         edit_events: &mut Vec<EditEvent>,
     ) {
-        if let RenderContext::BaseValue(context) = &context {
-            if state.pointer == context.pointer.to_json_pointer_string() {
-                let enter_was_pressed_with_focus =
-                    Self::show_text_edit(ui, &mut state.new_value_input, &mut state.request_focus);
+        if let RenderContext::BaseValue(context) = &context
+            && state.pointer == context.pointer.to_json_pointer_string()
+        {
+            let enter_was_pressed_with_focus =
+                Self::show_text_edit(ui, &mut state.new_value_input, &mut state.request_focus);
 
-                ui.add_space(5.0);
+            ui.add_space(5.0);
 
-                if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
-                    edit_events.push(EditEvent::SaveValueEdit);
-                }
-
-                ui.add_space(5.0);
-
-                if ui.small_button("❌").clicked() {
-                    edit_events.push(EditEvent::CloseValueEdit);
-                }
-                return;
+            if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
+                edit_events.push(EditEvent::SaveValueEdit);
             }
+
+            ui.add_space(5.0);
+
+            if ui.small_button("❌").clicked() {
+                edit_events.push(EditEvent::CloseValueEdit);
+            }
+            return;
         }
         context.render_default(ui);
     }
@@ -179,16 +172,16 @@ impl Editor {
                 }
 
                 if let Some(parent) = context.pointer.parent() {
-                    if let JsonPointerSegment::Key(key) = &context.property {
-                        if ui.button("Edit key").clicked() {
-                            self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
-                                key: key.to_string(),
-                                object_pointer: parent.to_json_pointer_string(),
-                                new_key_input: key.to_string(),
-                                request_focus: true,
-                                is_new_key: false,
-                            }));
-                        }
+                    if let JsonPointerSegment::Key(key) = &context.property
+                        && ui.button("Edit key").clicked()
+                    {
+                        self.state = Some(EditState::EditObjectKey(EditObjectKeyState {
+                            key: key.to_string(),
+                            object_pointer: parent.to_json_pointer_string(),
+                            new_key_input: key.to_string(),
+                            request_focus: true,
+                            is_new_key: false,
+                        }));
                     }
 
                     if ui.button("Delete").clicked() {
@@ -377,12 +370,12 @@ impl Editor {
                     }
                 }
                 EditEvent::SaveValueEdit => {
-                    if let Some(EditState::EditValue(value_edit)) = self.state.take() {
-                        if let Some(value) = document.pointer_mut(&value_edit.pointer) {
-                            match Value::from_str(&value_edit.new_value_input) {
-                                Ok(new_value) => *value = new_value,
-                                Err(_) => *value = Value::String(value_edit.new_value_input),
-                            }
+                    if let Some(EditState::EditValue(value_edit)) = self.state.take()
+                        && let Some(value) = document.pointer_mut(&value_edit.pointer)
+                    {
+                        match Value::from_str(&value_edit.new_value_input) {
+                            Ok(new_value) => *value = new_value,
+                            Err(_) => *value = Value::String(value_edit.new_value_input),
                         }
                     }
                 }
@@ -392,10 +385,10 @@ impl Editor {
                             .pointer_mut(&object_key_edit.object_pointer)
                             .and_then(|value| value.as_object_mut());
 
-                        if let Some(obj) = obj {
-                            if let Some(value) = obj.remove(&object_key_edit.key) {
-                                obj.insert(object_key_edit.new_key_input, value);
-                            }
+                        if let Some(obj) = obj
+                            && let Some(value) = obj.remove(&object_key_edit.key)
+                        {
+                            obj.insert(object_key_edit.new_key_input, value);
                         }
                     }
                 }

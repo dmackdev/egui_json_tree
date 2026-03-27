@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use egui_json_tree::{DefaultExpand, JsonTree};
-use egui_kittest::Harness;
+use egui_kittest::{Harness, SnapshotResults};
 
 #[cfg(feature = "serde_json")]
 use serde_json::{Value, json};
@@ -70,7 +70,7 @@ fn render_object_search_results() {
         DefaultExpand::SearchResults(""),
     );
 
-    let mut snapshot_errors = vec![];
+    let mut results = SnapshotResults::new();
 
     for (idx, search_default_expand) in [
         DefaultExpand::SearchResults(""),
@@ -84,14 +84,11 @@ fn render_object_search_results() {
     {
         *harness.state_mut() = search_default_expand;
         harness.run();
+
         let filename = format!("default_expand_search_results/{idx}_{search_default_expand:?}")
             .replace("\"", "");
-        if let Err(err) = harness.try_snapshot(filename) {
-            snapshot_errors.push(err);
-        }
+        results.add(harness.try_snapshot(filename));
     }
-
-    assert!(snapshot_errors.is_empty());
 }
 
 #[test]
@@ -106,7 +103,7 @@ fn render_object_with_changing_default_expand_automatically_resets_expanded() {
         DefaultExpand::None,
     );
 
-    let mut snapshot_errors = vec![];
+    let mut results = SnapshotResults::new();
 
     for (idx, default_expand) in [
         DefaultExpand::None,
@@ -120,14 +117,11 @@ fn render_object_with_changing_default_expand_automatically_resets_expanded() {
     {
         *harness.state_mut() = default_expand;
         harness.run();
+
         let filename =
             format!("changing_default_expand/{idx}_{default_expand:?}").replace("\"", "");
-        if let Err(err) = harness.try_snapshot(filename) {
-            snapshot_errors.push(err);
-        }
+        results.add(harness.try_snapshot(filename));
     }
-
-    assert!(snapshot_errors.is_empty());
 }
 
 #[test]
@@ -141,17 +135,14 @@ fn render_object_with_default_expand_to_levels() {
         },
         0,
     );
-    let mut snapshot_errors = vec![];
+    let mut results = SnapshotResults::new();
 
     for level in 0..=4 {
         *harness.state_mut() = level;
         harness.run();
-        if let Err(err) = harness.try_snapshot(format!("default_expand_to_level/{level}")) {
-            snapshot_errors.push(err);
-        }
-    }
 
-    assert!(snapshot_errors.is_empty());
+        results.add(harness.try_snapshot(format!("default_expand_to_level/{level}")));
+    }
 }
 
 #[test]

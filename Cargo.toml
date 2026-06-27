@@ -10,7 +10,7 @@ authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
 repository = "https://github.com/dmackdev/egui_json_tree"
 
 [workspace.dependencies]
-egui = { version = "0.34", default-features = false }
-eframe = "0.34"
-egui_kittest = "0.34"
+egui = { version = "0.35", default-features = false }
+eframe = "0.35"
+egui_kittest = "0.35"
 serde_json = { version = "1" }

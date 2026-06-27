@@ -4,8 +4,7 @@ use crate::{
     render::{JsonTreeRenderer, RenderContext},
     value::ToJsonTreeValue,
 };
-use egui::{Id, Ui};
-use std::hash::Hash;
+use egui::{AsId, Id, Ui};
 
 pub(crate) struct JsonTreeConfig<'a, T: ToJsonTreeValue> {
     pub(crate) style: Option<JsonTreeStyle>,
@@ -36,7 +35,7 @@ pub struct JsonTree<'a, T: ToJsonTreeValue> {
 impl<'a, T: ToJsonTreeValue> JsonTree<'a, T> {
     /// Creates a new [`JsonTree`].
     /// `id` must be a globally unique identifier.
-    pub fn new(id: impl Hash, value: &'a T) -> Self {
+    pub fn new(id: impl AsId, value: &'a T) -> Self {
         Self {
             id: Id::new(id),
             value,

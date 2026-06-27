@@ -4,9 +4,9 @@ use std::fmt::Display;
 
 use egui::{
     Color32, FontId, Label, Response, Sense, TextFormat, Ui,
+    cache::{ComputerMut, FrameCache},
     collapsing_header::CollapsingState,
     text::LayoutJob,
-    util::cache::{ComputerMut, FrameCache},
 };
 
 use crate::{

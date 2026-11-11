@@ -28,7 +28,7 @@ pub(crate) struct JsonTreeNode<'a, 'b, T: ToJsonTreeValue> {
 
 impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
     pub(crate) fn show(tree: JsonTree<'a, T>, ui: &mut Ui) -> JsonTreeResponse {
-        let persistent_id = ui.id();
+        let persistent_id = ui.scope_id();
         let tree_id = tree.id;
         let make_persistent_id =
             |path_segments: &[JsonPointerSegment]| persistent_id.with(tree_id.with(path_segments));
@@ -210,9 +210,16 @@ impl<'a, 'b, T: ToJsonTreeValue> JsonTreeNode<'a, 'b, T> {
                     #[cfg(test)]
                     _response.widget_info(|| {
                         egui::WidgetInfo::labeled(
-                            egui::WidgetType::CollapsingHeader,
+                            egui::Role::DisclosureTriangle,
                             ui.is_enabled(),
-                            JsonPointer(path_segments).to_json_pointer_string(),
+                            // Empty string (i.e. root of the JSON document) is not a valid accessibility label,
+                            // and kittest will error if we don't disable accessibility checks.
+                            // Hence we use this sentinel (which is not a valid JSON pointer).
+                            if path_segments.is_empty() {
+                                "$root".to_string()
+                            } else {
+                                JsonPointer(path_segments).to_json_pointer_string()
+                            },
                         )
                     });
                 });

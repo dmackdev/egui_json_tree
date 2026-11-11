@@ -69,8 +69,12 @@ impl Editor {
                 .map(|parent| parent.to_json_pointer_string())
                 .is_some_and(|object_pointer| object_pointer == state.object_pointer)
         {
-            let enter_was_pressed_with_focus =
-                Self::show_text_edit(ui, &mut state.new_key_input, &mut state.request_focus);
+            let enter_was_pressed_with_focus = Self::show_text_edit(
+                ui,
+                "Enter key",
+                &mut state.new_key_input,
+                &mut state.request_focus,
+            );
 
             ui.add_space(5.0);
 
@@ -81,14 +85,15 @@ impl Editor {
                     .is_some_and(|obj| !obj.contains_key(&state.new_key_input));
 
             ui.add_enabled_ui(valid_key, |ui| {
-                if ui.small_button("✅").clicked() || (valid_key && enter_was_pressed_with_focus) {
+                if ui.small_button("Save").clicked() || (valid_key && enter_was_pressed_with_focus)
+                {
                     edit_events.push(EditEvent::SaveObjectKeyEdit);
                 }
             });
 
             ui.add_space(5.0);
 
-            if ui.small_button("❌").clicked() {
+            if ui.small_button("Cancel").clicked() {
                 if state.is_new_key {
                     edit_events.push(EditEvent::DeleteFromObject {
                         object_pointer: state.object_pointer.to_string(),
@@ -111,18 +116,22 @@ impl Editor {
         if let RenderContext::BaseValue(context) = &context
             && state.pointer == context.pointer.to_json_pointer_string()
         {
-            let enter_was_pressed_with_focus =
-                Self::show_text_edit(ui, &mut state.new_value_input, &mut state.request_focus);
+            let enter_was_pressed_with_focus = Self::show_text_edit(
+                ui,
+                "Enter value",
+                &mut state.new_value_input,
+                &mut state.request_focus,
+            );
 
             ui.add_space(5.0);
 
-            if ui.small_button("✅").clicked() || enter_was_pressed_with_focus {
+            if ui.small_button("Save").clicked() || enter_was_pressed_with_focus {
                 edit_events.push(EditEvent::SaveValueEdit);
             }
 
             ui.add_space(5.0);
 
-            if ui.small_button("❌").clicked() {
+            if ui.small_button("Cancel").clicked() {
                 edit_events.push(EditEvent::CloseValueEdit);
             }
             return;
@@ -282,11 +291,18 @@ impl Editor {
     }
 
     /// Returns `bool` indicating whether the Enter key was pressed whilst the text edit had focus.
-    fn show_text_edit(ui: &mut Ui, input: &mut String, request_focus: &mut bool) -> bool {
+    fn show_text_edit(
+        ui: &mut Ui,
+        hint_text: &str,
+        input: &mut String,
+        request_focus: &mut bool,
+    ) -> bool {
         // Wrap in horizontal to prevent jitters when typing when children are expanded (due to use of horizontal_wrapped when rendering properties).
         let text_edit_output = ui
             .horizontal(|ui| {
                 TextEdit::singleline(input)
+                    // Sets accessibility label
+                    .hint_text(hint_text)
                     .code_editor()
                     .margin(Margin::symmetric(2, 0))
                     .clip_text(false)
@@ -465,15 +481,19 @@ impl Show for JsonEditorExample {
 #[cfg(test)]
 mod tests {
     use egui::{Key, accesskit::Role};
-    use egui_kittest::{Harness, kittest::Queryable};
+    use egui_kittest::{HarnessBuilder, kittest::Queryable};
     use serde_json::json;
 
     use crate::apps::{Show, editor::JsonEditorExample};
 
+    fn harness() -> HarnessBuilder {
+        HarnessBuilder::default()
+    }
+
     #[test]
     fn add_to_array() {
         let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -494,7 +514,7 @@ mod tests {
     #[test]
     fn delete_from_array() {
         let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -515,7 +535,7 @@ mod tests {
     #[test]
     fn edit_array_element() {
         let mut app = JsonEditorExample::new(json!({ "abc": 123, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -534,7 +554,7 @@ mod tests {
         harness.root().type_text("foo");
         harness.run();
 
-        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.get_by_role_and_label(Role::Button, "Save").click();
         harness.run();
         assert!(harness.query_by_role(Role::TextInput).is_none());
 
@@ -546,7 +566,7 @@ mod tests {
     #[test]
     fn add_to_object() {
         let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -565,7 +585,7 @@ mod tests {
         harness.root().type_text("foo");
         harness.run();
 
-        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.get_by_role_and_label(Role::Button, "Save").click();
         harness.run();
         assert!(harness.query_by_role(Role::TextInput).is_none());
 
@@ -580,7 +600,7 @@ mod tests {
     #[test]
     fn edit_object_key() {
         let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -599,7 +619,7 @@ mod tests {
         harness.root().type_text("foo");
         harness.run();
 
-        harness.get_by_role_and_label(Role::Button, "✅").click();
+        harness.get_by_role_and_label(Role::Button, "Save").click();
         harness.run();
         assert!(harness.query_by_role(Role::TextInput).is_none());
 
@@ -614,7 +634,7 @@ mod tests {
     #[test]
     fn when_edit_object_key_can_save_with_enter_key() {
         let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -650,7 +670,7 @@ mod tests {
         let original_json = json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] });
 
         let mut app = JsonEditorExample::new(original_json.clone());
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
@@ -669,7 +689,9 @@ mod tests {
         harness.root().type_text("foo");
         harness.run();
 
-        harness.get_by_role_and_label(Role::Button, "❌").click();
+        harness
+            .get_by_role_and_label(Role::Button, "Cancel")
+            .click();
         harness.run();
         assert!(harness.query_by_role(Role::TextInput).is_none());
 
@@ -681,7 +703,7 @@ mod tests {
     #[test]
     fn delete_from_object() {
         let mut app = JsonEditorExample::new(json!({ "abc": { "baz": "qux" }, "def": [5, 6, 7] }));
-        let mut harness = Harness::new_ui(|ui| {
+        let mut harness = harness().build_ui(|ui| {
             app.show(ui);
         });
 
